@@ -307,6 +307,74 @@ def mp2rage_to_dwi(wildcards):
     return apply_reg_list
 
 
+rule download_mni_icbm152_nlin_sym_09c_minc2:
+    output:
+        directory("data/atlases/mni_icbm152_nlin_sym_09c_minc2/")
+    resources:
+        mem_mb=700
+    threads: 1
+    container:
+        "docker://nistmni/minc-toolkit-min:1.9.18"
+    log:
+        "logs/download_mni_icbm152_nlin_sym_09c_minc2.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        mkdir -p {output}
+        cd {output}
+        wget https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09c_minc2.zip
+        unzip mni_icbm152_nlin_sym_09c_minc2.zip
+        find . -type f -name '*.mnc' -print0 -exec sh -c 'mnc2nii -nii {{}}' \;
+        """
+
+rule wm_lobes_0p9:
+    input:
+        "data/atlases/mni_icbm152_nlin_sym_09c_minc2/"
+    params:
+        wm_percent="mni_icbm152_wm_tal_nlin_sym_09c.nii.gz",
+        wm_lobes="mni_icbm152_t1_tal_nlin_sym_09c_atlas/AtlasWhite.nii.gz"
+    output:
+        wm_90percent_mask="data/atlases/mni_icbm152_nlin_sym_09c_90percent_mask.nii.gz",
+        wm_lobes_90percent="data/atlases/mni_icbm152_nlin_sym_09c_wm_lobes_90percent.nii.gz"
+    conda:
+        "../envs/fslmaths.yaml"
+    resources:
+        mem_mb=700
+    threads: 1
+    log:
+        "logs/mni_icbm152_nlin_sym_09c_wm_lobes_90percent.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FSLOUTPUTTYPE='NIFTI_GZ'
+
+        find {input} -type f -name '*.nii' -print0 -exec sh -c 'fslchfiletype NIFTI_GZ {{}}' \;
+        fslmaths {input}/{params.wm_percent} -thr 0.9 -bin {output.wm_90percent_mask}
+        fslmaths {input}/{params.wm_lobes} -mas {output.wm_90percent_mask} {output.wm_lobes_90percent}
+        """
+
+rule mni_atlases_to_subject_mp2rage_space:
+    input:
+        orig_nii="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.nii.gz",
+        wm_lobes_90percent="data/atlases/mni_icbm152_nlin_sym_09c_wm_lobes_90percent.nii.gz"
+    params:
+        warp_mni152_to_subject="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.inv.nii.gz"
+    output:
+        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_sym_09c_wm_lobes_90percent.nii.gz"
+    threads: 1
+    resources:
+        mem_mb=700
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    log:
+        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_sym_09c_wm_lobes_90percent.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        mri_synthmorph apply {params.warp_mni152_to_subject} {input.wm_lobes_90percent} {output} -m nearest
+        """
+
 rule register_ihmt_to_MP2RAGE_ants:
     input:
         ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
