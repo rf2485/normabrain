@@ -260,7 +260,8 @@ rule mean_b0:
         dwiextract -bzero {input} {output.b0}
         mrmath {output.b0} mean {output.meanb0} -axis 3
         """
-    
+
+
 rule b0_mask:
     input:
         "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0.nii.gz"
@@ -338,6 +339,7 @@ rule aggregate_dki_by_field_strength:
 
         touch {output}
         """
+
 
 rule aggregate_dki:
     input:
