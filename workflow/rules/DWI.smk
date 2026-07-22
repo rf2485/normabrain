@@ -324,6 +324,7 @@ rule dki_tensor_dipy:
         python workflow/scripts/dki_tensor_dipy.py {input.img} {input.mask} {params.outprefix}
         """
 
+
 rule aggregate_dki_by_field_strength:
     input:
         aggregate_dki
