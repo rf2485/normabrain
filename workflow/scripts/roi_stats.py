@@ -1,11 +1,13 @@
 # Original function by Anita Masliah, Aix Marseille Univ, CNRS, CRMBM, Marseille, France
 # Edited for use as a bash CLI by Ryn Flaherty, PhD, Aix Marseille Univ, CNRS, CRMBM, Marseille, France
 
+import argparse
 import numpy as np
 import nibabel as nib
 import nibabel.processing as nibp
 import pandas as pd
 import scipy.stats as stats
+from pathlib import Path
 from tqdm import tqdm
 
 def filter_outliers(array, threshold=3): # 99,7% si normale, aumoins 88,8% sinon (Bienaymé-Tchebychev)
@@ -21,7 +23,16 @@ def filter_outliers(array, threshold=3): # 99,7% si normale, aumoins 88,8% sinon
 
     return filtered_array
 
-def ROI_stats(data_filepath, seg_filepath, ROI_ids, subject, session, acq, filter_on_off):
+def ROI_dict(ROI_lookuptable_filepath):
+    lut_path = Path(ROI_lookuptable_filepath)
+    try:
+        roi_df = pd.read_csv(lut_path, header=None, sep=None, engine='python')
+    except:
+        roi_df = pd.DataFrame(np.genfromtxt(lut_path, dtype=None, encoding=None))
+    roi_dict = dict(zip(roi_df.iloc[:,0], roi_df.iloc[:,1]))
+    return roi_dict
+
+def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_directory, subject, session, acq, filter_on_off):
     """
     Calculate statistics for a quantitative map based on its segmentation. 
     Stats are returned in a pandas dataframe in order to facilitate plots.
@@ -29,7 +40,7 @@ def ROI_stats(data_filepath, seg_filepath, ROI_ids, subject, session, acq, filte
     Inputs:
     - data_filepath (str):  quantitative map filepath (must be .nii.gz file) . e.g. "/home/Documents/T1map_grappa2.nii.gz"
     - seg_filepath (str): Filepath for the segmentation file to be applied to quantitative MRI maps (must be .nii.gz or mgz file). e.g. "/home/Documents/segmentation.nii.gz"
-    - ROI_ids (dict): Contains names of ROIs as keys and their ids in a list as values. e.g., {"thalamus": [10, 49], "wm": [2, 41]}.
+    - ROI_ids (str): ASCII, csv, or tsv file where the first column corresponds to the ROI index and the second column corresponds to the ROI label.
     
     Outputs:
     - df_stat (pandas.DataFrame): Contains name, mean, sd, median, q1, q2 as column, detailing statistics for ROIs.
@@ -43,6 +54,7 @@ def ROI_stats(data_filepath, seg_filepath, ROI_ids, subject, session, acq, filte
     a_map = n_map.get_fdata().astype(np.float32)
     a_seg = n_seg.get_fdata().astype(np.uint16)
 
+    ROI_ids = ROI_dict(ROI_lookuptable_filepath)
     # Get list of ROI names and labels from ROI_ids
     ROI_names=list(ROI_ids.keys()) # List of ROI names
     labels=list(ROI_ids.values()) # List of associated labels 
@@ -89,7 +101,7 @@ def ROI_stats(data_filepath, seg_filepath, ROI_ids, subject, session, acq, filte
         l_skew.append(stats.skew(data))
         l_kurt.append(stats.kurtosis(data))
 
-    return pd.DataFrame(
+    df_stats = pd.DataFrame(
         {
             'region': l_region,
             'data': l_data,
@@ -108,4 +120,18 @@ def ROI_stats(data_filepath, seg_filepath, ROI_ids, subject, session, acq, filte
             'study': [study] * len(labels),
         }
     )
+    outdir = Path(output_directory)
+    df_stats.to_pickle(outdir / f"sub-{subject}_ses-{session}_acq-{acq}_stats.pkl" )
 
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description=
+        """
+        Calculate statistics for a quantitative map based on its segmentation. 
+        Stats are saved to pkl files in the specified output directory, using the specified subject, session and acquisition.
+        """)
+    parser.add_argument('data_filepath', type=str, help="quantitative map filepath (must be .nii.gz file) . e.g. '/home/Documents/T1map_grappa2.nii.gz'")
+    parser.add_argument('seg_filepath', type=str, help="Filepath for the segmentation file to be applied to quantitative MRI maps (must be .nii.gz or mgz file). e.g. "/home/Documents/segmentation.nii.gz"
+")
+    args = parser.parse_args()
+    add_csa_data_to_meta(args.bidspath)
