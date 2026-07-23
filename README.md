@@ -17,7 +17,10 @@ Some freesurfer tools require a freesurfer license. You can obtain a freesurfer 
 
 ihMT MoCo also requires a license agreement. Please sign the license agreement and download the code at https://crmbm.univ-amu.fr/resources/ihmt-moco/. Once you have obtained the code, save it to ```.snakemake/scripts/ihMT_MoCo.sh```
 
+
 The first time the pipeline runs, all required singularity images and conda environments are constructed. This requires an internet connection. If Spinal Cord Toolbox is not present on the system, it is installed via the qMT.smk rule install_sct. 
+
+Note: the Dockerfile used for ihMT MoCo, along with the conda environment yaml copied to the Docker container, is documented in ```workflow/envs/ihmt_moco/```. The dockerfile used for MP2PROC is documented in the submodule ```workflow/scripts/MP2PRoc```. The pipeline pulls these environments from Dockerhub user rflaherty3636 and converts them to singularity images using the same procedure as the other singularity images.
 
 # Useage
 

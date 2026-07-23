@@ -8,33 +8,41 @@ try:
 except:
     field_strength_list=[]
 
-def get_dwi_mag_nii(wildcards):
+def get_dwi_PA_mag_nii(wildcards):
     #try filename with part-mag first, then use more generic name
     try:
-        dwi_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_part-mag_*dwi.nii.gz'))[0]
-        dwi_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_part-mag_*dwi.nii.gz'))
+        dwi_PA_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_part-mag_*dwi.nii.gz'))[0]
+        dwi_PA_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_part-mag_*dwi.nii.gz'))
     except:
-        dwi_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_*dwi.nii.gz'))[0]    
-        dwi_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_*dwi.nii.gz'))
-    return dwi_mag
+        dwi_PA_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_*dwi.nii.gz'))[0]    
+        dwi_PA_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_*dwi.nii.gz'))
+    return dwi_PA_mag
 
-def get_dwi_phase_nii(wildcards):
-    dwi_phase = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_part-phase_*dwi.nii.gz'))
-    return dwi_phase
+def get_dwi_PA_phase_nii(wildcards):
+    dwi_PA_phase = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-PA_part-phase_*dwi.nii.gz'))
+    return dwi_PA_phase
 
-def get_dwi_phase_mif(wildcards):
-    dwi_phase = sorted(glob.glob(f'data/derivatives/{wildcards.field_strength}/dwi/sub-{wildcards.subject}/ses-{wildcards.session}/acq-DWI{wildcards.dwi_params}/sub-{wildcards.subject}_ses-{wildcards.session}_acq-DWI{wildcards.dwi_params}_dir-PA_part-phase_dwi.mif'))
-    return dwi_phase
+def get_dwi_PA_phase_mif(wildcards):
+    dwi_PA_phase = sorted(glob.glob(f'data/derivatives/{wildcards.field_strength}/dwi/sub-{wildcards.subject}/ses-{wildcards.session}/acq-DWI{wildcards.dwi_params}/sub-{wildcards.subject}_ses-{wildcards.session}_acq-DWI{wildcards.dwi_params}_dir-PA_part-phase_dwi.mif'))
+    return dwi_PA_phase
 
-def get_b0_mag_nii(wildcards):
+def get_dwi_AP_mag_nii(wildcards):
     #try filename with part-mag first, then use more generic name
     try:
-        b0_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-AP_part-mag_*dwi.nii.gz'))[0]
-        b0_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-AP_part-mag_*dwi.nii.gz'))
+        dwi_AP_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-AP_part-mag_*dwi.nii.gz'))[0]
+        dwi_AP_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-AP_part-mag_*dwi.nii.gz'))
     except:
-        b0_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-AP_*dwi.nii.gz'))[0]    
-        b0_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-AP_*dwi.nii.gz'))
-    return b0_mag
+        dwi_AP_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-AP_*dwi.nii.gz'))[0]    
+        dwi_AP_mag = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-AP_*dwi.nii.gz'))
+    return dwi_AP_mag
+
+def get_dwi_AP_phase_nii(wildcards):
+    dwi_AP_phase = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/dwi/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.dwi_params}*_dir-AP_part-phase_*dwi.nii.gz'))
+    return dwi_AP_phase
+
+def get_dwi_AP_phase_mif(wildcards):
+    dwi_AP_phase = sorted(glob.glob(f'data/derivatives/{wildcards.field_strength}/dwi/sub-{wildcards.subject}/ses-{wildcards.session}/acq-DWI{wildcards.dwi_params}/sub-{wildcards.subject}_ses-{wildcards.session}_acq-DWI{wildcards.dwi_params}_dir-AP_part-phase_dwi.mif'))
+    return dwi_AP_phase
 
 def aggregate_dki(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -49,16 +57,19 @@ def aggregate_dki(wildcards):
                 dki_list.append("data/derivatives/{field_strength}/dwi/sub-" + subject + "/ses-" + session + "/acq-DWI" + dwi + "/dki/")
     return dki_list
 
+
 rule concat_dwi_runs:
     input:
-        dwi=get_dwi_mag_nii,
-        b0=get_b0_mag_nii,
-        phase=get_dwi_phase_nii
+        dwi_PA_mag=get_dwi_PA_mag_nii,
+        dwi_AP_mag=get_dwi_AP_mag_nii,
+        dwi_PA_phase=get_dwi_PA_phase_nii,
+        dwi_AP_phase=get_dwi_AP_phase_nii
     output:
-        dwi="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-PA_part-mag_dwi.mif",
-        b0="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-AP_part-mag_dwi.mif",
+        dwi_PA_mag="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-PA_part-mag_dwi.mif",
+        dwi_AP_mag="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-AP_part-mag_dwi.mif",
     params:
-        phase_out="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-PA_part-phase_dwi.mif"
+        dwi_PA_phase="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-PA_part-phase_dwi.mif",
+        dwi_AP_phase="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-AP_part-phase_dwi.mif",
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
     resources: #limit memory by input size
@@ -69,50 +80,67 @@ rule concat_dwi_runs:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        export input_dwi=({input.dwi})
-        dwi_tmp=()
-        if [ ${{#input_dwi[@]}} -gt 1 ]; then
-            for img in "${{input_dwi[@]}}"; do
+        export input_dwi_PA_mag=({input.dwi_PA_mag})
+        dwi_PA_mag_tmp=()
+        if [ ${{#input_dwi_PA_mag[@]}} -gt 1 ]; then
+            for img in "${{input_dwi_PA_mag[@]}}"; do
                 mrconvert -json_import "${{img%.nii.gz}}.json" -fslgrad "${{img%.nii.gz}}.bvec" "${{img%.nii.gz}}.bval" -force $img "${{img%.nii.gz}}.mif"
-                dwi_tmp+=("${{img%.nii.gz}}.mif")
+                dwi_PA_mag_tmp+=("${{img%.nii.gz}}.mif")
             done
-            mrcat ${{dwi_tmp[@]}} {output.dwi} -force
-            for img in "${{dwi_tmp[@]}}"; do
+            mrcat ${{dwi_PA_mag_tmp[@]}} {output.dwi_PA_mag} -force
+            for img in "${{dwi_PA_mag_tmp[@]}}"; do
                 rm $img
             done
         else
-            mrconvert -json_import "${{input_dwi%.nii.gz}}.json" -fslgrad "${{input_dwi%.nii.gz}}.bvec" "${{input_dwi%.nii.gz}}.bval" -force {input.dwi} {output.dwi}
+            mrconvert -json_import "${{input_dwi_PA_mag%.nii.gz}}.json" -fslgrad "${{input_dwi_PA_mag%.nii.gz}}.bvec" "${{input_dwi_PA_mag%.nii.gz}}.bval" -force {input.dwi_PA_mag} {output.dwi_PA_mag}
         fi
         
-        export input_b0=({input.b0})
-        b0_tmp=()
-        if [ ${{#input_b0[@]}} -gt 1 ]; then
-            for img in "${{input_b0[@]}}"; do
+        export input_dwi_AP_mag=({input.dwi_AP_mag})
+        dwi_AP_mag_tmp=()
+        if [ ${{#input_dwi_AP_mag[@]}} -gt 1 ]; then
+            for img in "${{input_dwi_AP_mag[@]}}"; do
                 mrconvert -json_import "${{img%.nii.gz}}.json" -fslgrad "${{img%.nii.gz}}.bvec" "${{img%.nii.gz}}.bval" -force $img "${{img%.nii.gz}}.mif"
-                b0_tmp+=("${{img%.nii.gz}}.mif")
+                dwi_AP_mag_tmp+=("${{img%.nii.gz}}.mif")
             done
-            mrcat ${{b0_tmp[@]}} {output.b0} -force
-            for img in "${{b0_tmp[@]}}"; do
+            mrcat ${{dwi_AP_mag_tmp[@]}} {output.dwi_AP_mag} -force
+            for img in "${{dwi_AP_mag_tmp[@]}}"; do
                 rm $img
             done
         else
-            mrconvert -json_import "${{input_b0%.nii.gz}}.json" -fslgrad "${{input_b0%.nii.gz}}.bvec" "${{input_b0%.nii.gz}}.bval" -force {input.b0} {output.b0}
+            mrconvert -json_import "${{input_dwi_AP_mag%.nii.gz}}.json" -fslgrad "${{input_dwi_AP_mag%.nii.gz}}.bvec" "${{input_dwi_AP_mag%.nii.gz}}.bval" -force {input.dwi_AP_mag} {output.dwi_AP_mag}
         fi
  
-        export input_phase=({input.phase})
-        phase_tmp=()
-        if [ ${{#input_phase[@]}} -gt 0 ]; then
-            if [ ${{#input_phase[@]}} -gt 1 ]; then
-                for img in "${{input_phase[@]}}"; do
+        export input_dwi_PA_phase=({input.dwi_PA_phase})
+        dwi_PA_phase_tmp=()
+        if [ ${{#input_dwi_PA_phase[@]}} -gt 0 ]; then
+            if [ ${{#input_dwi_PA_phase[@]}} -gt 1 ]; then
+                for img in "${{input_dwi_PA_phase[@]}}"; do
                     mrconvert -json_import "${{img%.nii.gz}}.json" -fslgrad "${{img%.nii.gz}}.bvec" "${{img%.nii.gz}}.bval" -force $img "${{img%.nii.gz}}.mif"
-                    phase_tmp+=("${{img%.nii.gz}}.mif")
+                    dwi_PA_phase_tmp+=("${{img%.nii.gz}}.mif")
                 done
-                mrcat ${{phase_tmp[@]}} {params.phase_out} -force
-                for img in "${{phase_tmp[@]}}"; do
+                mrcat ${{dwi_PA_phase_tmp[@]}} {params.dwi_PA_phase} -force
+                for img in "${{dwi_PA_phase_tmp[@]}}"; do
                     rm $img
                 done
             else
-                mrconvert -json_import "${{input_phase%.nii.gz}}.json" -fslgrad "${{input_phase%.nii.gz}}.bvec" "${{input_phase%.nii.gz}}.bval" -force {input.phase} {params.phase_out}
+                mrconvert -json_import "${{input_dwi_PA_phase%.nii.gz}}.json" -fslgrad "${{input_dwi_PA_phase%.nii.gz}}.bvec" "${{input_dwi_PA_phase%.nii.gz}}.bval" -force {input.dwi_PA_phase} {params.dwi_PA_phase}
+            fi
+        fi
+
+        export input_dwi_AP_phase=({input.dwi_AP_phase})
+        dwi_AP_phase_tmp=()
+        if [ ${{#input_dwi_AP_phase[@]}} -gt 0 ]; then
+            if [ ${{#input_dwi_AP_phase[@]}} -gt 1 ]; then
+                for img in "${{input_dwi_AP_phase[@]}}"; do
+                    mrconvert -json_import "${{img%.nii.gz}}.json" -fslgrad "${{img%.nii.gz}}.bvec" "${{img%.nii.gz}}.bval" -force $img "${{img%.nii.gz}}.mif"
+                    dwi_AP_phase_tmp+=("${{img%.nii.gz}}.mif")
+                done
+                mrcat ${{dwi_AP_phase_tmp[@]}} {params.dwi_AP_phase} -force
+                for img in "${{dwi_AP_phase_tmp[@]}}"; do
+                    rm $img
+                done
+            else
+                mrconvert -json_import "${{input_dwi_AP_phase%.nii.gz}}.json" -fslgrad "${{input_dwi_AP_phase%.nii.gz}}.bvec" "${{input_dwi_AP_phase%.nii.gz}}.bval" -force {input.dwi_AP_phase} {params.dwi_AP_phase}
             fi
         fi       
         """
@@ -120,9 +148,10 @@ rule concat_dwi_runs:
 
 rule nyu_designer:
     input:
-        dwi="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-PA_part-mag_dwi.mif",
-        b0="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-AP_part-mag_dwi.mif",
-        phase=get_dwi_phase_mif
+        dwi_PA_mag="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-PA_part-mag_dwi.mif",
+        dwi_AP_mag="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-AP_part-mag_dwi.mif",
+        dwi_PA_phase=get_dwi_PA_phase_mif,
+        dwi_AP_phase=get_dwi_AP_phase_mif
     params:
         preproc="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/preproc/"
     output:
@@ -148,19 +177,41 @@ rule nyu_designer:
         fi
 
         echo "BZeroThreshold: 15.0" > $HOME/.mrtrix.conf
-        if [ {input.phase} ]; then
-            designer "{input.dwi}" "{output.mif}" \
-            -denoise -shrinkage frob -adaptive_patch -phase $HOME/{input.phase} \
+
+        export shells_PA="$(mrinfo -shell_bvalues {input.dwi_PA_mag})"
+        shells_PA_arr=($shells_PA)
+        export shells_AP="$(mrinfo -shell_bvalues {input.dwi_AP_mag})"
+        shells_AP_arr=($shells_AP)
+
+        if [ ${{#shells_PA_arr[@]}} -gt 1 ]; then
+            export dwi="{input.dwi_PA_mag}"
+            export phase="{input.dwi_PA_phase}"
+            export rpe="{input.dwi_AP_mag}"
+        elif [ ${{#shells_AP_arr[@]}} -gt 1 ]; then
+            export dwi="{input.dwi_AP_mag}"
+            export phase="{input.dwi_AP_phase}"
+            export rpe="{input.dwi_PA_mag}"
+        fi
+
+        if [ ${{#shells_PA_arr[@]}} -eq ${{#shells_AP_arr[@]}} ]; then
+            export rpe_flag=rpe_all
+        else
+            export rpe_flag=rpe_pair
+        fi
+
+        if [ "$phase" ]; then
+            designer "$dwi" "{output.mif}" \
+            -denoise -shrinkage frob -adaptive_patch -phase $HOME/$phase \
             -degibbs \
-            -eddy -rpe_pair $HOME/{input.b0} -eddy_quad_off \
+            -eddy -${{rpe_flag}} $HOME/$rpe -eddy_quad_off \
             -normalize \
             -scratch {params.preproc} -nocleanup \
             -n_cores {threads} -nthreads {threads}
         else
-            designer "{input.dwi}" "{output.mif}" \
+            designer "$dwi" "{output.mif}" \
             -denoise -shrinkage frob -adaptive_patch -rician \
             -degibbs \
-            -eddy -rpe_pair $HOME/{input.b0} -eddy_quad_off \
+            -eddy -${{rpe_flag}} $HOME/$rpe -eddy_quad_off \
             -normalize \
             -scratch {params.preproc} -nocleanup \
             -n_cores {threads} -nthreads {threads}
@@ -209,7 +260,8 @@ rule mean_b0:
         dwiextract -bzero {input} {output.b0}
         mrmath {output.b0} mean {output.meanb0} -axis 3
         """
-    
+
+
 rule b0_mask:
     input:
         "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0.nii.gz"
@@ -273,6 +325,7 @@ rule dki_tensor_dipy:
         python workflow/scripts/dki_tensor_dipy.py {input.img} {input.mask} {params.outprefix}
         """
 
+
 rule aggregate_dki_by_field_strength:
     input:
         aggregate_dki
@@ -286,6 +339,7 @@ rule aggregate_dki_by_field_strength:
 
         touch {output}
         """
+
 
 rule aggregate_dki:
     input:

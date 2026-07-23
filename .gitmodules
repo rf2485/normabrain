@@ -16,3 +16,6 @@
 [submodule "workflow/scripts/MPRAGEise"]
 	path = workflow/scripts/MPRAGEise
 	url = https://github.com/srikash/MPRAGEise.git
+[submodule "workflow/scripts/MP2Proc"]
+	path = workflow/scripts/MP2Proc
+	url = https://github.com/SirTwinkleberry/MP2Proc.git

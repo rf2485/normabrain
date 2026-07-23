@@ -31,22 +31,22 @@ except:
 #     return echo_spacing
 
 def get_inv1(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}*_inv-1_MP2RAGE.nii.gz'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*inv-1_MP2RAGE.nii.gz'))[0]
 
 def get_inv1_json(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}*_inv-1_MP2RAGE.json'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*inv-1_MP2RAGE.json'))[0]
 
 def get_inv2(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}*_inv-2_MP2RAGE.nii.gz'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*inv-2_MP2RAGE.nii.gz'))[0]
 
 def get_inv2_json(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}*_inv-2_MP2RAGE.json'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*inv-2_MP2RAGE.json'))[0]
 
 def get_unit1(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}*_UNIT1.nii.gz'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*UNIT1.nii.gz'))[0]
 
 def get_unit1_json(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}*_UNIT1.json'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*UNIT1.json'))[0]
 
 def get_preproc_uniden_list(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
@@ -213,7 +213,7 @@ rule create_uncorr_qT1:
     threads:
         8
     container:
-        "docker://hugodary/b1corr_t1map_cpp:latest"
+        "docker://rflaherty3636/mp2proc:v0.1.2"
     resources:
         mem_mb=3000
     log:
@@ -222,7 +222,7 @@ rule create_uncorr_qT1:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        /opt/vol_proc/main {input}
+        /opt/MP2Proc/bin/main {input}
         cp {params.qT1} {output}
         """
 
@@ -278,7 +278,7 @@ rule run_mp2proc:
     threads:
         8
     container:
-        "docker://hugodary/b1corr_t1map_cpp:latest"
+        "docker://rflaherty3636/mp2proc:v0.1.2"
     resources: 
         mem_mb=5000
     log:
@@ -286,7 +286,7 @@ rule run_mp2proc:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        /opt/vol_proc/main {input.mp2proc_json}
+        /opt/MP2Proc/bin/main {input.mp2proc_json}
 
         mv {params.b1} {output.b1}
         mv {params.t1map} {output.t1map}
@@ -434,6 +434,8 @@ rule MPRAGEise:
         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_MPRAGEise.log"
     shell:
         """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
         python workflow/scripts/MPRAGEise.py -i {input.inv2_nifti} -u {input.unit1_nifti} -o {output.outdir}
         mv {output.outdir}/{params} {output.outimg}
         """
