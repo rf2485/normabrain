@@ -1,3 +1,6 @@
+# Original function by Anita Masliah, Aix Marseille Univ, CNRS, CRMBM, Marseille, France
+# Edited for use as a bash CLI by Ryn Flaherty, PhD, Aix Marseille Univ, CNRS, CRMBM, Marseille, France
+
 import numpy as np
 import nibabel as nib
 import nibabel.processing as nibp
