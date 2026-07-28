@@ -29,10 +29,10 @@ def ROI_dict(ROI_lookuptable_filepath):
         roi_df = pd.read_csv(lut_path, header=None, sep=None, engine='python')
     except:
         roi_df = pd.DataFrame(np.genfromtxt(lut_path, dtype=None, encoding=None))
-    roi_dict = dict(zip(roi_df.iloc[:,0], roi_df.iloc[:,1]))
+    roi_dict = dict(zip(roi_df.iloc[:,1], roi_df.iloc[:,0]))
     return roi_dict
 
-def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_directory, subject, session, acq, filter_on_off=False):
+def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_directory, subject, session, acq, remove_outliers=False):
     """
     Calculate statistics for a quantitative map based on its segmentation. 
     Stats are returned in a pandas dataframe in order to facilitate plots.
@@ -49,6 +49,9 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
     # Load quantitative map and associated segmentation 
     n_map = nib.load(data_filepath) # map
     n_seg = nib.load(seg_filepath) # segmentation
+    seg_name =  Path(seg_filepath).with_suffix('').stem.replace("_resliced", "")
+    if remove_outliers == True:
+        seg_name = seg_name + "_nooutliers"
 
     #n_map = nibp.resample_from_to(n_map, n_seg) # commented to get an error if not coregistered
     a_map = n_map.get_fdata().astype(np.float32)
@@ -57,11 +60,11 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
     ROI_ids = ROI_dict(ROI_lookuptable_filepath)
     # Get list of ROI names and labels from ROI_ids
     ROI_names=list(ROI_ids.keys()) # List of ROI names
-    labels=list(ROI_ids.values()) # List of associated labels 
+    indices=list(ROI_ids.values()) # List of associated (numeric) indices
 
     # # Dictionnaries initialization
     # ROI_masks_dict=dict() # Key : ROI_name, Value : ROI_mask
-    ROI_data_dict=dict() # Key : ROI_name, Value : map_masked
+    # ROI_data_dict=dict() # Key : ROI_name, Value : map_masked
     # df_stat=pd.DataFrame()
 
     l_region    = list()
@@ -78,17 +81,21 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
     l_kurt      = list()
 
     print("Extracting ROI values and statistics calculation ...")
-    for i, label in tqdm(enumerate(labels)):
-        mask = np.isin(a_seg, label) # Extract mask for a ROI from your segmentation ( e.g. mask of "Thalamus" labelled by [10, 49]). 
+    for n, index in tqdm(enumerate(indices)):
+
+        if index in a_seg: #if the segmentation includes the ROI index as defined in the lookup table, make a mask of this ROI
+            mask = np.isin(a_seg, index)  
+        else: #otherwise skip the rest of the code in the loop and move on to the next index
+            continue
         data = a_map[mask] # Add masked data to a dictionnary also associated with its ROI name.
         data = data[data != 0]
 
-        if filter_on_off == True: 
+        if remove_outliers == True: 
             data = filter_outliers(data)
         else:
             data = data
         # create df with stats
-        l_region.append(ROI_names[i])
+        l_region.append(ROI_names[n])
         l_data.append(data)
         l_mean.append(np.mean(data))
         l_sd.append(np.std(data))
@@ -115,14 +122,14 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
             'qcd': l_qcd,
             'skew': l_skew,
             'kurt': l_kurt,
-            'session': [session] * len(labels),
-            'subject': [subject] * len(labels),
-            'acquisition': [acq] * len(labels),
-            'segmentation': Path(seg_filepath).with_suffix('').stem * len(labels)
+            'session': [session] * len(l_kurt),
+            'subject': [subject] * len(l_kurt),
+            'acquisition': [acq] * len(l_kurt),
+            'segmentation': seg_name * len(l_kurt)
         }
     )
     outdir = Path(output_directory)
-    df_stats.to_pickle(outdir / f"sub-{subject}_ses-{session}_acq-{acq}_stats.pkl" )
+    df_stats.to_pickle(outdir / f"sub-{subject}_ses-{session}_acq-{acq}_seg-{seg_name}_stats.pkl" )
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -133,10 +140,14 @@ if __name__ == '__main__':
         """)
     parser.add_argument('data_filepath', type=str, help="quantitative map filepath (must be .nii.gz file) . e.g. '/home/Documents/T1map_grappa2.nii.gz'")
     parser.add_argument('seg_filepath', type=str, help="Filepath for the segmentation file to be applied to quantitative MRI maps (must be .nii.gz or mgz file). e.g. '/home/Documents/segmentation.nii.gz'")
-    parser.add_argument('ROI_lookuptable_filepath', type=str, help="Filepath for an ASCII, csv, or tsv file where the first column corresponds to the ROI index and the second column corresponds to the ROI label.")
+    parser.add_argument('ROI_lookuptable_filepath', type=str, help="Filepath for an ASCII, csv, or tsv file where the first column corresponds to the ROI index and the second column corresponds to the ROI name.")
     parser.add_argument('output_directory', type=str, help="Filepath for the output directory")
     parser.add_argument('subject', type=str, help="Subject name, for use in file naming and as a column in the pkl file.")
     parser.add_argument('session', type=str, help="Session name, for use in file naming and as a column in the pkl file.")
-    parser.add_argument('filter_on_off', action=argparse.BooleanOptionalAction, help="When flag is applied, remove outliers more than 3 standard deviations from the mean. Without this flag, data remains unfiltered.")
+    parser.add_argument('acquisition', type=str, help="Acquisition name, for use in file naming and as a column in the pkl file.")
+    parser.add_argument('-r', '--remove_outliers', action="store_true", help="When flag is applied, remove outliers more than 3 standard deviations from the mean. Without this flag, data remains unfiltered.")
     args = parser.parse_args()
-    add_csa_data_to_meta(args.bidspath)
+    if args.remove_outliers:
+        ROI_stats(args.data_filepath, args.seg_filepath, args.ROI_lookuptable_filepath, args.output_directory, args.subject, args.session, args.acquisition, remove_outliers=True)
+    else:
+        ROI_stats(args.data_filepath, args.seg_filepath, args.ROI_lookuptable_filepath, args.output_directory, args.subject, args.session, args.acquisition, remove_outliers=False)

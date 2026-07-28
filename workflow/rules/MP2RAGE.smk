@@ -566,11 +566,11 @@ rule download_mni_icbm152_nlin_sym_09c_minc2:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-        wget https://www.bic.mni.mcgill.ca/~vfonov/icbm/icbm2009_lobe_defs.txt
-        mv data/atlases/icbm2009_lobe_defs.txt {output.lut}
+        
         mkdir -p {output.mni152_sym}
         cd {output.mni152_sym}
+        wget https://www.bic.mni.mcgill.ca/~vfonov/icbm/icbm2009_lobe_defs.txt
+        mv icbm2009_lobe_defs.txt ../mni_icbm152_wm_lobes_lut.txt
         wget https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09c_minc2.zip
         unzip mni_icbm152_nlin_sym_09c_minc2.zip
         mnc2nii  mni_icbm152_t1_tal_nlin_sym_09c_atlas/AtlasWhite.mnc
@@ -684,6 +684,30 @@ rule reslice_segmentation:
         mrgrid {input.seg} regrid -template {input.ref} -strides {input.ref} -interp nearest {output} -force
         """
     
+
+rule mp2rage_roi_stats:
+    input:
+        mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz",
+        seg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/{segmentation}_resliced.nii.gz",
+        lut="data/atlases/{segmentation}_lut.txt"
+    params:
+        outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/"
+    output:
+        stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_seg-{segmentation}_stats.pkl",
+        nooutliers_stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_seg-{segmentation}_nooutliers_stats.pkl",
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_{segmentation}_stats.log",
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        python3 workflow/scripts/roi_stats.py "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}_{wildcards.mp2rage_map}"
+        python3 workflow/scripts/roi_stats.py -r "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}_{wildcards.mp2rage_map}"
+        """
+
 
 rule mp2rage_segstats:
     input:
