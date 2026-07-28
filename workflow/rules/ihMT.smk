@@ -60,6 +60,9 @@ rule add_xml_data_to_meta_ihmt:
         protocol_path = config["protocol_path"]
     output:
         temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/sub-{subject}_ses-{session}_acq-{ihmt_params}_addXMLdata.done")
+    resources: 
+        mem_mb=200
+    threads: 1
     log:
         "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/sub-{subject}_ses-{session}_acq-{ihmt_params}_addXMLdata.log"
     shell:
@@ -168,6 +171,9 @@ rule split_contrast_ihmt:
         mtd_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/split/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_cosmod.nii"
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
+    resources: 
+        mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/split.log"
     shell:
@@ -235,6 +241,9 @@ rule calculate_ihmt_maps:
         BPR="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BPR.nii.gz",      
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
+    resources: 
+        mem_mb=1000
+    threads: 1
     log:
         "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihMTmaps.log"
     shell: 
@@ -322,6 +331,7 @@ rule apply_brainmask_ihmt:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTmap_brain.log"
     shell:
@@ -420,6 +430,9 @@ rule b1corr_ihmt:
         BPR="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BPR.nii.gz",      
     conda:
         "../envs/ihMT.yaml"
+    resources: #limit memory by input size
+        mem_mb=1000
+    threads: 1
     log:
        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr.log"
     shell:
@@ -478,6 +491,7 @@ rule apply_brainmask_ihmt_b1corr:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTmap_brain.log"
     shell:

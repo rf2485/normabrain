@@ -404,7 +404,7 @@ rule gather_ihmt_to_MP2RAGE_ants:
 
 rule apply_reg_seg_to_ihmt_ants:
     input:
-        seg = resliced_aparc_aseg_first_acq_mp2rage,
+        seg = resliced_segmentation_first_acq_mp2rage,
         reg = ihmt_reg2first_acq_mp2rage,
         ihmt_maps_done="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done"
     params:
@@ -455,6 +455,9 @@ rule ihmt_stats:
         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/stats/ihmt_stats.done"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/ihmt_stats.log"
     shell:
@@ -487,6 +490,9 @@ rule ihmt_tsv:
         "data/derivatives/{field_strength}/freesurfer/ihmt_stats.done"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/freesurfer/ihmt_stats_tsv.log"
     shell:
@@ -680,7 +686,7 @@ rule gather_qMT_to_MP2RAGE_ants:
 
 rule apply_reg_seg_to_qMT_ants:
     input:
-        seg = resliced_aparc_aseg_first_acq_mp2rage,
+        seg = resliced_segmentation_first_acq_mp2rage,
         reg = qMT_reg2first_acq_mp2rage,
         ref = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map.nii.gz"
     output:
@@ -721,6 +727,9 @@ rule qMT_stats:
         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}/stats/qMT_stats.done"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=500
+    threads: 1
     log:
        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}/qMT_stats.log" 
     shell:
@@ -753,6 +762,9 @@ rule qMT_tsv:
         subjects_dir="data/derivatives/{field_strength}/freesurfer/"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=500
+    threads: 1
     log:
       "logs/{field_strength}/freesurfer/qMT_stats_tsv.log"  
     shell:
@@ -852,6 +864,7 @@ rule register_DWI_to_MP2RAGE_bbregister:
         outbase="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2{mp2rage_params}"
     resources:
         mem_mb=1500
+    threads: 1
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     log:
@@ -880,6 +893,7 @@ rule apply_reg_DWI_to_MP2RAGE_bbregister:
         dwiprefix="sub-{subject}_ses-{session}_acq-DWI{dwi_params}"
     resources:
         mem_mb=1500
+    threads: 1
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     log:
@@ -920,7 +934,7 @@ rule gather_DWI_to_MP2RAGE_bbregister:
 
 rule apply_reg_seg_to_dwi_bbregister:
     input:
-        seg = resliced_aparc_aseg_first_acq_mp2rage,
+        seg = resliced_segmentation_first_acq_mp2rage,
         reg = dwi_reg2first_acq_mp2rage,
         b0 = "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0_brain.nii.gz"
     output:
@@ -953,6 +967,9 @@ rule dwi_stats:
         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-DWI{dwi_params}/stats/dwi_stats.done"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=500
+    threads: 1
     log:
        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-DWI{dwi_params}/dwi_stats.log" 
     shell:
@@ -985,6 +1002,9 @@ rule dwi_tsv:
         subjects_dir="data/derivatives/{field_strength}/freesurfer/"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=500
+    threads: 1
     log:
       "logs/{field_strength}/freesurfer/dwi_stats_tsv.log"  
     shell:
@@ -1020,6 +1040,7 @@ rule apply_reg_MP2RAGE_to_dwi_bbregister:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/reg2DWI/sub-{subject}_ses-{session}_acq-{mp2rage_params}_applyreg2DWI{dwi_params}.done"
     resources: 
         mem_mb=500
+    threads: 1
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     log:

@@ -135,6 +135,9 @@ rule copy_raw_qsm:
         get_mt0_phase
     output:
         "data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_echo-1_part-phase_MEGRE.json"
+    resources:
+        mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     log:
         "logs/{field_strength}/QSM/sub-{subject}/ses-{session}/copy_raw_qsm_acq-{seq}mt0{qMT_params}.log"
     run: #python code, not shell
@@ -178,6 +181,7 @@ rule copy_denoised_qsm:
         "data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_echo-1_part-phase_MEGRE.nii.gz"
     resources: #limit memory by input size
         mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -202,6 +206,7 @@ rule copy_raw_t1w_json_qsm:
         "data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w.json"
     resources: #limit memory by input size
         mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     log:
         "logs/{field_strength}/QSM/sub-{subject}/ses-{session}/copy_raw_t1w_json_qsm_acq-{mp2rage_params}.log"
     run:
@@ -217,6 +222,7 @@ rule copy_uniden_qsm:
         "data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w.nii.gz"
     resources: #limit memory by input size
         mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     log:
        "logs/{field_strength}/QSM/sub-{subject}/ses-{session}/copy_uniden_qsm_acq-{mp2rage_params}.log" 
     shell:
@@ -236,6 +242,7 @@ rule copy_mask_qsm:
         "data/derivatives/{field_strength}/QSM/derivatives/brain_spine_mask/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mask.nii.gz"
     resources: #limit memory by input size
         mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:

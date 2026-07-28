@@ -32,7 +32,7 @@ def ROI_dict(ROI_lookuptable_filepath):
     roi_dict = dict(zip(roi_df.iloc[:,0], roi_df.iloc[:,1]))
     return roi_dict
 
-def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_directory, subject, session, acq, filter_on_off):
+def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_directory, subject, session, acq, filter_on_off=False):
     """
     Calculate statistics for a quantitative map based on its segmentation. 
     Stats are returned in a pandas dataframe in order to facilitate plots.
@@ -83,7 +83,7 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
         data = a_map[mask] # Add masked data to a dictionnary also associated with its ROI name.
         data = data[data != 0]
 
-        if filter_on_off == "filter_on": 
+        if filter_on_off == True: 
             data = filter_outliers(data)
         else:
             data = data
@@ -117,7 +117,8 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
             'kurt': l_kurt,
             'session': [session] * len(labels),
             'subject': [subject] * len(labels),
-            'study': [study] * len(labels),
+            'acquisition': [acq] * len(labels),
+            'segmentation': Path(seg_filepath).with_suffix('').stem * len(labels)
         }
     )
     outdir = Path(output_directory)
@@ -128,10 +129,14 @@ if __name__ == '__main__':
         description=
         """
         Calculate statistics for a quantitative map based on its segmentation. 
-        Stats are saved to pkl files in the specified output directory, using the specified subject, session and acquisition.
+        Stats are saved to pkl files in the specified output directory, using the specified subject, session and acquisition in the filename and .
         """)
     parser.add_argument('data_filepath', type=str, help="quantitative map filepath (must be .nii.gz file) . e.g. '/home/Documents/T1map_grappa2.nii.gz'")
-    parser.add_argument('seg_filepath', type=str, help="Filepath for the segmentation file to be applied to quantitative MRI maps (must be .nii.gz or mgz file). e.g. "/home/Documents/segmentation.nii.gz"
-")
+    parser.add_argument('seg_filepath', type=str, help="Filepath for the segmentation file to be applied to quantitative MRI maps (must be .nii.gz or mgz file). e.g. '/home/Documents/segmentation.nii.gz'")
+    parser.add_argument('ROI_lookuptable_filepath', type=str, help="Filepath for an ASCII, csv, or tsv file where the first column corresponds to the ROI index and the second column corresponds to the ROI label.")
+    parser.add_argument('output_directory', type=str, help="Filepath for the output directory")
+    parser.add_argument('subject', type=str, help="Subject name, for use in file naming and as a column in the pkl file.")
+    parser.add_argument('session', type=str, help="Session name, for use in file naming and as a column in the pkl file.")
+    parser.add_argument('filter_on_off', action=argparse.BooleanOptionalAction, help="When flag is applied, remove outliers more than 3 standard deviations from the mean. Without this flag, data remains unfiltered.")
     args = parser.parse_args()
     add_csa_data_to_meta(args.bidspath)

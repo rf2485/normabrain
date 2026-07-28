@@ -121,6 +121,7 @@ rule concat_echos:
         temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_echos4d.nii")
     resources: 
         mem_mb=2000
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -140,7 +141,8 @@ rule create_complex_images:
         mag_clipped=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d_clippedtophase.nii"),
         out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d.nii")
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=1500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -164,7 +166,8 @@ rule rician_bias_corr:
         denoised=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d_riciancorr.nii"),
         noisemap="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_echos4d_riciannoisemap.nii"
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=2500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -181,8 +184,9 @@ rule calculate_mag_from_complex:
         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d_riciancorr.nii"
     output:
         temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d_riciancorr.nii")
-    resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+    resources:
+        mem_mb=1500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -200,7 +204,8 @@ rule calculate_phase_from_complex:
     output:
         temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-phase_echos4d_riciancorr.nii")
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=1500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -224,8 +229,9 @@ rule make_n_echos_equal:
         mt0_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_clipped.nii"),
         mtw_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_clipped.nii"),
         pdw_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_clipped.nii")
-    resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+    resources:
+        mem_mb=1000
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -264,8 +270,9 @@ rule concat_contrast_mag:
         pdw="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_clipped.nii"
     output:
         temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d.nii")
-    resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+    resources:
+        mem_mb=2000
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -284,7 +291,7 @@ rule denoise_contrast_mag:
         out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d_denoise.nii"),
         noisemap="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_noisemap.nii"
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=3000
     threads: 8
     conda:
         "../envs/tMPPCA.yaml"
@@ -312,7 +319,8 @@ rule split_contrast_mag:
         mtw=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_denoise.nii"),
         pdw=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_denoise.nii")
     resources:
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=2000
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -334,6 +342,7 @@ rule sos:
        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz"
     resources: 
         mem_mb=500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -378,6 +387,7 @@ rule apply_brainmask_qMT:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain.log"
     shell:
@@ -393,6 +403,7 @@ rule install_sct:
         ".snakemake/scripts/install_sct.done"
     resources: 
         mem_mb=2000
+    threads: 1
     log:
         "logs/install_sct_log.txt"
     shell: #Check if sct is already installed. If not, install version 7.2 
@@ -459,6 +470,7 @@ rule brain_and_spine_mask_qMT:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_spine_mask.log"
     shell: #combine brain and spine masks, and fill holes
@@ -604,7 +616,7 @@ rule mtr:
         mt_off = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz",
         mt_on = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz"
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=500
     threads: 1
     output:
         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.nii.gz"
@@ -677,6 +689,7 @@ rule apply_brainmask_T1map:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain.log"
     shell:

@@ -81,6 +81,7 @@ rule apply_brainmask_b1anat:
         temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-anat_brain.nii.gz")
     conda:
         "../envs/fslmaths.yaml"
+    threads: 1
     resources: 
         mem_mb=500
     log:
@@ -394,6 +395,7 @@ rule copy_b1map_json_after_regtoMP2RAGE:
         temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.json")
     resources: 
         mem_mb=300
+    threads: 1
     log:
        out="logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_copy_b1map_json_after_reg2{mp2rage_params}.log" 
     run:
@@ -437,6 +439,7 @@ rule normalize_B1_to_target_flip_qMT: #not masking because we are interested in 
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_smooth_norm.log"
     shell:
@@ -480,6 +483,7 @@ rule normalize_B1_to_target_flip_ihmt:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_acq-famp_reg2{ihmt_params}_smooth_norm.log"
     shell:

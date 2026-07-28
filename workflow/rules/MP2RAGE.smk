@@ -67,11 +67,11 @@ def get_mp2rage_acq_array(wildcards):
     mp2rage_params_array = " ".join(mp2rage_params_list)
     return mp2rage_params_array
 
-def aparc_aseg_first_acq_mp2rage(wildcards):
+def segmentation_first_acq_mp2rage(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.nii.gz', mp2rage_params=first_acq, allow_missing=True)
+    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/{segmentation}.nii.gz', mp2rage_params=first_acq, allow_missing=True)
 
 def wm90percent_lobes_first_acq_mp2rage(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
@@ -85,11 +85,11 @@ def wm_lobes_first_acq_mp2rage(wildcards):
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes.nii.gz', mp2rage_params=first_acq, allow_missing=True)
 
-def resliced_aparc_aseg_first_acq_mp2rage(wildcards):
+def resliced_segmentation_first_acq_mp2rage(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand("data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg_resliced.nii.gz", mp2rage_params=first_acq, allow_missing=True)
+    return expand("data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/{segmentation}_resliced.nii.gz", mp2rage_params=first_acq, allow_missing=True)
 
 def mp2rage_statslist(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
@@ -159,6 +159,9 @@ rule add_xml_data_to_meta_mp2rage:
         protocol_path = config["protocol_path"]
     output:
         temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_addXMLdata.done")
+    resources: #limit memory by input size
+        mem_mb=200
+    threads: 1
     log:
         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_addXMLdata.log"
     shell:
@@ -430,6 +433,9 @@ rule MPRAGEise:
         "sub-{subject}_ses-{session}_acq-{mp2rage_params}_UNIT1_unbiased_clean.nii.gz"
     container:
          "docker://afni/afni_cmake_build:AFNI_26.1.04"
+    resources:
+        mem_mb=1000
+    threads: 1
     log:
         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_MPRAGEise.log"
     shell:
@@ -450,6 +456,7 @@ rule crop_mp2rage_256:
         # temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_cropped.nii.gz")
     resources:
         mem_mb=1000
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -527,10 +534,28 @@ rule recon_all:
         """
 
 
+rule copy_aparc_aseg_lut:
+    output:
+        "data/atlases/aparc+aseg_lut.txt"
+    resources:
+        mem_mb=200
+    threads: 1
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    log:
+        "logs/aparc+aseg_lut.txt"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        cp $FREESURFER_HOME/FreeSurferColorLUT.txt {output}
+        """
+
+
 rule download_mni_icbm152_nlin_sym_09c_minc2:
     output:
         mni152_sym=temp(directory("data/atlases/mni_icbm152_nlin_sym_09c_minc2/")),
-        wm_lobes=temp("data/atlases/mni_icbm152_wm_lobes.nii")
+        wm_lobes=temp("data/atlases/mni_icbm152_wm_lobes.nii"),
+        lut="data/atlases/mni_icbm152_wm_lobes_lut.txt"
     resources:
         mem_mb=700
     threads: 1
@@ -542,6 +567,8 @@ rule download_mni_icbm152_nlin_sym_09c_minc2:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
+        wget https://www.bic.mni.mcgill.ca/~vfonov/icbm/icbm2009_lobe_defs.txt
+        mv data/atlases/icbm2009_lobe_defs.txt {output.lut}
         mkdir -p {output.mni152_sym}
         cd {output.mni152_sym}
         wget https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09c_minc2.zip
@@ -551,7 +578,7 @@ rule download_mni_icbm152_nlin_sym_09c_minc2:
         """
 
 
-rule atlases_nii_to_nii_gz:
+rule wm_lobes_nii_to_nii_gz:
     input:
         "data/atlases/mni_icbm152_wm_lobes.nii"
     output:
@@ -572,14 +599,16 @@ rule atlases_nii_to_nii_gz:
         """
 
 
-rule wm_lobes_0p9:
+rule wm90percent_lobes:
     input:
-        "data/atlases/mni_icbm152_wm_lobes.nii.gz"
+        wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz",
+        wm_lobes_lut="data/atlases/mni_icbm152_wm_lobes_lut.txt"
     params:
-        wm_percent="average/mni_icbm152_nlin_asym_09c/mni_icbm152_wm_tal_nlin_asym_09c.nii.gz",
+        wm_percent="average/mni_icbm152_nlin_asym_09c/mni_icbm152_wm_tal_nlin_asym_09c.nii.gz"
     output:
         wm90percent_mask=temp("data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_mask.nii.gz"),
-        wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz"
+        wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm90percent_lobes_lut="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes_lut.txt",
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
@@ -593,7 +622,8 @@ rule wm_lobes_0p9:
         export FS_LICENSE=".snakemake/scripts/.license"
 
         mri_binarize --i $FREESURFER_HOME/{params.wm_percent} --o {output.wm90percent_mask} --min 0.9
-        mri_mask {input} {output.wm90percent_mask} {output.wm90percent_lobes}
+        mri_mask {input.wm_lobes} {output.wm90percent_mask} {output.wm90percent_lobes}
+        cp {input.wm_lobes_lut} {output.wm90percent_lobes_lut}
         """
 
 
@@ -632,30 +662,30 @@ rule mni152_atlases_to_subject_mp2rage_space:
 
 rule reslice_segmentation:
     input:
-        aparc_aseg=aparc_aseg_first_acq_mp2rage,
-        wm90percent_lobes=wm90percent_lobes_first_acq_mp2rage,
-        wm_lobes=wm_lobes_first_acq_mp2rage,
+        seg=segmentation_first_acq_mp2rage,
+        # aparc_aseg=aparc_aseg_first_acq_mp2rage,
+        # wm90percent_lobes=wm90percent_lobes_first_acq_mp2rage,
+        # wm_lobes=wm_lobes_first_acq_mp2rage,
         ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_coreg.nii.gz"
     output:
-        aparc_aseg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg_resliced.nii.gz",
-        wm90percent_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes_resliced.nii.gz",
-        wm_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes_resliced.nii.gz"
+        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/{segmentation}_resliced.nii.gz"
+        # aparc_aseg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg_resliced.nii.gz",
+        # wm90percent_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes_resliced.nii.gz",
+        # wm_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes_resliced.nii.gz"
     resources:
         mem_mb=1000
     conda:
         "../envs/qMT.yaml"
     log:
-        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/reslice_segmentation.log"
+        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/reslice_{segmentation}.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        mrgrid {input.aparc_aseg} regrid -template {input.ref} -strides {input.ref} -interp nearest {output.aparc_aseg} -force
-        mrgrid {input.wm90percent_lobes} regrid -template {input.ref} -strides {input.ref} -interp nearest {output.wm90percent_lobes} -force
-        mrgrid {input.wm_lobes} regrid -template {input.ref} -strides {input.ref} -interp nearest {output.wm_lobes} -force
+        mrgrid {input.seg} regrid -template {input.ref} -strides {input.ref} -interp nearest {output} -force
         """
     
 
-rule mp2rage_stats:
+rule mp2rage_segstats:
     input:
         seg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg_resliced.nii.gz",
         mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"

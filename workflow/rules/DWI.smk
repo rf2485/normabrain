@@ -72,8 +72,9 @@ rule concat_dwi_runs:
         dwi_AP_phase="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-AP_part-phase_dwi.mif",
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
-    resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+    resources: 
+        mem_mb=2000
+    threads: 1
     log:
         "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/preproc/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_concatenate.log",
     shell:
@@ -232,8 +233,9 @@ rule convert_designer_mif_to_nii:
         bval="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer.bval"
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
-    resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+    resources: 
+        mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_convert_designer_mif_to_nii.log"
     shell:
@@ -251,8 +253,9 @@ rule mean_b0:
         meanb0="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0.nii.gz"
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
-    resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+    resources: 
+        mem_mb=500
+    threads: 1
     log:
        "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0.log" 
     shell:
@@ -294,6 +297,7 @@ rule apply_brainmask_meanb0:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
         "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0_brain.log"
     shell:
@@ -316,6 +320,7 @@ rule dki_tensor_dipy:
         "../envs/dipy.yaml"
     resources:
         mem_mb=11000
+    threads: 1
     log:
         "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_dki.log"
     shell:
