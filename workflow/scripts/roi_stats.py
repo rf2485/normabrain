@@ -28,7 +28,7 @@ def ROI_dict(ROI_lookuptable_filepath):
     try:
         roi_df = pd.read_csv(lut_path, header=None, sep=None, engine='python')
     except:
-        roi_df = pd.DataFrame(np.genfromtxt(lut_path, dtype=None, encoding=None))
+        roi_df = pd.DataFrame(np.genfromtxt(lut_path, dtype=None, encoding=None, usecols=(0,1)))
     roi_dict = dict(zip(roi_df.iloc[:,1], roi_df.iloc[:,0]))
     return roi_dict
 

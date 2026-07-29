@@ -857,6 +857,7 @@ rule N4BiasFieldCorrection_qT1:
         -o {output}
         """
 
+
 rule aggregate_mp2rage_by_field_strength:
     input:
         aggregate_mp2rage
@@ -870,6 +871,7 @@ rule aggregate_mp2rage_by_field_strength:
 
         touch {output}
         """
+
 
 rule aggregate_mp2rage:
     input:
