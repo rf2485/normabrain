@@ -1,4 +1,4 @@
 # subject_list_dicom: "rfl-260123-normanoel jrb-250926-normapoet 2173-001-260316-normaihmt 2173-002-260324-normamp2rage 2173-003-260331-normat1ihmtqmt 2173-004-260331-normat2pcasl"
-qmt_sequence: "vibeMT"
-qmt_contrasts: "mt0 mtw pdw t1w"
 segmentations: "aparc+aseg mni_icbm152_nlin_asym_09c_wm90percent_lobes mni_icbm152_wm_lobes"
+qmt_sequence: "vibeMT"
+qmt_contrasts: "mt1 mtw pdw t1w"

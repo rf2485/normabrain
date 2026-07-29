@@ -6,6 +6,7 @@ protocol_path=""
 subject_list_dicom="*"
 qmt_sequence="vibeMT"
 qmt_contrasts='mt0 mtw pdw t1w'
+segmentations='aparc+aseg'
 mem_mb=0
 cores=0
 all=false
@@ -70,6 +71,9 @@ load_config() {
             qmt_contrasts)
                 qmt_contrasts=$config_value
                 ;;
+            segmentations)
+                segmentations=$config_value
+                ;;
             
         esac
     done < "$config_file"
@@ -85,6 +89,7 @@ usage() { #function to display script help
     echo "--subject_list_dicom      Space-separated list of subject DICOM folder names to include in the analysis. The default is all subjects in the input folder."
     echo "--qmt_sequence            The base name of the qMT sequence used in the ProtocolName. The default is 'vibeMT'"
     echo "--qmt_contrasts           Space-separated list of contrasts collected for the qMT sequence as described in the ProtocolName. The default is 'mt0 mtw pdw t1w'"
+    echo "--segmentations           Space-separated list of segmentations to apply for generating stats. Default is aparc+aseg from FreeSurfer."
     echo "--mem_mb                  Memory available for the pipeline, in MB. The default is min(max(2*input_size_mb, 1000), 8000) i.e. twice the input DICOMS folder size but no less than 1 GB and no more than 8 GB."
     echo "-c, --cores               CPU cores used for the pipeline. The default is all available CPU cores."
     echo "REQUIRED: Choose at least one of the below flags ===="
@@ -165,6 +170,16 @@ handle_options() { #function for handling options when this script is called
                 fi
 
                 qmt_contrasts=$(extract_argument \"$@\")
+
+                shift
+                ;;
+            --segmentations*)
+                if ! has_argument \"$@\"; then
+                    echo "ERROR: segmentation(s) not specified." >&2
+                    exit 1
+                fi
+
+                segmentations=$(extract_argument \"$@\")
 
                 shift
                 ;;
@@ -255,8 +270,9 @@ config_args=(
     "subject_list_dicom=${subject_list_dicom}"
     "qmt_sequence=${qmt_sequence}"
     "qmt_contrasts=${qmt_contrasts}"
+    "segmentations=${segmentations}"
 )
-config_string=" --config input_dicoms_path='${input_dicoms_path}' protocol_path='${protocol_path}' subject_list_dicom='${subject_list_dicom}' qmt_sequence='${qmt_sequence}' qmt_contrasts='${qmt_contrasts}'"
+config_string=" --config input_dicoms_path='${input_dicoms_path}' protocol_path='${protocol_path}' subject_list_dicom='${subject_list_dicom}' qmt_sequence='${qmt_sequence}' qmt_contrasts='${qmt_contrasts}' segmentations='${segmentations}'"
 first_pass_args=(--sdm conda --rerun-incomplete)
 first_pass_string=" --sdm conda --rerun-incomplete"
 main_args=(--sdm conda apptainer --rerun-incomplete)
