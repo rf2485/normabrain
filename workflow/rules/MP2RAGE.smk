@@ -6,6 +6,8 @@ from bids import BIDSLayout
 from lxml import etree
 import re
 from collections import Counter
+import pandas as pd
+import logging
 
 bidspath = Path("data/rawdata/bids")
 try:
@@ -90,6 +92,24 @@ def resliced_segmentation_first_acq_mp2rage(wildcards):
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand("data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/{segmentation}_resliced.nii.gz", mp2rage_params=first_acq, allow_missing=True)
+
+def mp2rage_roi_statslist(wildcards):
+    layout=layout_dict[wildcards.field_strength]
+    statslist = []
+    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
+    subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
+    subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
+    subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
+    for subject in subjectlist:
+        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
+        sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
+        sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
+        sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
+        for session in sessionlist:
+            acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
+            for acq in acqlist:
+                statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.csv")
+    return statslist
 
 def mp2rage_statslist(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
@@ -693,8 +713,8 @@ rule mp2rage_roi_stats:
     params:
         outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/"
     output:
-        stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_seg-{segmentation}_stats.pkl",
-        nooutliers_stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_seg-{segmentation}_nooutliers_stats.pkl",
+        stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv",
+        nooutliers_stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv",
     resources:
         mem_mb=1000
     threads: 1
@@ -704,9 +724,46 @@ rule mp2rage_roi_stats:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        python3 workflow/scripts/roi_stats.py "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}_{wildcards.mp2rage_map}"
-        python3 workflow/scripts/roi_stats.py -r "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}_{wildcards.mp2rage_map}"
+        python3 workflow/scripts/roi_stats.py "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}" "{wildcards.mp2rage_map}"
+        python3 workflow/scripts/roi_stats.py -r "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}" "{wildcards.mp2rage_map}"
         """
+
+
+rule mp2rage_roi_stats_agg_segs:
+    input:
+        stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv", 
+        segmentation=config["segmentations"].split(), mp2rage_map=["R1map_b1corr", "T1map_b1corr"], allow_missing=True),
+        nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv", 
+        segmentation=config["segmentations"].split(), mp2rage_map=["R1map_b1corr", "T1map_b1corr"], allow_missing=True)
+    output:
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.csv",
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.log"
+    run: #python code, not shell
+        logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
+        df_stats = pd.concat((pd.read_csv(s) for s in input.stats), ignore_index=True)
+        df_nooutliers = pd.concat((pd.read_csv(n) for n in input.nooutliers), ignore_index=True)
+        df_stats = pd.concat([df_stats, df_nooutliers])
+        df_stats.to_csv(str(output), index=False)
+
+
+rule mp2rage_roi_stats_agg_subjs:
+    input:
+        mp2rage_roi_statslist
+    output:
+        "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.csv"
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/MP2RAGE/MP2RAGE_stats.log"
+    run: #python code, not shell
+        logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
+        df_stats = pd.concat((pd.read_csv(i) for i in input), ignore_index=True)
+        df_stats.to_csv(str(output), index=False)
 
 
 rule mp2rage_segstats:
@@ -876,4 +933,5 @@ rule aggregate_mp2rage_by_field_strength:
 rule aggregate_mp2rage:
     input:
         expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE.done", field_strength=field_strength_list),
+        expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.csv", field_strength=field_strength_list),
         expand("data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv", field_strength=field_strength_list, mp2rage_map=["R1map_b1corr", "T1map_b1corr"])
