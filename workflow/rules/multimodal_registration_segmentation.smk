@@ -17,6 +17,11 @@ try:
 except:
     field_strength_list=[]
 
+def resliced_segmentation_first_acq_mp2rage(wildcards):
+    layout=layout_dict[wildcards.field_strength]
+    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
+    return expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.nii.gz", mp2rage_params=first_acq, allow_missing=True)
+
 def qMT_to_mp2rage(wildcards):
     layout=layout_dict[wildcards.field_strength]
     apply_reg_list = []
@@ -410,14 +415,14 @@ rule apply_reg_seg_to_ihmt_ants:
     params:
         refprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}"
     output:
-        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/mri/_reg2IHMT.nii.gz"
+        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}.nii.gz"
     resources: 
         mem_mb=500
     conda:
         "../envs/qMT.yaml"
     threads: 1
     log:
-       "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/aparc+aseg_reg2IHMT.log" 
+       "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}.log" 
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -442,6 +447,39 @@ rule apply_reg_seg_to_ihmt_ants:
         -r $ref \
         -t [ {input.reg}, 1 ] \
         -o {output}
+        """
+
+
+rule ihmt_roi_stats:
+    input:
+        ihmt_done="data/derivatives/{field_strength}/ihmt/ihmt_maps.done",
+        seg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/mri/ihmt/{segmentation}_reg2{ihmt_params}.nii.gz",
+        lut="data/atlases/{segmentation}_lut.txt",
+    params:
+        ihmtprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}",
+        outdir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/",
+    output:
+        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_seg-{segmentation}_stats.done",
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_seg-{segmentation}_stats.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+        for map in "${{MTmaps[@]}}"; do
+            ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
+            if [ -f $ihmt ]; then
+                python3 workflow/scripts/roi_stats.py "${{ihmt}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"
+                python3 workflow/scripts/roi_stats.py -r "${{ihmt}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"
+            fi
+        done
+
+        touch {output}
+        
         """
 
 

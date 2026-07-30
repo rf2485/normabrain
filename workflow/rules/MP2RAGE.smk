@@ -34,17 +34,17 @@ def get_unit1(wildcards):
 def get_unit1_json(wildcards):
     return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*UNIT1.json'))[0]
 
-def get_preproc_uniden_list(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-    layout=layout_dict[wildcards.field_strength]
-    mp2rage_params_list=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)
-    return expand('data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz', mp2rage_params=mp2rage_params_list, allow_missing=True)
+# def get_preproc_uniden_list(wildcards):
+#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
+#     layout=layout_dict[wildcards.field_strength]
+#     mp2rage_params_list=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)
+#     return expand('data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_brain.nii.gz', mp2rage_params=mp2rage_params_list, allow_missing=True)
 
-def get_mp2rage_brainmask_list(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-    layout=layout_dict[wildcards.field_strength]
-    mp2rage_params_list=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)
-    return expand('data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz', mp2rage_params=mp2rage_params_list, allow_missing=True)
+# def get_mp2rage_brainmask_list(wildcards):
+#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
+#     layout=layout_dict[wildcards.field_strength]
+#     mp2rage_params_list=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)
+#     return expand('data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz', mp2rage_params=mp2rage_params_list, allow_missing=True)
 
 def get_mp2rage_acq_array(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
@@ -52,6 +52,12 @@ def get_mp2rage_acq_array(wildcards):
     mp2rage_params_list=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)
     mp2rage_params_array = " ".join(mp2rage_params_list)
     return mp2rage_params_array
+
+def antsdnbrain_first_acq_mp2rage(wildcards):
+    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
+    layout=layout_dict[wildcards.field_strength]
+    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
+    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz', mp2rage_params=first_acq, allow_missing=True)
 
 def segmentation_first_acq_mp2rage(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
@@ -70,12 +76,6 @@ def wm_lobes_first_acq_mp2rage(wildcards):
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes.nii.gz', mp2rage_params=first_acq, allow_missing=True)
-
-def resliced_segmentation_first_acq_mp2rage(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-    layout=layout_dict[wildcards.field_strength]
-    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand("data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/{segmentation}_resliced.nii.gz", mp2rage_params=first_acq, allow_missing=True)
 
 def mp2rage_roi_statslist(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -304,103 +304,6 @@ rule run_mp2proc:
         """
 
 
-rule register_mp2rage_acqs:
-    input:
-        img_list=get_preproc_uniden_list,
-        mask_list=get_mp2rage_brainmask_list
-    params:
-        acq_array=get_mp2rage_acq_array,
-        regdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/",
-        subject="sub-{subject}_ses-{session}"
-    output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/mp2rage_acqs_registration.done"
-    conda:
-        "../envs/qMT.yaml"
-    resources: 
-        mem_mb=1000
-    threads: 4
-    log:
-        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/mp2rage_acqs_registration.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-        img_array=( {input.img_list} )
-        mask_array=( {input.mask_list} )
-        acq_array=( {params.acq_array} )
-
-        if [ "${{#img_array[@]}}" -gt 1 ]; then
-            first_acq="${{acq_array[0]}}"
-            first_img="${{img_array[0]}}"
-            first_mask="${{mask_array[0]}}"
-            img_array_clipped=("${{img_array[@]:1}}")
-            
-            i=0
-            for img in "${{img_array_clipped[@]}}"; do
-                i=$((i+1))
-                acq="${{acq_array[$i]}}"
-                mask="${{mask_array[$i]}}"
-                
-                mkdir -p {params.regdir}/acq-$acq/coreg/
-
-                antsRegistration \
-                --random-seed 1 \
-                --dimensionality 3 \
-                --verbose 1 \
-                --convergence [ 1000x500x250x100, 1e-7, 100 ] \
-                --shrink-factors 8x4x2x1 \
-                --smoothing-sigmas 4x2x1x0vox \
-                --transform Rigid[0.1] \
-                --metric MI[ ${{first_img}}, ${{img}}, 1, 32 ] \
-                -o {params.regdir}/acq-$acq/coreg/{params.subject}_acq-${{acq}}_reg2${{first_acq}}_ \
-                -x [ ${{first_mask}}, ${{mask}} ] 
-            done
-        fi
-        touch {output}
-        """
-
-
-rule apply_reg_first_mp2rage_acq:
-    input:
-        reg_done="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/mp2rage_acqs_registration.done",
-        moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}.nii.gz"
-    params:
-        acq_array=get_mp2rage_acq_array,
-        sessiondir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/",
-        subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}"
-    output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
-    resources: 
-        mem_mb=500
-    conda:
-        "../envs/qMT.yaml"
-    threads: 1
-    log:
-        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-        acq_array=( {params.acq_array} )
-        first_acq="${{acq_array[0]}}"
-        if [ -f {params.sessiondir}/acq-{wildcards.mp2rage_params}/coreg/{params.subject}_reg2${{first_acq}}_0GenericAffine.mat ]; then    
-            antsApplyTransforms \
-            --dimensionality 3 \
-            --interpolation Linear \
-            --verbose 1 \
-            -i {input.moving} \
-            --reference-image {params.sessiondir}/acq-$first_acq/sub-{wildcards.subject}_ses-{wildcards.session}_acq-${{first_acq}}_{wildcards.mp2rage_map}.nii.gz \
-            --transform {params.sessiondir}/acq-{wildcards.mp2rage_params}/coreg/{params.subject}_reg2${{first_acq}}_0GenericAffine.mat \
-            -o {output}
-        else
-            cp {input.moving} {output}
-        fi
-        """
-
 # Rules for segmentation and registration to atlases
 
 rule MPRAGEise:
@@ -512,6 +415,175 @@ rule recon_all:
         cp $SUBJECTS_DIR/{params.subject}/scripts/recon-all.log {log}
         """
 
+
+rule convert_mgz_to_nii:
+    input:
+        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz",
+    params:
+        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz",
+    output:
+        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.nii.gz",
+    threads: 1
+    resources:
+        mem_mb=15000
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    log:
+        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/convert_mgz_to_nii.log"
+    shell:
+        """
+        mri_convert {params} {output}
+        """
+
+
+rule register_mp2rage_acqs:
+    #register to first mp2rage acq in freesurfer space
+    input:
+        target=antsdnbrain_first_acq_mp2rage,
+        moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_brain.nii.gz"
+    output:
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta"
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    resources: 
+        mem_mb=1000
+    threads: 4
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        export FS_LICENSE=$HOME/.snakemake/scripts/.license
+
+        mri_robust_register \
+        --mov {input.moving} \
+        --dst {input.target} \
+        --lta {output} \
+        --satit --iscale --initorient
+
+        """
+
+# rule register_mp2rage_acqs:
+#     input:
+#         img_list=get_preproc_uniden_list,
+#         mask_list=get_mp2rage_brainmask_list
+#     params:
+#         acq_array=get_mp2rage_acq_array,
+#         regdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/",
+#         subject="sub-{subject}_ses-{session}"
+#     output:
+#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/mp2rage_acqs_registration.done"
+#     conda:
+#         "../envs/qMT.yaml"
+#     resources: 
+#         mem_mb=1000
+#     threads: 4
+#     log:
+#         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/mp2rage_acqs_registration.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+
+#         img_array=( {input.img_list} )
+#         mask_array=( {input.mask_list} )
+#         acq_array=( {params.acq_array} )
+
+#         if [ "${{#img_array[@]}}" -gt 1 ]; then
+#             first_acq="${{acq_array[0]}}"
+#             first_img="${{img_array[0]}}"
+#             first_mask="${{mask_array[0]}}"
+#             img_array_clipped=("${{img_array[@]:1}}")
+            
+#             i=0
+#             for img in "${{img_array_clipped[@]}}"; do
+#                 i=$((i+1))
+#                 acq="${{acq_array[$i]}}"
+#                 mask="${{mask_array[$i]}}"
+                
+#                 mkdir -p {params.regdir}/acq-$acq/coreg/
+
+#                 antsRegistration \
+#                 --random-seed 1 \
+#                 --dimensionality 3 \
+#                 --verbose 1 \
+#                 --convergence [ 1000x500x250x100, 1e-7, 100 ] \
+#                 --shrink-factors 8x4x2x1 \
+#                 --smoothing-sigmas 4x2x1x0vox \
+#                 --transform Rigid[0.1] \
+#                 --metric MI[ ${{first_img}}, ${{img}}, 1, 32 ] \
+#                 -o {params.regdir}/acq-$acq/coreg/{params.subject}_acq-${{acq}}_reg2${{first_acq}}_ \
+#                 -x [ ${{first_mask}}, ${{mask}} ] 
+#             done
+#         fi
+#         touch {output}
+#         """
+
+
+rule apply_reg_first_mp2rage_acq:
+    input:
+        reg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
+        target=antsdnbrain_first_acq_mp2rage,
+        moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}.nii.gz"
+    output:
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
+    resources: 
+        mem_mb=500
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    threads: 1
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        export FS_LICENSE=$HOME/.snakemake/scripts/.license
+
+        mri_vol2vol --mov {input.moving} --targ {input.target} --o {output} --reg {input.reg} --no-save-reg
+        """
+
+
+# rule apply_reg_first_mp2rage_acq:
+#     input:
+#         reg_done="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/mp2rage_acqs_registration.done",
+#         moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}.nii.gz"
+#     params:
+#         acq_array=get_mp2rage_acq_array,
+#         sessiondir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/",
+#         subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}"
+#     output:
+#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
+#     resources: 
+#         mem_mb=500
+#     conda:
+#         "../envs/qMT.yaml"
+#     threads: 1
+#     log:
+#         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+
+#         acq_array=( {params.acq_array} )
+#         first_acq="${{acq_array[0]}}"
+#         if [ -f {params.sessiondir}/acq-{wildcards.mp2rage_params}/coreg/{params.subject}_reg2${{first_acq}}_0GenericAffine.mat ]; then    
+#             antsApplyTransforms \
+#             --dimensionality 3 \
+#             --interpolation Linear \
+#             --verbose 1 \
+#             -i {input.moving} \
+#             --reference-image {params.sessiondir}/acq-$first_acq/sub-{wildcards.subject}_ses-{wildcards.session}_acq-${{first_acq}}_{wildcards.mp2rage_map}.nii.gz \
+#             --transform {params.sessiondir}/acq-{wildcards.mp2rage_params}/coreg/{params.subject}_reg2${{first_acq}}_0GenericAffine.mat \
+#             -o {output}
+#         else
+#             cp {input.moving} {output}
+#         fi
+#         """
 
 rule copy_aparc_aseg_lut:
     output:
