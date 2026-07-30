@@ -18,7 +18,7 @@ else: #create BIDSLayout for each subdirectory of bidspath (which correspond to 
     rule all:
         input: #do all preprocessing for each field strength
             "data/rawdata/bidsify.done",
-            expand("data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv", field_strength=next(os.walk(bidspath))[1], mp2rage_map=["R1map_b1corr", "T1map_b1corr"]),
+            # expand("data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv", field_strength=next(os.walk(bidspath))[1], mp2rage_map=["R1map_b1corr", "T1map_b1corr"]),
             expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.csv", field_strength=next(os.walk(bidspath))[1]),
             expand("data/derivatives/{field_strength}/freesurfer/ihmt_stats.done", field_strength=next(os.walk(bidspath))[1]),
             expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_ihmt.done", field_strength=next(os.walk(bidspath))[1]),

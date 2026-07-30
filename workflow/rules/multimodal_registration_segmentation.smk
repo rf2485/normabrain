@@ -410,7 +410,7 @@ rule apply_reg_seg_to_ihmt_ants:
     params:
         refprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}"
     output:
-        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/mri/aparc+aseg_reg2IHMT.nii.gz"
+        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/mri/_reg2IHMT.nii.gz"
     resources: 
         mem_mb=500
     conda:

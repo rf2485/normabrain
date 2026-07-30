@@ -15,22 +15,6 @@ try:
 except:
     field_strength_list=[]
 
-# def mp2rage_echo_spacing(wildcards):
-#     protocol_name = wildcards.subject.replace("sub-", "").lstrip("0123456789.-")
-#     protocol_name_pattern = "*" + protocol_name + "*/*.xml"
-#     search_path = Path(config["protocol_path"])
-#     xml_path_list = sorted(search_path.rglob(protocol_name_pattern, case_sensitive=False))
-#     if len(xml_path_list) > 0:
-#         xml_path = xml_path_list[0]
-#         xml_tree = etree.parse(xml_path)
-#         xml_root = xml_tree.getroot()
-#         echo_spacing_unit = xml_root.xpath(".//SubStep[ProtHeaderInfo[HeaderProtPath[contains(text(), 'mp2r')]]]/Card/ProtParameter[Label[contains(text(), 'Echo Spacing')]]/ValueAndUnit")[0].text
-#         numeric_const_pattern = r'[-+]? (?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?'
-#         rx = re.compile(numeric_const_pattern, re.VERBOSE)
-#         echo_spacing = float(rx.findall( echo_spacing_unit )[0])
-#     else:
-#         echo_spacing = 7.4
-#     return echo_spacing
 
 def get_inv1(wildcards):
     return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*inv-1_MP2RAGE.nii.gz'))[0]
@@ -111,44 +95,44 @@ def mp2rage_roi_statslist(wildcards):
                 statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.csv")
     return statslist
 
-def mp2rage_statslist(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-    layout=layout_dict[wildcards.field_strength]
-    statslist = []
-    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-    subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-    subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-    subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
-    for subject in subjectlist:
-        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-        sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-        sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-        sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
-        for session in sessionlist:
-            acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
-            for acq in acqlist:
-                statslist.append("data/derivatives/{field_strength}/freesurfer/sub-" + subject + "_ses-" + session + "_acq-" + acq + "/stats/MP2RAGE_{mp2rage_map}.stats")
-    return sorted(statslist)
+# def mp2rage_statslist(wildcards):
+#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
+#     layout=layout_dict[wildcards.field_strength]
+#     statslist = []
+#     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
+#     subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
+#     subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
+#     subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
+#     for subject in subjectlist:
+#         sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
+#         sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
+#         sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
+#         sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
+#         for session in sessionlist:
+#             acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
+#             for acq in acqlist:
+#                 statslist.append("data/derivatives/{field_strength}/freesurfer/sub-" + subject + "_ses-" + session + "_acq-" + acq + "/stats/MP2RAGE_{mp2rage_map}.stats")
+#     return sorted(statslist)
 
-def freesurfer_subjectlist_mp2rage(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-    layout=layout_dict[wildcards.field_strength]
-    fs_subjectlist = []
-    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-    subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-    subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-    subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
-    for subject in subjectlist:
-        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-        sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-        sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-        sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
-        for session in sessionlist:
-            acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
-            for acq in acqlist:
-                fs_subjectlist.append("sub-" + subject + "_ses-" + session + "_acq-" + acq)
-    fs_subjectarray = " ".join(fs_subjectlist)
-    return fs_subjectarray
+# def freesurfer_subjectlist_mp2rage(wildcards):
+#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
+#     layout=layout_dict[wildcards.field_strength]
+#     fs_subjectlist = []
+#     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
+#     subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
+#     subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
+#     subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
+#     for subject in subjectlist:
+#         sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
+#         sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
+#         sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
+#         sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
+#         for session in sessionlist:
+#             acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
+#             for acq in acqlist:
+#                 fs_subjectlist.append("sub-" + subject + "_ses-" + session + "_acq-" + acq)
+#     fs_subjectarray = " ".join(fs_subjectlist)
+#     return fs_subjectarray
 
 def aggregate_mp2rage(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
@@ -320,30 +304,6 @@ rule run_mp2proc:
         """
 
 
-rule synthseg_mp2rage:
-    input:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr.nii.gz"
-    output:
-         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/MP2RAGE_synthseg.nii.gz"
-    threads: 8
-    resources:
-        mem_mb=15000
-    container:
-        "docker://freesurfer/freesurfer:8.1.0"
-    log:
-       "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/MP2RAGE_synthseg.log" 
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        if command -v nvidia-smi; then
-            export CUDA_VISIBLE_DEVICES=0
-        fi
-        #try GPU, then run CPU if it fails
-        mri_synthseg --i {input} --o {output} --parc --robust --threads {threads} || \
-        mri_synthseg --i {input} --o {output} --parc --robust --threads {threads} --cpu
-        """
-
-
 rule register_mp2rage_acqs:
     input:
         img_list=get_preproc_uniden_list,
@@ -441,6 +401,7 @@ rule apply_reg_first_mp2rage_acq:
         fi
         """
 
+# Rules for segmentation and registration to atlases
 
 rule MPRAGEise:
     input:
@@ -470,10 +431,8 @@ rule MPRAGEise:
 rule crop_mp2rage_256:
     input:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_MPRAGEise.nii.gz"
-        # "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}.nii.gz"
     output:
         temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_MPRAGEise_cropped.nii.gz")
-        # temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_cropped.nii.gz")
     resources:
         mem_mb=1000
     threads: 1
@@ -683,15 +642,9 @@ rule mni152_atlases_to_subject_mp2rage_space:
 rule reslice_segmentation:
     input:
         seg=segmentation_first_acq_mp2rage,
-        # aparc_aseg=aparc_aseg_first_acq_mp2rage,
-        # wm90percent_lobes=wm90percent_lobes_first_acq_mp2rage,
-        # wm_lobes=wm_lobes_first_acq_mp2rage,
         ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_coreg.nii.gz"
     output:
         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/{segmentation}_resliced.nii.gz"
-        # aparc_aseg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg_resliced.nii.gz",
-        # wm90percent_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes_resliced.nii.gz",
-        # wm_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes_resliced.nii.gz"
     resources:
         mem_mb=1000
     conda:
@@ -713,8 +666,8 @@ rule mp2rage_roi_stats:
     params:
         outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/"
     output:
-        stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv",
-        nooutliers_stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv",
+        stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv"),
+        nooutliers_stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv"),
     resources:
         mem_mb=1000
     threads: 1
@@ -732,11 +685,11 @@ rule mp2rage_roi_stats:
 rule mp2rage_roi_stats_agg_segs:
     input:
         stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv", 
-        segmentation=config["segmentations"].split(), mp2rage_map=["R1map_b1corr", "T1map_b1corr"], allow_missing=True),
+        segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True),
         nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv", 
-        segmentation=config["segmentations"].split(), mp2rage_map=["R1map_b1corr", "T1map_b1corr"], allow_missing=True)
+        segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True)
     output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.csv",
+        temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.csv"),
     resources:
         mem_mb=1000
     threads: 1
@@ -766,52 +719,52 @@ rule mp2rage_roi_stats_agg_subjs:
         df_stats.to_csv(str(output), index=False)
 
 
-rule mp2rage_segstats:
-    input:
-        seg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg_resliced.nii.gz",
-        mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
-    output:
-        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/stats/MP2RAGE_{mp2rage_map}.stats"
-    container:
-        "docker://freesurfer/freesurfer:8.1.0"
-    log:
-        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/MP2RAGE_{mp2rage_map}_stats.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+# rule mp2rage_segstats:
+#     input:
+#         seg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg_resliced.nii.gz",
+#         mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
+#     output:
+#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/stats/MP2RAGE_{mp2rage_map}.stats"
+#     container:
+#         "docker://freesurfer/freesurfer:8.1.0"
+#     log:
+#         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/MP2RAGE_{mp2rage_map}_stats.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        export FS_LICENSE=$HOME/.snakemake/scripts/.license
+#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
         
-        mri_segstats --seg {input.seg} --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --i {input.mp2rage_map} --sum {output} --excludeid 0
-        """  
+#         mri_segstats --seg {input.seg} --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --i {input.mp2rage_map} --sum {output} --excludeid 0
+#         """  
 
 
-rule mp2rage_tsv:
-    input:
-        mp2rage_statslist,
-        # "data/rawdata/bidsify.done"
-    params:
-        subjects_dir="data/derivatives/{field_strength}/freesurfer/",
-        subjects_list=freesurfer_subjectlist_mp2rage,
-        statsfile="MP2RAGE_{mp2rage_map}.stats"
-    output:
-        "data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv"  
-    container:
-        "docker://freesurfer/freesurfer:8.1.0"
-    log:
-        "logs/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats_tsv.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+# rule mp2rage_tsv:
+#     input:
+#         mp2rage_statslist,
+#         # "data/rawdata/bidsify.done"
+#     params:
+#         subjects_dir="data/derivatives/{field_strength}/freesurfer/",
+#         subjects_list=freesurfer_subjectlist_mp2rage,
+#         statsfile="MP2RAGE_{mp2rage_map}.stats"
+#     output:
+#         "data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv"  
+#     container:
+#         "docker://freesurfer/freesurfer:8.1.0"
+#     log:
+#         "logs/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats_tsv.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        export SUBJECTS_DIR=$HOME/{params.subjects_dir}
-        export FS_LICENSE=$HOME/.snakemake/scripts/.license
+#         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
+#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
-        if ! [ -n {params.subjects_list} ]; then
-            asegstats2table --subjects {params.subjects_list} --statsfile {params.statsfile} -t {output} --meas mean --common-segs --no-segno 0
-        fi
-        touch {output}       
-        """
+#         if ! [ -n {params.subjects_list} ]; then
+#             asegstats2table --subjects {params.subjects_list} --statsfile {params.statsfile} -t {output} --meas mean --common-segs --no-segno 0
+#         fi
+#         touch {output}       
+#         """
 
 
 #rules for registering with ANTs
@@ -934,4 +887,4 @@ rule aggregate_mp2rage:
     input:
         expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE.done", field_strength=field_strength_list),
         expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.csv", field_strength=field_strength_list),
-        expand("data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv", field_strength=field_strength_list, mp2rage_map=["R1map_b1corr", "T1map_b1corr"])
+        # expand("data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv", field_strength=field_strength_list, mp2rage_map=["R1map_b1corr", "T1map_b1corr"])
