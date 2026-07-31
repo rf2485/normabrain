@@ -59,11 +59,11 @@ def antsdnbrain_first_acq_mp2rage(wildcards):
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz', mp2rage_params=first_acq, allow_missing=True)
 
-def segmentation_first_acq_mp2rage(wildcards):
+def aparc_aseg_first_acq_mp2rage(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/{segmentation}.nii.gz', mp2rage_params=first_acq, allow_missing=True)
+    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz', mp2rage_params=first_acq, allow_missing=True)
 
 def wm90percent_lobes_first_acq_mp2rage(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
@@ -526,7 +526,7 @@ rule apply_reg_first_mp2rage_acq:
     input:
         reg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
         target=antsdnbrain_first_acq_mp2rage,
-        moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}.nii.gz"
+        moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_brain.nii.gz"
     output:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
     resources: 
@@ -542,8 +542,35 @@ rule apply_reg_first_mp2rage_acq:
 
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
-        mri_vol2vol --mov {input.moving} --targ {input.target} --o {output} --reg {input.reg} --no-save-reg
+        mri_vol2vol --mov {input.moving} --targ {input.target} --reg {input.reg} --o {output} --no-save-reg
         """
+
+
+rule aparc_aseg_to_subject_mp2rage:
+    input:
+        reg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
+        mp2rage="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_brain.nii.gz",
+        seg=aparc_aseg_first_acq_mp2rage
+    output:
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_aparc+aseg.nii.gz"
+    resources: 
+        mem_mb=500
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    threads: 1
+    log:
+       "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_aparc+aseg.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        export FS_LICENSE=$HOME/.snakemake/scripts/.license
+
+        mri_vol2vol \
+        --inv --nearest --no-save-reg \
+        --mov {input.mp2rage} --targ {input.seg} --reg {input.reg} \
+        --o {output}
+        """ 
 
 
 # rule apply_reg_first_mp2rage_acq:
@@ -711,23 +738,23 @@ rule mni152_atlases_to_subject_mp2rage_space:
         """
 
 
-rule reslice_segmentation:
-    input:
-        seg=segmentation_first_acq_mp2rage,
-        ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_coreg.nii.gz"
-    output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.nii.gz"
-    resources:
-        mem_mb=1000
-    conda:
-        "../envs/qMT.yaml"
-    log:
-        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        mrgrid {input.seg} regrid -template {input.ref} -strides {input.ref} -interp nearest {output} -force
-        """
+# rule reslice_segmentation:
+#     input:
+#         seg=segmentation_first_acq_mp2rage,
+#         ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_coreg.nii.gz"
+#     output:
+#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.nii.gz"
+#     resources:
+#         mem_mb=1000
+#     conda:
+#         "../envs/qMT.yaml"
+#     log:
+#         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+#         mrgrid {input.seg} regrid -template {input.ref} -strides {input.ref} -interp nearest {output} -force
+#         """
     
 
 rule mp2rage_roi_stats:
