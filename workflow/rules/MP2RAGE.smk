@@ -65,17 +65,24 @@ def aparc_aseg_first_acq_mp2rage(wildcards):
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz', mp2rage_params=first_acq, allow_missing=True)
 
-def wm90percent_lobes_first_acq_mp2rage(wildcards):
+def fs2mni152_first_acq_mp2rage(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz', mp2rage_params=first_acq, allow_missing=True)
+    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz', 
+    mp2rage_params=first_acq, session=wildcards.session, subject=wildcards.subject, field_strength=wildcards.field_strength)
 
-def wm_lobes_first_acq_mp2rage(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-    layout=layout_dict[wildcards.field_strength]
-    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes.nii.gz', mp2rage_params=first_acq, allow_missing=True)
+# def wm90percent_lobes_first_acq_mp2rage(wildcards):
+#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
+#     layout=layout_dict[wildcards.field_strength]
+#     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
+#     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz', mp2rage_params=first_acq, allow_missing=True)
+
+# def wm_lobes_first_acq_mp2rage(wildcards):
+#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
+#     layout=layout_dict[wildcards.field_strength]
+#     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
+#     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes.nii.gz', mp2rage_params=first_acq, allow_missing=True)
 
 def mp2rage_roi_statslist(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -705,37 +712,94 @@ rule wm90percent_lobes:
         """
 
 
-rule mni152_atlases_to_subject_mp2rage_space:
+rule warp_subject_mp2rage_to_mni152:
     input:
-        aparc_aseg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.nii.gz",
-        wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
-        wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
+        subj2fs="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
+        antsdnbrain=antsdnbrain_first_acq_mp2rage
     params:
-        warp_mni152_to_subject="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.inv.nii.gz"
+        fs2mni152=fs2mni152_first_acq_mp2rage
     output:
-        wm90percent_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
-        wm_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes.nii.gz",
-        fs_wm_mask="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/fs_wm_mask.nii.gz"
-    threads: 1
-    resources:
-        mem_mb=700
+        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=700
+    threads: 1
     log:
-        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes.log"
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FS_LICENSE=".snakemake/scripts/.license"
 
-        mri_binarize --i {input.aparc_aseg} --o {output.fs_wm_mask} --match 2 7 41 46
-        
-        mri_synthmorph apply {params.warp_mni152_to_subject} {input.wm90percent_lobes} {output.wm90percent_lobes} -m nearest
-        mri_mask {output.wm90percent_lobes} {output.fs_wm_mask} {output.wm90percent_lobes}
-        
-        mri_synthmorph apply {params.warp_mni152_to_subject} {input.wm_lobes} {output.wm_lobes} -m nearest
-        mri_mask {output.wm_lobes} {output.fs_wm_mask} {output.wm_lobes}
+        mri_warp_convert --inm3z {params.fs2mni152} \
+        --lta1 {input.subj2fs} \
+        --insrcgeom {input.antsdnbrain} \
+        --outm3z {output.subj2mni152}
         """
+
+
+rule apply_warp_mni_atlases_to_subject_mp2rage:
+    input:
+        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz",
+        aparc_aseg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_aparc+aseg.nii.gz",
+        wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
+    output:
+        wm_mask="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_wm_mask.nii.gz",
+        wm90percent_lobes="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm_lobes="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mni_icbm152_wm_lobes.nii.gz",
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=700
+    threads: 1
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}/apply_warp_mni_atlases_to_subject_mp2rage.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FS_LICENSE=".snakemake/scripts/.license"
+
+        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46
+
+        mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
+        mri_mask {output.wm90percent_lobes} {output.wm_mask} {output.wm90percent_lobes}
+
+        mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
+        mri_mask {output.wm_lobes} {output.wm_mask} 
+        """
+# rule mni152_atlases_to_subject_mp2rage_space:                                                                 
+#     input:
+#         aparc_aseg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.nii.gz",
+#         wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+#         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
+#     params:
+#         warp_mni152_to_subject="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.inv.nii.gz"
+#     output:
+#         wm90percent_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+#         wm_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes.nii.gz",
+#         fs_wm_mask="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/fs_wm_mask.nii.gz"
+#     threads: 1
+#     resources:
+#         mem_mb=700
+#     container:
+#         "docker://freesurfer/freesurfer:8.1.0"
+#     log:
+#         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+#         export FS_LICENSE=".snakemake/scripts/.license"
+
+#         mri_binarize --i {input.aparc_aseg} --o {output.fs_wm_mask} --match 2 7 41 46
+        
+#         mri_synthmorph apply {params.warp_mni152_to_subject} {input.wm90percent_lobes} {output.wm90percent_lobes} -m nearest
+#         mri_mask {output.wm90percent_lobes} {output.fs_wm_mask} {output.wm90percent_lobes}
+        
+#         mri_synthmorph apply {params.warp_mni152_to_subject} {input.wm_lobes} {output.wm_lobes} -m nearest
+#         mri_mask {output.wm_lobes} {output.fs_wm_mask} {output.wm_lobes}
+#         """
 
 
 # rule reslice_segmentation:
