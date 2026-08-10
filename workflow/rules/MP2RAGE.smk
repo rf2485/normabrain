@@ -8,6 +8,8 @@ import re
 from collections import Counter
 import pandas as pd
 import logging
+from pathlib import Path
+import os
 
 bidspath = Path("data/rawdata/bids")
 try:
