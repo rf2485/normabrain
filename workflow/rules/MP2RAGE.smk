@@ -101,7 +101,8 @@ def mp2rage_roi_statslist(wildcards):
         for session in sessionlist:
             acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
             for acq in acqlist:
-                statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/coreg/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.csv")
+                # statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/coreg/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.csv")
+                statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.csv")
     return statslist
 
 # def mp2rage_statslist(wildcards):
@@ -159,7 +160,8 @@ def aggregate_mp2rage(wildcards):
         for session in sessionlist:
             acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
             for acq in acqlist:
-                mp2rage_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_T1map_b1corr_brain_denoised_n4.nii.gz")
+                # mp2rage_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_T1map_b1corr_brain_denoised_n4.nii.gz")
+                mp2rage_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_T1map_b1corr_brain.nii.gz")
     return sorted(mp2rage_list)
 
 
@@ -717,7 +719,6 @@ rule wm90percent_lobes:
 rule warp_subject_mp2rage_to_mni152:
     input:
         subj2fs="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
-        antsdnbrain=antsdnbrain_first_acq_mp2rage
     params:
         fs2mni152=fs2mni152_first_acq_mp2rage
     output:
@@ -736,7 +737,6 @@ rule warp_subject_mp2rage_to_mni152:
 
         mri_warp_convert --inm3z {params.fs2mni152} \
         --lta1 {input.subj2fs} \
-        --insrcgeom {input.antsdnbrain} \
         --outm3z {output.subj2mni152}
         """
 
@@ -769,7 +769,7 @@ rule apply_warp_mni_atlases_to_subject_mp2rage:
         mri_mask {output.wm90percent_lobes} {output.wm_mask} {output.wm90percent_lobes}
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
-        mri_mask {output.wm_lobes} {output.wm_mask} 
+        mri_mask {output.wm_lobes} {output.wm_mask} {output.wm_lobes}
         """
 # rule mni152_atlases_to_subject_mp2rage_space:                                                                 
 #     input:
@@ -825,19 +825,24 @@ rule apply_warp_mni_atlases_to_subject_mp2rage:
 
 rule mp2rage_roi_stats:
     input:
-        mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz",
-        seg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.nii.gz",
+        # mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz",
+        mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}.nii.gz",
+        # seg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.nii.gz",
+        seg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{segmentation}.nii.gz",
         lut="data/atlases/{segmentation}_lut.txt"
     params:
-        outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/"
+        # outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/"
+        outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/"
     output:
-        stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv",
-        nooutliers_stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv",
+        # stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv",
+        stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv"),
+        # nooutliers_stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv",
+        nooutliers_stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv"),
     resources:
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.log",
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.log",
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -849,17 +854,20 @@ rule mp2rage_roi_stats:
 
 rule mp2rage_roi_stats_agg_segs:
     input:
-        stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv", 
+        # stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv", 
+        stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv", 
         segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True),
-        nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv", 
+        # nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv", 
+        nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv", 
         segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True)
     output:
-        temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.csv"),
+        # temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.csv"),
+        temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.csv"),
     resources:
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.log"
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
         df_stats = pd.concat((pd.read_csv(s) for s in input.stats), ignore_index=True)
@@ -961,7 +969,7 @@ rule apply_brainmask_qT1:
         input_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}.nii.gz",
         brain_mask = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz"
     output:
-        temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain.nii.gz")
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain.nii.gz"
     conda:
         "../envs/fslmaths.yaml"
     resources: 
@@ -1033,23 +1041,23 @@ rule N4BiasFieldCorrection_qT1:
         """
 
 
-rule aggregate_mp2rage_by_field_strength:
-    input:
-        aggregate_mp2rage
-    output:
-        "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE.done"
-    log:
-        "logs/{field_strength}/MP2RAGE/MP2RAGE.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+# rule aggregate_mp2rage_by_field_strength:
+#     input:
+#         aggregate_mp2rage
+#     output:
+#         "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE.done"
+#     log:
+#         "logs/{field_strength}/MP2RAGE/MP2RAGE.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        touch {output}
-        """
+#         touch {output}
+#         """
 
 
 rule aggregate_mp2rage:
     input:
-        expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE.done", field_strength=field_strength_list),
+        # expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE.done", field_strength=field_strength_list),
         expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.csv", field_strength=field_strength_list),
         # expand("data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv", field_strength=field_strength_list, mp2rage_map=["R1map_b1corr", "T1map_b1corr"])
