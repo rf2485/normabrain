@@ -388,7 +388,10 @@ rule recon_all:
         aparc_mgz="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz",
         aparc_nii="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.nii.gz",
         orig_mgz="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz",
-        orig_nii="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.nii.gz"
+        orig_nii="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.nii.gz",
+        antsdnbrain_mgz="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz",
+        antsdnbrain_nii="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.nii.gz",
+        fs2mni152='data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz'
     threads: 8
     resources:
         mem_mb=15000
@@ -421,30 +424,31 @@ rule recon_all:
         #convert aparc and orig to nii for easier QC
         mri_convert {output.aparc_mgz} {output.aparc_nii}
         mri_convert {output.orig_mgz} {output.orig_nii}
+        mri_convert {output.antsdnbrain_mgz} {output.antsdnbrain_nii}
 
         #copy log to logs folder
         cp $SUBJECTS_DIR/{params.subject}/scripts/recon-all.log {log}
         """
 
 
-rule convert_mgz_to_nii:
-    input:
-        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz",
-    params:
-        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz",
-    output:
-        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.nii.gz",
-    threads: 1
-    resources:
-        mem_mb=15000
-    container:
-        "docker://freesurfer/freesurfer:8.1.0"
-    log:
-        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/convert_mgz_to_nii.log"
-    shell:
-        """
-        mri_convert {params} {output}
-        """
+# rule convert_mgz_to_nii:
+#     input:
+#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz",
+#     params:
+#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz",
+#     output:
+#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.nii.gz",
+#     threads: 1
+#     resources:
+#         mem_mb=15000
+#     container:
+#         "docker://freesurfer/freesurfer:8.1.0"
+#     log:
+#         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/convert_mgz_to_nii.log"
+#     shell:
+#         """
+#         mri_convert {params} {output}
+#         """
 
 
 rule register_mp2rage_acqs:
@@ -719,7 +723,6 @@ rule wm90percent_lobes:
 rule warp_subject_mp2rage_to_mni152:
     input:
         subj2fs="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
-    params:
         fs2mni152=fs2mni152_first_acq_mp2rage
     output:
         subj2mni152="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz"
@@ -735,8 +738,9 @@ rule warp_subject_mp2rage_to_mni152:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FS_LICENSE=".snakemake/scripts/.license"
 
-        mri_warp_convert --inm3z {params.fs2mni152} \
+        mri_warp_convert \
         --lta1 {input.subj2fs} \
+        --inm3z {input.fs2mni152} \
         --outm3z {output.subj2mni152}
         """
 
