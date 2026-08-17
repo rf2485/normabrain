@@ -756,7 +756,6 @@ rule ihmt_roi_stats_agg_subjs:
 #         touch {output}
 #         """
 
-
 rule apply_reg_MP2RAGE_to_ihmt_ants:
     input:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr.nii.gz",
@@ -809,27 +808,80 @@ rule apply_reg_MP2RAGE_to_ihmt_ants:
         touch {output}
         """
 
+        
+# rule apply_reg_MP2RAGE_to_ihmt_ants:
+#     input:
+#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr.nii.gz",
+#         reg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}_0GenericAffine.mat",
+#         ihmt_maps_done="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done"
+#     params:
+#         ihmt_prefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}",
+#         mp2rage_acqdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/",
+#         mp2rage_subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}"
+#     output:
+#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/reg2IHMT/sub-{subject}_ses-{session}_acq-{mp2rage_params}_applyreg2{ihmt_params}.done"
+#     resources: 
+#         mem_mb=500
+#     threads: 1
+#     conda:
+#         "../envs/qMT.yaml"
+#     log:
+#       "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/reg2IHMT/applyreg2{ihmt_params}.log"  
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-rule gather_MP2RAGE_to_ihmt_ants:
-    input:
-        mp2rage_to_ihmt,
-    output:
-        "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_ihmt.done"
-    log:
-        "logs/{field_strength}/MP2RAGE/MP2RAGE_to_ihmt.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
 
-        touch {output}
-        """
+#         #set reference based on what maps are availble
+#         MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+#         for map in "${{MTmaps[@]}}"; do
+#             ref_init="{params.ihmt_prefix}_"$map".nii.gz"
+#             if [ -f $ref_init ]; then #if file exists, then set ref
+#                 ref=$ref_init
+#             fi
+#         done
+
+#         MP2RAGEmaps=("R1map_b1corr" "T1map_b1corr" "T1w_UNIDEN_b1corr" "T1w_UNI_b1corr" "T1w_UNIDEN")
+#         mkdir -p {params.mp2rage_acqdir}/reg2IHMT
+#         for map in "${{MP2RAGEmaps[@]}}"; do
+#             moving="{params.mp2rage_acqdir}/{params.mp2rage_subject}_"$map".nii.gz"
+#             out="{params.mp2rage_acqdir}/reg2IHMT/{params.mp2rage_subject}_"$map"_reg2{wildcards.ihmt_params}.nii.gz"
+
+#             #apply inverse of ihmt to MP2RAGE transform to each MP2RAGE map
+#             antsApplyTransforms \
+#             --dimensionality 3 \
+#             --interpolation Linear \
+#             --verbose 1 \
+#             -i $moving \
+#             -r $ref \
+#             -t [ {input.reg}, 1 ] \
+#             -o $out
+#         done
+#         touch {output}
+#         """
+
+
+# rule gather_MP2RAGE_to_ihmt_ants:
+#     input:
+#         mp2rage_to_ihmt,
+#     output:
+#         "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_ihmt.done"
+#     log:
+#         "logs/{field_strength}/MP2RAGE/MP2RAGE_to_ihmt.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+#         touch {output}
+#         """
 
 
 rule aggregate_multimodal_ihmt_mp2rage:
     input:
-        expand("data/derivatives/{field_strength}/freesurfer/ihmt_stats.done", field_strength=field_strength_list),
-        expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_ihmt.done", field_strength=field_strength_list),
-        expand("data/derivatives/{field_strength}/ihmt/ihmt_to_MP2RAGE.done", field_strength=field_strength_list)
+        expand("data/derivatives/{field_strength}/ihmt/ihmt_stats.csv", field_strength=field_strength_list),
+        # expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_ihmt.done", field_strength=field_strength_list),
+        expand("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done", field_strength=field_strength_list)
 
 
 rule register_qMT_to_MP2RAGE_ants:
