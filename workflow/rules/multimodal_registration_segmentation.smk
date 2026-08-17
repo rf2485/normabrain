@@ -48,7 +48,8 @@ def qMT_to_mp2rage(wildcards):
     apply_reg_list = [reg for reg, count in counts.items() if count > 3]
     return apply_reg_list
 
-def ihmt_to_mp2rage(wildcards):
+# def ihmt_to_mp2rage(wildcards):
+def ihmt_to_freesurfer(wildcards):
     layout=layout_dict[wildcards.field_strength]
     apply_reg_list = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -66,7 +67,7 @@ def ihmt_to_mp2rage(wildcards):
             ihmt_acqlist = layout.get_acquisition(suffix="ihmt", subject=subject, session=session)
             mp2rage_first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)[0]
             for ihmt in ihmt_acqlist:
-                apply_reg_list.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + ihmt + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + ihmt + "_applyreg2" + mp2rage_first_acq + ".done")
+                apply_reg_list.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + ihmt + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + ihmt + "_applyreg2FS" + mp2rage_first_acq + ".done")
     return apply_reg_list
 
 def dwi_to_mp2rage(wildcards):
@@ -312,93 +313,159 @@ def mp2rage_to_dwi(wildcards):
     return apply_reg_list
 
 
-rule register_ihmt_to_MP2RAGE_ants:
+rule register_ihmt_to_freesurfer_bbregister:
     input:
-        ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
-        moving="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTmap_brain_denoised_n4.nii.gz",
-        ref_mask="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz",
-        moving_mask="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_brain_mask.nii.gz"
-    params:
-        outprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}_"
+        ihmt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTmap_brain_denoised_n4.nii.gz",
+        orig_mgz="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz"
     output:
-        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}_0GenericAffine.mat"
-    conda:
-        "../envs/qMT.yaml"
-    resources: 
-        mem_mb=700
-    threads: 4
+        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2FS{mp2rage_params}.lta"
+    params:
+        subjects_dir="data/derivatives/{field_strength}/freesurfer/",
+        subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}",
+        outbase="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2FS{mp2rage_params}"
+    resources:
+        mem_mb=1500
+    threads: 1
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
     log:
-       "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}.log" 
+        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2FS{mp2rage_params}.log"
     shell:
         """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-        antsRegistration \
-        --random-seed 1 \
-        --dimensionality 3 \
-        --verbose 1 \
-        --convergence [ 1000x500x250x100, 1e-7, 100 ] \
-        --shrink-factors 8x4x2x1 \
-        --smoothing-sigmas 4x2x1x0vox \
-        --transform Rigid[0.1] \
-        --metric MI[ {input.ref}, {input.moving}, 1, 32 ] \
-        -o {params.outprefix} \
-        -x [ {input.ref_mask}, {input.moving_mask} ]
+        export SUBJECTS_DIR=$HOME/{params.subjects_dir}
+        
+        export FS_LICENSE=$HOME/.snakemake/scripts/.license
+        
+        bbregister --s {params.subject} --mov {input.ihmt} --reg {output} --t1 --init-rr
+        mv {params.outbase}.log {log}
         """
 
+# rule register_ihmt_to_MP2RAGE_ants:
+#     input:
+#         ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
+#         moving="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTmap_brain_denoised_n4.nii.gz",
+#         ref_mask="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz",
+#         moving_mask="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_brain_mask.nii.gz"
+#     params:
+#         outprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}_"
+#     output:
+#         "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}_0GenericAffine.mat"
+#     conda:
+#         "../envs/qMT.yaml"
+#     resources: 
+#         mem_mb=700
+#     threads: 4
+#     log:
+#        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}.log" 
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-rule apply_reg_ihmt_to_MP2RAGE_ants:
+#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+
+#         antsRegistration \
+#         --random-seed 1 \
+#         --dimensionality 3 \
+#         --verbose 1 \
+#         --convergence [ 1000x500x250x100, 1e-7, 100 ] \
+#         --shrink-factors 8x4x2x1 \
+#         --smoothing-sigmas 4x2x1x0vox \
+#         --transform Rigid[0.1] \
+#         --metric MI[ {input.ref}, {input.moving}, 1, 32 ] \
+#         -o {params.outprefix} \
+#         -x [ {input.ref_mask}, {input.moving_mask} ]
+#         """
+
+rule apply_reg_ihmt_to_freesurfer_bbregister:
     input:
-        ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
-        reg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}_0GenericAffine.mat",
+        reg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2FS{mp2rage_params}.lta",
+        target="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz",
         ihmt_maps_done="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done"
     params:
         acqdir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/",
         subject="sub-{subject}_ses-{session}_acq-{ihmt_params}"
     output:
-        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_applyreg2{mp2rage_params}.done"
-    resources: 
-        mem_mb=500
-    conda:
-        "../envs/qMT.yaml"
+        temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_applyreg2FS{mp2rage_params}.done")
+    resources:
+        mem_mb=1500
     threads: 1
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
     log:
-        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_applyreg2{mp2rage_params}.log"
+        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_applyreg2FS{mp2rage_params}.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+        
+        export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
         MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
         mkdir -p "{params.acqdir}/reg2MP2RAGE"
         for map in "${{MTmaps[@]}}"; do
-            moving="{params.acqdir}/{params.subject}_"$map".nii.gz"
-            out="{params.acqdir}/reg2MP2RAGE/{params.subject}_"$map"_reg2{wildcards.mp2rage_params}.nii.gz"
+            moving="{params.acqdir}/{params.subject}_"$map"_brain.nii.gz"
+            out="{params.acqdir}/reg2MP2RAGE/{params.subject}_"$map"_reg2FS{wildcards.mp2rage_params}.nii.gz"
             if [ -f $moving ]; then
-                antsApplyTransforms \
-                --dimensionality 3 \
-                --interpolation Linear \
-                --verbose 1 \
-                -i $moving \
-                -r {input.ref} \
-                -t {input.reg} \
-                -o $out
+                mri_vol2vol --mov $moving --targ {input.target} --o $out --reg {input.reg} --no-save-reg
             fi
         done
         touch {output}
         """
 
 
-rule gather_ihmt_to_MP2RAGE_ants:
+# rule apply_reg_ihmt_to_MP2RAGE_ants:
+#     input:
+#         ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
+#         reg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}_0GenericAffine.mat",
+#         ihmt_maps_done="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done"
+#     params:
+#         acqdir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/",
+#         subject="sub-{subject}_ses-{session}_acq-{ihmt_params}"
+#     output:
+#         "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_applyreg2{mp2rage_params}.done"
+#     resources: 
+#         mem_mb=500
+#     conda:
+#         "../envs/qMT.yaml"
+#     threads: 1
+#     log:
+#         "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_applyreg2{mp2rage_params}.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+
+#         MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+#         mkdir -p "{params.acqdir}/reg2MP2RAGE"
+#         for map in "${{MTmaps[@]}}"; do
+#             moving="{params.acqdir}/{params.subject}_"$map".nii.gz"
+#             out="{params.acqdir}/reg2MP2RAGE/{params.subject}_"$map"_reg2{wildcards.mp2rage_params}.nii.gz"
+#             if [ -f $moving ]; then
+#                 antsApplyTransforms \
+#                 --dimensionality 3 \
+#                 --interpolation Linear \
+#                 --verbose 1 \
+#                 -i $moving \
+#                 -r {input.ref} \
+#                 -t {input.reg} \
+#                 -o $out
+#             fi
+#         done
+#         touch {output}
+#         """
+
+
+# rule gather_ihmt_to_MP2RAGE_ants:
+rule gather_ihmt_to_freesurfer_bbregister:
     input:
-        ihmt_to_mp2rage,
+        # ihmt_to_mp2rage,
+        ihmt_to_freesurfer
     output:
-        "data/derivatives/{field_strength}/ihmt/ihmt_to_MP2RAGE.done"
+        # "data/derivatives/{field_strength}/ihmt/ihmt_to_MP2RAGE.done"
+        "data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done"
     log:
-        "logs/{field_strength}/ihmt/ihmt_to_MP2RAGE.log"
+        # "logs/{field_strength}/ihmt/ihmt_to_MP2RAGE.log"
+        "logs/{field_strength}/ihmt/ihmt_to_freesurfer.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console

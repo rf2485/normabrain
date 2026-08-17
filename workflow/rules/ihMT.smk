@@ -411,7 +411,7 @@ rule N4BiasFieldCorrection_ihmt:
 
 rule b1corr_ihmt:
     input:
-        split_dir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/split",
+        # split_dir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/split",
         ihmt_json=get_raw_ihmt_json,
         b1map="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_acq-famp_reg2{ihmt_params}_smooth_norm.nii.gz",
         b1map_json=get_raw_b1map_json,
