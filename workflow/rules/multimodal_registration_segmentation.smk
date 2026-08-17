@@ -92,10 +92,11 @@ def dwi_to_mp2rage(wildcards):
                 apply_reg_list.append("data/derivatives/{field_strength}/dwi/sub-" + subject + "/ses-" + session + "/acq-DWI" + dwi + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-DWI" + dwi + "_applyreg2" + mp2rage_first_acq + ".done" )
     return apply_reg_list
 
-def ihmt_reg2first_acq_mp2rage(wildcards):
+# def ihmt_reg2first_acq_mp2rage(wildcards):
+def ihmt_reg2first_acq_freesurfer(wildcards):
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2{mp2rage_params}_0GenericAffine.mat", mp2rage_params=first_acq, allow_missing=True)
+    return expand("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
 
 def qMT_reg2first_acq_mp2rage(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -474,27 +475,69 @@ rule gather_ihmt_to_freesurfer_bbregister:
         """
 
 
-rule apply_reg_seg_to_ihmt_ants:
+# rule apply_reg_seg_to_ihmt_ants:
+#     input:
+#         seg = resliced_segmentation_first_acq_mp2rage,
+#         reg = ihmt_reg2first_acq_mp2rage,
+#         ihmt_maps_done="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done"
+#     params:
+#         refprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}"
+#     output:
+#         "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}.nii.gz"
+#     resources: 
+#         mem_mb=500
+#     conda:
+#         "../envs/qMT.yaml"
+#     threads: 1
+#     log:
+#        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}.log" 
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+
+#         #choose ref based on what maps are available
+#         MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+#         for map in "${{MTmaps[@]}}"; do
+#             ref_init="{params.refprefix}_"$map".nii.gz"
+#             if [ -f $ref_init ]; then #if file exists, then set ref
+#                 ref=$ref_init
+#             fi
+#         done
+        
+#         #apply inverse reg so that seg is in ihmt space, to avoid interpolation of ihmt
+#         antsApplyTransforms \
+#         --dimensionality 3 \
+#         --interpolation NearestNeighbor \
+#         --verbose 1 \
+#         -i {input.seg} \
+#         -r $ref \
+#         -t [ {input.reg}, 1 ] \
+#         -o {output}
+#         """
+
+rule apply_aparc_aseg_to_ihmt_bbregister:
     input:
-        seg = resliced_segmentation_first_acq_mp2rage,
-        reg = ihmt_reg2first_acq_mp2rage,
+        seg = aparc_aseg_first_acq_freesurfer,
+        reg = ihmt_reg2first_acq_freesurfer,
         ihmt_maps_done="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done"
     params:
         refprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}"
     output:
-        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}.nii.gz"
+        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_aparc+aseg.nii.gz"
     resources: 
         mem_mb=500
-    conda:
-        "../envs/qMT.yaml"
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
     threads: 1
     log:
-       "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}.log" 
+       "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_aparc+aseg.log" 
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+        export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
         #choose ref based on what maps are available
         MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
@@ -506,14 +549,10 @@ rule apply_reg_seg_to_ihmt_ants:
         done
         
         #apply inverse reg so that seg is in ihmt space, to avoid interpolation of ihmt
-        antsApplyTransforms \
-        --dimensionality 3 \
-        --interpolation NearestNeighbor \
-        --verbose 1 \
-        -i {input.seg} \
-        -r $ref \
-        -t [ {input.reg}, 1 ] \
-        -o {output}
+        mri_vol2vol \
+        --inv --nearest --no-save-reg \
+        --mov "$ref" --targ {input.seg} --reg {input.reg} \
+        --o {output}
         """
 
 
