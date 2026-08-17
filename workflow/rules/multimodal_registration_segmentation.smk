@@ -556,6 +556,62 @@ rule apply_aparc_aseg_to_ihmt_bbregister:
         """
 
 
+rule warp_ihmt_to_mni152:
+    input:
+        ihmt2fs=ihmt_reg2first_acq_freesurfer,
+        fs2mni152=fs2mni152_first_acq
+    output:
+        ihmt2mni152="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2mni152_warp.nii.gz"
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=700
+    threads: 1
+    log:
+        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2mni152_warp.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FS_LICENSE=".snakemake/scripts/.license"
+
+        mri_warp_convert \
+        --lta1 {input.ihmt2fs} \
+        --inm3z {input.fs2mni152} \
+        --outm3z {output.ihmt2mni152}
+        """
+
+rule apply_warp_mni_atlases_to_ihmt:
+    input:
+        subj2mni152="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2mni152_warp.nii.gz",
+        aparc_aseg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_aparc+aseg.nii.gz",
+        wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
+    output:
+        wm_mask="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_wm_mask.nii.gz",
+        wm90percent_lobes="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm_lobes="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_mni_icbm152_wm_lobes.nii.gz",
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=700
+    threads: 1
+    log:
+        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}/apply_warp_mni_atlases_to_ihmt.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FS_LICENSE=".snakemake/scripts/.license"
+
+        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46
+
+        mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
+        mri_mask {output.wm90percent_lobes} {output.wm_mask} {output.wm90percent_lobes}
+
+        mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
+        mri_mask {output.wm_lobes} {output.wm_mask} {output.wm_lobes}
+        """
+
+
 rule ihmt_roi_stats:
     input:
         ihmt_done="data/derivatives/{field_strength}/ihmt/ihmt_maps.done",

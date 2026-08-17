@@ -67,7 +67,7 @@ def aparc_aseg_first_acq_freesurfer(wildcards):
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz', mp2rage_params=first_acq, allow_missing=True)
 
-def fs2mni152_first_acq_mp2rage(wildcards):
+def fs2mni152_first_acq(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
@@ -723,7 +723,7 @@ rule wm90percent_lobes:
 rule warp_subject_mp2rage_to_mni152:
     input:
         subj2fs="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
-        fs2mni152=fs2mni152_first_acq_mp2rage
+        fs2mni152=fs2mni152_first_acq
     output:
         subj2mni152="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz"
     container:
