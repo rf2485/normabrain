@@ -1,6 +1,7 @@
 #rules for multimodal registration and segmentation, not including B1map which is a dependency for regular pre-processing for MP2RAGE and qMT
 #dependent on all other smk files
 import os
+import shutil
 from bids import BIDSLayout
 from collections import Counter
 from pathlib import Path
@@ -125,7 +126,8 @@ def ihmt_statslist(wildcards):
         for session in sessionlist:
             acqlist = layout.get_acquisition(suffix="ihmt", subject=subject, session=session)
             for acq in acqlist:
-                statslist.append("data/derivatives/{field_strength}/freesurfer/sub-" + subject + "_ses-" + session + "_acq-" + acq + "/stats/ihmt_stats.done")
+                statslist.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.csv")
+                # statslist.append("data/derivatives/{field_strength}/freesurfer/sub-" + subject + "_ses-" + session + "_acq-" + acq + "/stats/ihmt_stats.done")
     return sorted(statslist)
 
 def qMT_statslist(wildcards):
@@ -614,14 +616,17 @@ rule apply_warp_mni_atlases_to_ihmt:
 
 rule ihmt_roi_stats:
     input:
-        ihmt_done="data/derivatives/{field_strength}/ihmt/ihmt_maps.done",
-        seg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/mri/ihmt/{segmentation}_reg2{ihmt_params}.nii.gz",
+        ihmt_done="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done",
+        # seg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/mri/ihmt/{segmentation}_reg2{ihmt_params}.nii.gz",
+        seg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}.nii.gz",
         lut="data/atlases/{segmentation}_lut.txt",
     params:
         ihmtprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}",
-        outdir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/",
+        outdir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp",
     output:
-        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_seg-{segmentation}_stats.done",
+        temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.done"),
+        # stats=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.csv"),
+        # nooutliers_stats=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_nooutliers_stats.csv")
     resources:
         mem_mb=1000
     threads: 1
@@ -645,74 +650,111 @@ rule ihmt_roi_stats:
         """
 
 
-rule ihmt_stats:
+rule ihmt_roi_stats_agg_segs:
     input:
-        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/mri/aparc+aseg_reg2IHMT.nii.gz"
+        stats=expand("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.done", 
+        segmentation=config["segmentations"].split(), allow_missing=True),    
     params:
-        ihmtprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}",
-        statsprefix="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/stats/ihmt"
+        stats_temp="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp",
     output:
-        "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/stats/ihmt_stats.done"
-    container:
-        "docker://freesurfer/freesurfer:8.1.0"
+        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_stats.csv",
     resources:
-        mem_mb=500
+        mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/ihmt_stats.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-        export FS_LICENSE=$HOME/.snakemake/scripts/.license
-
-        MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
-        
-        for map in "${{MTmaps[@]}}"; do
-            ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
-            stats="{params.statsprefix}_${{map}}.stats"
-            if [ -f $ihmt ]; then
-                mri_segstats --seg {input} --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --i $ihmt --sum $stats --excludeid 0
-            fi
-        done
-
-        touch {output}
-        """
+        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_stats.log"
+    run: #python code, not shell
+        logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
+        stats_list = sorted(Path(input.stats[0]).parent.glob("*_stats.csv"))
+        df_stats = pd.concat((pd.read_csv(s) for s in stats_list), ignore_index=True)
+        df_stats.to_csv(str(output), index=False)
+        shutil.rmtree(params.stats_temp)
 
 
-rule ihmt_tsv:
+rule ihmt_roi_stats_agg_subjs:
     input:
-        ihmt_statslist,
-    params:
-        subjectlist=freesurfer_subjectlist_ihmt,
-        subjects_dir="data/derivatives/{field_strength}/freesurfer/"
+        ihmt_statslist
     output:
-        "data/derivatives/{field_strength}/freesurfer/ihmt_stats.done"
-    container:
-        "docker://freesurfer/freesurfer:8.1.0"
+        "data/derivatives/{field_strength}/ihmt/ihmt_stats.csv"
     resources:
-        mem_mb=500
+        mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/freesurfer/ihmt_stats_tsv.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        "logs/{field_strength}/ihmt/ihmt_stats.log"
+    run: #python code, not shell
+        logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
+        df_stats = pd.concat((pd.read_csv(i) for i in input), ignore_index=True)
+        df_stats.to_csv(str(output), index=False)
 
-        export SUBJECTS_DIR=$HOME/{params.subjects_dir}
-        
-        export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
-        MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+# rule ihmt_stats:
+#     input:
+#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/mri/aparc+aseg_reg2IHMT.nii.gz"
+#     params:
+#         ihmtprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}",
+#         statsprefix="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/stats/ihmt"
+#     output:
+#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/stats/ihmt_stats.done"
+#     container:
+#         "docker://freesurfer/freesurfer:8.1.0"
+#     resources:
+#         mem_mb=500
+#     threads: 1
+#     log:
+#         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/ihmt_stats.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
+
+#         MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
         
-        if ! [ -n {params.subjectlist} ]; then
-            for map in "${{MTmaps[@]}}"; do
-                asegstats2table --subjects {params.subjectlist} --statsfile ihmt_${{map}}.stats -t $SUBJECTS_DIR/ihmt_${{map}}_stats.tsv --meas mean --common-segs --no-segno 0 --skip || \
-                echo "no subjects have this map!"
-            done
-        fi
-        touch {output}
-        """
+#         for map in "${{MTmaps[@]}}"; do
+#             ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
+#             stats="{params.statsprefix}_${{map}}.stats"
+#             if [ -f $ihmt ]; then
+#                 mri_segstats --seg {input} --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --i $ihmt --sum $stats --excludeid 0
+#             fi
+#         done
+
+#         touch {output}
+#         """
+
+
+# rule ihmt_tsv:
+#     input:
+#         ihmt_statslist,
+#     params:
+#         subjectlist=freesurfer_subjectlist_ihmt,
+#         subjects_dir="data/derivatives/{field_strength}/freesurfer/"
+#     output:
+#         "data/derivatives/{field_strength}/freesurfer/ihmt_stats.done"
+#     container:
+#         "docker://freesurfer/freesurfer:8.1.0"
+#     resources:
+#         mem_mb=500
+#     threads: 1
+#     log:
+#         "logs/{field_strength}/freesurfer/ihmt_stats_tsv.log"
+#     shell:
+#         """
+#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+#         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
+        
+#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
+
+#         MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+        
+#         if ! [ -n {params.subjectlist} ]; then
+#             for map in "${{MTmaps[@]}}"; do
+#                 asegstats2table --subjects {params.subjectlist} --statsfile ihmt_${{map}}.stats -t $SUBJECTS_DIR/ihmt_${{map}}_stats.tsv --meas mean --common-segs --no-segno 0 --skip || \
+#                 echo "no subjects have this map!"
+#             done
+#         fi
+#         touch {output}
+#         """
 
 
 rule apply_reg_MP2RAGE_to_ihmt_ants:
