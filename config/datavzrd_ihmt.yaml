@@ -1,0 +1,74 @@
+__use_yte__: true
+
+datasets:
+  ihmt:
+    path: ?input.table
+
+views:
+  ihmt:
+    dataset: ihmt
+    render-table:
+      columns:
+        outliers_removed:
+          spell:
+            url: v1.6.0/logic/boolean
+            with:
+              true_value: "True"
+              false_value: "False"
+        region:
+          plot:
+            heatmap:
+              scale: ordinal
+              color-scheme: category20 
+        means:
+          plot:
+            heatmap:
+              scale: linear
+              range: ["white", "blue"]
+        se:
+          display-mode: hidden
+        median:
+          display-mode: hidden
+        q1:
+          display-mode: hidden
+        q3:
+          display-mode: hidden
+        iqr:
+          display-mode: hidden
+        qcd:
+          display-mode: hidden
+        skew:
+          plot:
+            heatmap:
+              scale: linear
+              range: ["red", "white", "blue"]
+              domain-mid: 0
+        kurt:
+          plot:
+            heatmap:
+              scale: linear
+              range: ["red", "white", "blue"]
+              domain-mid: 0
+        data:
+          custom-plot:
+            data: |
+              function(value, row) {
+                return value
+                  .trim()
+                  .split(/\s+/)
+                  .map(v => ({ data: Number(v) }));
+                }
+            spec: |
+              {
+                "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+                "mark": "bar",
+                "encoding": {
+                  "x": {
+                    "bin": true,
+                    "field": "data"
+                  },
+                  "y": {"aggregate": "count"}
+                }
+              }
+
+        
