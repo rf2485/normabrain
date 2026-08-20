@@ -86,7 +86,7 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
 
         #append to dictionaries
         l_region.append(ROI_names[n]) 
-        l_data.append(data)
+        l_data.append(data.tolist())
         l_mean.append(np.mean(data))
         l_sd.append(np.std(data))
         l_se.append(stats.sem(data))
