@@ -40,7 +40,7 @@ def ROI_dict(ROI_lookuptable_filepath):
 
 def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_directory, subject, session, acq, contrast, remove_outliers=False):
     """
-    Main function for generating the statistics dataframe and saving to CSV.
+    Main function for generating the statistics dataframe and saving to pickle.
     """
     # Load quantitative map and associated segmentation 
     n_map = nib.load(data_filepath) # map
@@ -122,13 +122,13 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
         }
     )
 
-    #save to csv
+    #save to pickle
     outdir = Path(output_directory) #convert output directory from str to path to enable filename concatenation
     if remove_outliers == True:
         #save without including pandas index in the first column (avoids confusing this with ROI index from the LUT)
-        df_stats.to_csv(outdir / f"sub-{subject}_ses-{session}_acq-{acq}_seg-{seg_name}_ctr-{contrast}_nooutliers_stats.csv", index=False )
+        df_stats.to_pickle(outdir / f"sub-{subject}_ses-{session}_acq-{acq}_seg-{seg_name}_ctr-{contrast}_nooutliers_stats.pickle" )
     else:
-        df_stats.to_csv(outdir / f"sub-{subject}_ses-{session}_acq-{acq}_seg-{seg_name}_ctr-{contrast}_stats.csv", index=False )
+        df_stats.to_pickle(outdir / f"sub-{subject}_ses-{session}_acq-{acq}_seg-{seg_name}_ctr-{contrast}_stats.pickle" )
 
 
 #build the CLI
@@ -137,19 +137,19 @@ if __name__ == '__main__':
         description=
         """
         Calculate statistics for a quantitative map based on its segmentation. 
-        Stats are saved to csv files in the specified output directory, using the specified subject, session, acquisition, and contrast in the filename.
+        Stats are saved to pickle files in the specified output directory, using the specified subject, session, acquisition, and contrast in the filename.
         The name of the segmentation is also derived from the seg_filepath and saved in the filename.
-        Subject, session, acquisition, contrast, and segmentation are also saved as columns in the csv, for ease of concatenating files later.
+        Subject, session, acquisition, contrast, and segmentation are also saved as columns in the pickle, for ease of concatenating files later.
         """)
     #CLI required positional arguments
     parser.add_argument('data_filepath', type=str, help="quantitative map filepath (must be .nii.gz file) . e.g. '/home/Documents/T1map_grappa2.nii.gz'")
     parser.add_argument('seg_filepath', type=str, help="Filepath for the segmentation file to be applied to quantitative MRI maps (must be .nii.gz or mgz file). e.g. '/home/Documents/segmentation.nii.gz'")
-    parser.add_argument('ROI_lookuptable_filepath', type=str, help="Filepath for an ASCII, csv, or tsv file where the first column corresponds to the ROI index and the second column corresponds to the ROI name.")
+    parser.add_argument('ROI_lookuptable_filepath', type=str, help="Filepath for an ASCII, pickle, or tsv file where the first column corresponds to the ROI index and the second column corresponds to the ROI name.")
     parser.add_argument('output_directory', type=str, help="Filepath for the output directory")
-    parser.add_argument('subject', type=str, help="Subject name, for use in file naming and as a column in the csv file.")
-    parser.add_argument('session', type=str, help="Session name, for use in file naming and as a column in the csv file.")
-    parser.add_argument('acquisition', type=str, help="Acquisition name, for use in file naming and as a column in the csv file.")
-    parser.add_argument('contrast', type=str, help="Image contrast name (i.e. T1map, FA, etc.), for use in file naming and as a column in the csv file.")
+    parser.add_argument('subject', type=str, help="Subject name, for use in file naming and as a column in the pickle file.")
+    parser.add_argument('session', type=str, help="Session name, for use in file naming and as a column in the pickle file.")
+    parser.add_argument('acquisition', type=str, help="Acquisition name, for use in file naming and as a column in the pickle file.")
+    parser.add_argument('contrast', type=str, help="Image contrast name (i.e. T1map, FA, etc.), for use in file naming and as a column in the pickle file.")
     #action="store_true" makes this flag boolean (args.remove_outliers is True when flag is called, False otherwise)
     #CLI optional flag argument
     parser.add_argument('-r', '--remove_outliers', action="store_true", help="When flag is applied, remove outliers more than 3 standard deviations from the mean. Without this flag, data remains unfiltered.")

@@ -49,14 +49,11 @@ views:
               scale: linear
               range: ["red", "white", "blue"]
               domain-mid: 0
-        data:
+        hist_json:
           custom-plot:
             data: |
               function(value, row) {
                 return value
-                  .trim()
-                  .split(/\s+/)
-                  .map(v => ({ data: Number(v) }));
                 }
             spec: |
               {
@@ -64,10 +61,17 @@ views:
                 "mark": "bar",
                 "encoding": {
                   "x": {
-                    "bin": true,
-                    "field": "data"
+                    "field": "bin_start",
+                    "bin": "binned",
+                    "type": "quantitative",
+                    "title": "Value"
                   },
-                  "y": {"aggregate": "count"}
+                  "x2": {"field": "bin_end"},
+                  "y": {
+                    "field": "count",
+                    "type": "quantitative",
+                    "title": "Frequency"
+                  }
                 }
               }
 

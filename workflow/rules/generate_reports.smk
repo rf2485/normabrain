@@ -1,6 +1,6 @@
 rule filter_data:
     input:
-       "data/derivatives/3T/ihmt/ihmt_stats.csv"
+       "data/derivatives/3T/ihmt/ihmt_stats.pickle"
     output:
         "data/derivatives/3T/ihmt/ihmt_stats_filteredROIs.csv" 
     conda:

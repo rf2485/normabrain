@@ -101,8 +101,8 @@ def mp2rage_roi_statslist(wildcards):
         for session in sessionlist:
             acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
             for acq in acqlist:
-                # statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/coreg/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.csv")
-                statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.csv")
+                # statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/coreg/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
+                statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     return statslist
 
 # def mp2rage_statslist(wildcards):
@@ -838,10 +838,10 @@ rule mp2rage_roi_stats:
         # outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/"
         outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/"
     output:
-        # stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv",
-        stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv"),
-        # nooutliers_stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv",
-        nooutliers_stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv"),
+        # stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle",
+        stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle"),
+        # nooutliers_stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle",
+        nooutliers_stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle"),
     resources:
         mem_mb=1000
     threads: 1
@@ -858,15 +858,15 @@ rule mp2rage_roi_stats:
 
 rule mp2rage_roi_stats_agg_segs:
     input:
-        # stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv", 
-        stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.csv", 
+        # stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle", 
+        stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle", 
         segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True),
-        # nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv", 
-        nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.csv", 
+        # nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle", 
+        nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle", 
         segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True)
     output:
-        # temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.csv"),
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.csv",
+        # temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.pickle"),
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.pickle",
     resources:
         mem_mb=1000
     threads: 1
@@ -874,17 +874,17 @@ rule mp2rage_roi_stats_agg_segs:
         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_csv(s) for s in input.stats), ignore_index=True)
-        df_nooutliers = pd.concat((pd.read_csv(n) for n in input.nooutliers), ignore_index=True)
+        df_stats = pd.concat((pd.read_pickle(s) for s in input.stats), ignore_index=True)
+        df_nooutliers = pd.concat((pd.read_pickle(n) for n in input.nooutliers), ignore_index=True)
         df_stats = pd.concat([df_stats, df_nooutliers])
-        df_stats.to_csv(str(output), index=False)
+        df_stats.to_pickle(str(output))
 
 
 rule mp2rage_roi_stats_agg_subjs:
     input:
         mp2rage_roi_statslist
     output:
-        "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.csv"
+        "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.pickle"
     resources:
         mem_mb=1000
     threads: 1
@@ -892,8 +892,8 @@ rule mp2rage_roi_stats_agg_subjs:
         "logs/{field_strength}/MP2RAGE/MP2RAGE_stats.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_csv(i) for i in input), ignore_index=True)
-        df_stats.to_csv(str(output), index=False)
+        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        df_stats.to_pickle(str(output))
 
 
 # rule mp2rage_segstats:
@@ -1063,5 +1063,5 @@ rule N4BiasFieldCorrection_qT1:
 rule aggregate_mp2rage:
     input:
         # expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE.done", field_strength=field_strength_list),
-        expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.csv", field_strength=field_strength_list),
+        expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.pickle", field_strength=field_strength_list),
         # expand("data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv", field_strength=field_strength_list, mp2rage_map=["R1map_b1corr", "T1map_b1corr"])

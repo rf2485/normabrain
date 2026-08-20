@@ -126,7 +126,7 @@ def ihmt_statslist(wildcards):
         for session in sessionlist:
             acqlist = layout.get_acquisition(suffix="ihmt", subject=subject, session=session)
             for acq in acqlist:
-                statslist.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.csv")
+                statslist.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
                 # statslist.append("data/derivatives/{field_strength}/freesurfer/sub-" + subject + "_ses-" + session + "_acq-" + acq + "/stats/ihmt_stats.done")
     return sorted(statslist)
 
@@ -625,8 +625,8 @@ rule ihmt_roi_stats:
         outdir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp",
     output:
         temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.done"),
-        # stats=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.csv"),
-        # nooutliers_stats=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_nooutliers_stats.csv")
+        # stats=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.pickle"),
+        # nooutliers_stats=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_nooutliers_stats.pickle")
     resources:
         mem_mb=1000
     threads: 1
@@ -657,7 +657,7 @@ rule ihmt_roi_stats_agg_segs:
     params:
         stats_temp="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp",
     output:
-        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_stats.csv",
+        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_stats.pickle",
     resources:
         mem_mb=1000
     threads: 1
@@ -665,9 +665,9 @@ rule ihmt_roi_stats_agg_segs:
         "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_stats.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        stats_list = sorted(Path(input.stats[0]).parent.glob("*_stats.csv"))
-        df_stats = pd.concat((pd.read_csv(s) for s in stats_list), ignore_index=True)
-        df_stats.to_csv(str(output), index=False)
+        stats_list = sorted(Path(input.stats[0]).parent.glob("*_stats.pickle"))
+        df_stats = pd.concat((pd.read_pickle(s) for s in stats_list), ignore_index=True)
+        df_stats.to_pickle(str(output))
         shutil.rmtree(params.stats_temp)
 
 
@@ -675,7 +675,7 @@ rule ihmt_roi_stats_agg_subjs:
     input:
         ihmt_statslist
     output:
-        "data/derivatives/{field_strength}/ihmt/ihmt_stats.csv"
+        "data/derivatives/{field_strength}/ihmt/ihmt_stats.pickle"
     resources:
         mem_mb=1000
     threads: 1
@@ -683,8 +683,8 @@ rule ihmt_roi_stats_agg_subjs:
         "logs/{field_strength}/ihmt/ihmt_stats.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_csv(i) for i in input), ignore_index=True)
-        df_stats.to_csv(str(output), index=False)
+        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        df_stats.to_pickle(str(output))
 
 
 # rule ihmt_stats:
@@ -879,7 +879,7 @@ rule apply_reg_MP2RAGE_to_ihmt_ants:
 
 rule aggregate_multimodal_ihmt_mp2rage:
     input:
-        expand("data/derivatives/{field_strength}/ihmt/ihmt_stats.csv", field_strength=field_strength_list),
+        expand("data/derivatives/{field_strength}/ihmt/ihmt_stats.pickle", field_strength=field_strength_list),
         # expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_ihmt.done", field_strength=field_strength_list),
         expand("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done", field_strength=field_strength_list)
 
