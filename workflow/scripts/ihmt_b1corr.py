@@ -50,8 +50,8 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
 
     for key, val in data_paths.items():
         norm = 1
-        if key in [Signal.MTsR_Positive, Signal.MTsR_Negative, Signal.MTsR, Signal.MTdR_CM, Signal.MTdR_ALT, Signal.ihMTR_CM, Signal.ihMTR_ALT, Signal.BPR]:
-            norm = 100
+        # if key in [Signal.MTsR_Positive, Signal.MTsR_Negative, Signal.MTsR, Signal.MTdR_CM, Signal.MTdR_ALT, Signal.ihMTR_CM, Signal.ihMTR_ALT, Signal.BPR]:
+        #     norm = 100
         if affine is None or header is None:
             tmp = load(val)
             affine = tmp.affine
