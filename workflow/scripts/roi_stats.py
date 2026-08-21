@@ -109,7 +109,7 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
             'outliers_removed': [remove_outliers] * len(l_kurt),
             'region': l_region,
             'data': l_data,
-            'means': l_mean,
+            'mean': l_mean,
             'sd': l_sd,
             'se': l_se,
             'median': l_med,

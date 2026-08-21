@@ -4,9 +4,12 @@ datasets:
   ihmt:
     path: ?input.table
 
+default-view: "ihmt_data"
+
 views:
-  ihmt:
+  ihmt_data:
     dataset: ihmt
+    desc: "Overview of the ihMT data."
     render-table:
       columns:
         outliers_removed:
@@ -20,7 +23,7 @@ views:
             heatmap:
               scale: ordinal
               color-scheme: category20 
-        means:
+        mean:
           plot:
             heatmap:
               scale: linear
@@ -49,7 +52,7 @@ views:
               scale: linear
               range: ["red", "white", "blue"]
               domain-mid: 0
-        hist_json:
+        hist:
           custom-plot:
             data: |
               function(value, row) {
