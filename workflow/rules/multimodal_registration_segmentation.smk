@@ -402,7 +402,7 @@ rule apply_reg_ihmt_to_freesurfer_bbregister:
         
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
-        MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
         mkdir -p "{params.acqdir}/reg2MP2RAGE"
         for map in "${{MTmaps[@]}}"; do
             moving="{params.acqdir}/{params.subject}_"$map"_brain.nii.gz"
@@ -542,9 +542,9 @@ rule apply_aparc_aseg_to_ihmt_bbregister:
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
         #choose ref based on what maps are available
-        MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
         for map in "${{MTmaps[@]}}"; do
-            ref_init="{params.refprefix}_"$map".nii.gz"
+            ref_init="{params.refprefix}_"$map"_brain.nii.gz"
             if [ -f $ref_init ]; then #if file exists, then set ref
                 ref=$ref_init
             fi
@@ -581,6 +581,7 @@ rule warp_ihmt_to_mni152:
         --inm3z {input.fs2mni152} \
         --outm3z {output.ihmt2mni152}
         """
+
 
 rule apply_warp_mni_atlases_to_ihmt:
     input:
@@ -636,9 +637,9 @@ rule ihmt_roi_stats:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR" "MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
         for map in "${{MTmaps[@]}}"; do
-            ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
+            ihmt="{params.ihmtprefix}_${{map}}_brain.nii.gz"
             if [ -f $ihmt ]; then
                 python3 workflow/scripts/roi_stats.py "${{ihmt}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"
                 python3 workflow/scripts/roi_stats.py -r "${{ihmt}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"

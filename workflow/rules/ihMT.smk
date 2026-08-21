@@ -211,6 +211,7 @@ rule calculate_ihmt_maps:
         mt0="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/split/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mt0.nii",
         split_dir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/split"
     output:
+        #temporary maps get saved to sums_means folder
         sums_means_dir=temp(directory("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/")),
         MTmap="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTmap.nii.gz"
     params:
@@ -219,25 +220,25 @@ rule calculate_ihmt_maps:
         mtd_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/split/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_cosmod.nii",
         mtd_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/split/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_freqalt.nii",  
         #avg depending on contrast type
-        mts_avg=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mts_avg.nii"),
-        mtd_cosmod_avg=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_cosmod_avg.nii"),
-        mtd_freqalt_avg=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_freqalt_avg.nii"),    
+        mts_avg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mts_avg.nii",
+        mtd_cosmod_avg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_cosmod_avg.nii",
+        mtd_freqalt_avg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_freqalt_avg.nii",    
         #MTR depending on contrast type
-        MTRs="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTRs.nii.gz",
-        MTRd_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_MTRd.nii.gz",
-        MTRd_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_MTRd.nii.gz", 
+        MTRs="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTRs.nii.gz",
+        MTRd_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_MTRd.nii.gz",
+        MTRd_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_MTRd.nii.gz", 
         #sum depending on contrast type
-        mts_sum=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mts_sum.nii"),
-        mtd_cosmod_sum=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_cosmod_sum.nii"),
-        mtd_freqalt_sum=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_freqalt_sum.nii"),
+        mts_sum="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mts_sum.nii",
+        mtd_cosmod_sum="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_cosmod_sum.nii",
+        mtd_freqalt_sum="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_freqalt_sum.nii",
         #ihMTmap depending on contrast type
-        ihMTmap_cosmod=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTmap.nii.gz"),
-        ihMTmap_freqalt=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTmap.nii.gz"),
+        ihMTmap_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTmap.nii.gz",
+        ihMTmap_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTmap.nii.gz",
         #ihMTR depending on contrast type
         ihMTR_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTR.nii.gz",
         ihMTR_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTR.nii.gz",
         #bandpass
-        BP=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BP.nii.gz"),  
+        BP="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_BP.nii.gz",  
         BPR="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BPR.nii.gz",      
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
@@ -319,7 +320,7 @@ rule synthstrip_ihmt:
         """
 
 
-rule apply_brainmask_ihmt:
+rule apply_brainmask_MTmap:
     input:
         input_image = "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTmap.nii.gz",
         brain_mask = "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_brain_mask.nii.gz"
@@ -340,14 +341,6 @@ rule apply_brainmask_ihmt:
         export FSLOUTPUTTYPE='NIFTI_GZ'
         
         fslmaths {input.input_image} -mas {input.brain_mask} {output}
-        
-        MTmaps=("MTRs" "cosmod_MTRd" "freqalt_MTRd" "cosmod_ihMTR" "freqalt_ihMTR" "BPR")
-        for map in "${{MTmaps[@]}}"; do
-            ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
-            if [ -f $ihmt ]; then
-                fslmaths $ihmt -mas {input.brain_mask} "{params.ihmtprefix}_${{map}}_brain.nii.gz"
-            fi
-        done
         """
 
 
@@ -419,10 +412,6 @@ rule b1corr_ihmt:
     output:
         temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr.done")
     params:
-        #MTR depending on contrast type
-        MTRs="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTRs.nii.gz",
-        MTRd_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_MTRd.nii.gz",
-        MTRd_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_MTRd.nii.gz", 
         #ihMTR depending on contrast type
         ihMTR_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTR.nii.gz",
         ihMTR_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTR.nii.gz",
@@ -439,24 +428,6 @@ rule b1corr_ihmt:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         
-        if [ -f {params.MTRs} ]
-        then
-            python workflow/scripts/ihmt_b1corr.py {params.MTRs} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} {wildcards.field_strength} "MTsR" || \
-            python workflow/scripts/ihmt_b1corr.py {params.MTRs} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} "custom" "MTsR"
-        fi
-
-        if [ -f {params.MTRd_cosmod} ]
-        then
-            python workflow/scripts/ihmt_b1corr.py {params.MTRd_cosmod} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} {wildcards.field_strength} "MTdR_CM" || \
-            python workflow/scripts/ihmt_b1corr.py {params.MTRd_cosmod} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} "custom" "MTdR_CM"
-        fi
-
-        if [ -f {params.MTRd_freqalt} ]
-        then
-            python workflow/scripts/ihmt_b1corr.py {params.MTRd_freqalt} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} {wildcards.field_strength} "MTdR_ALT" || \
-            python workflow/scripts/ihmt_b1corr.py {params.MTRd_freqalt} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} "custom" "MTdR_ALT" 
-        fi
-
         if [ -f {params.ihMTR_cosmod} ]
         then
             python workflow/scripts/ihmt_b1corr.py {params.ihMTR_cosmod} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} {wildcards.field_strength} "ihMTR_CM" || \
@@ -479,7 +450,7 @@ rule b1corr_ihmt:
         """ 
 
 
-rule apply_brainmask_ihmt_b1corr:
+rule apply_brainmask_ihmt:
     input:
         b1corr_done = "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr.done",
         brain_mask = "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_brain_mask.nii.gz"
@@ -499,11 +470,12 @@ rule apply_brainmask_ihmt_b1corr:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
                 
-        MTmaps=("MTRs_b1corr" "cosmod_MTRd_b1corr" "freqalt_MTRd_b1corr" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
         for map in "${{MTmaps[@]}}"; do
             ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
             if [ -f $ihmt ]; then
                 fslmaths $ihmt -mas {input.brain_mask} "{params.ihmtprefix}_${{map}}_brain.nii.gz"
+                rm $ihmt
             fi
         done
         touch {output}

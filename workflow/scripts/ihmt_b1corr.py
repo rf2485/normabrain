@@ -115,7 +115,6 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
     #     value[~param_maps['mask']] = 0
     #     value.setflags(write=False)
 
-    suffix="b1corr"
     for key, value in corData.items():
        Nifti1Image(value, affine, header).to_filename(data_paths[key].with_stem(data_paths[key].stem.replace(".nii", "") + "_b1corr.nii"))
 
