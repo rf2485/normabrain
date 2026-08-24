@@ -506,12 +506,12 @@ rule ihmt_roi_stats_agg_subjs:
     input:
         ihmt_statslist
     output:
-        "data/derivatives/{field_strength}/ihmt/ihmt_stats.pickle"
+        "data/derivatives/{field_strength}/ihmt/ihmt_stats_{field_strength}.pickle"
     resources:
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/ihmt/ihmt_stats.log"
+        "logs/{field_strength}/ihmt/ihmt_stats_{field_strength}.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
         df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
@@ -520,7 +520,23 @@ rule ihmt_roi_stats_agg_subjs:
 
 rule aggregate_multimodal_ihmt_mp2rage:
     input:
-        expand("data/derivatives/{field_strength}/ihmt/ihmt_stats.pickle", field_strength=field_strength_list),
+        expand("data/derivatives/{field_strength}/ihmt/ihmt_stats_{field_strength}.pickle", field_strength=field_strength_list),
+    output:
+        "data/derivatives/ihmt_stats.pickle"
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/ihmt_stats.log"
+    run:
+        logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
+        df_stats = pd.concat((pd.read_pickle(i) for i in input.stats), ignore_index=True)
+        df_stats.to_pickle(str(output))
+
+
+rule aggregate_multimodal_ihmt_mp2rage:
+    input:
+        "data/derivatives/ihmt_stats.pickle",
         expand("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done", field_strength=field_strength_list)
 
 
