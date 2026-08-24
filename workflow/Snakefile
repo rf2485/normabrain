@@ -19,6 +19,8 @@ else: #create BIDSLayout for each subdirectory of bidspath (which correspond to 
         input: #do all preprocessing for each field strength
             "data/rawdata/bidsify.done",
             "data/derivatives/MP2RAGE_stats.pickle",
+            expand("data/derivatives/{field_strength}/MP2RAGE_{mp2rage_map}_coreg.done", field_strength=next(os.walk(bidspath))[1], 
+            mp2rage_map=["R1map_b1corr", "T1map_b1corr", "T1w_UNI_b1corr", "T1w_UNIDEN_b1corr"]),            
             "data/derivatives/ihmt_stats.pickle",
             expand("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done", field_strength=next(os.walk(bidspath))[1]),
             expand("data/derivatives/{field_strength}/freesurfer/qMT_stats.done", field_strength=next(os.walk(bidspath))[1]),

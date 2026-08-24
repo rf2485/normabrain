@@ -70,6 +70,26 @@ def mp2rage_roi_statslist(wildcards):
                 statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     return statslist
 
+def aggregate_mp2rage_coreg(wildcards):
+    layout=layout_dict[wildcards.field_strength]
+    coreglist = []
+    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
+    subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
+    subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
+    subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
+    for subject in subjectlist:
+        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
+        sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
+        sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
+        sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
+        for session in sessionlist:
+            acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
+            for acq in acqlist:
+                coreglist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/coreg/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_{mp2rage_map}_coreg.nii.gz")
+    return coreglist
+"data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
+
+
 
 rule add_xml_data_to_meta_mp2rage:
     input:
@@ -504,7 +524,7 @@ rule apply_reg_first_mp2rage_acq:
     input:
         reg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
         target=antsdnbrain_first_acq_mp2rage,
-        moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_brain.nii.gz"
+        moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_brain.nii.gz"
     output:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
     resources: 
@@ -778,6 +798,17 @@ rule aggregate_mp2rage_stats:
         df_stats.to_pickle(str(output))
 
 
+rule aggregate_mp2rage_coreg:
+    input:
+        aggregate_mp2rage_coreg
+    output:
+        "data/derivatives/{field_strength}/MP2RAGE_{mp2rage_map}_coreg.done"
+    shell:
+        "touch {output}"
+
 rule aggregate_mp2rage:
     input:
-        "data/derivatives/MP2RAGE_stats.pickle"
+        "data/derivatives/MP2RAGE_stats.pickle",
+        expand("data/derivatives/{field_strength}/MP2RAGE_{mp2rage_map}_coreg.done", 
+        field_strength=field_strength_list, 
+        mp2rage_map=["R1map_b1corr", "T1map_b1corr", "T1w_UNI_b1corr", "T1w_UNIDEN_b1corr"])
