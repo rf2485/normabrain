@@ -240,6 +240,8 @@ rule calculate_ihmt_maps:
         #bandpass
         BP="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_BP.nii.gz",  
         BPR="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BPR.nii.gz",      
+        #dipolar order
+        DO="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_DO.nii.gz",
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
     resources: 
@@ -287,6 +289,7 @@ rule calculate_ihmt_maps:
         then
             mrcalc 0 {params.mts_sum} {params.mtd_cosmod_sum} -subtract -max {params.ihMTmap_cosmod} -force
             mrcalc 1 0 {params.ihMTmap_cosmod} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.ihMTR_cosmod} -force
+            mrcalc 1 0 {params.ihMTmap_cosmod} {params.mtd_cosmod_avg} 0 -max -div nan 0 -replace -max -min {params.DO} -force
             cp {params.ihMTmap_cosmod} {output.MTmap}
         fi
 
@@ -416,7 +419,9 @@ rule b1corr_ihmt:
         ihMTR_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTR.nii.gz",
         ihMTR_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTR.nii.gz",
         #bandpass
-        BPR="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BPR.nii.gz",      
+        BPR="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BPR.nii.gz",
+        #dipolar order
+        DO="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_DO.nii.gz",  
     conda:
         "../envs/ihMT.yaml"
     resources: #limit memory by input size
@@ -446,6 +451,12 @@ rule b1corr_ihmt:
             python workflow/scripts/ihmt_b1corr.py {params.BPR} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} "custom" "BPR"
         fi
 
+        if [ -f {params.DO} ]
+        then
+            python workflow/scripts/ihmt_b1corr.py {params.DO} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} {wildcards.field_strength} "DO_CM" || \
+            python workflow/scripts/ihmt_b1corr.py {params.DO} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} "custom" "DO_CM"
+        fi
+
         touch {output}
         """ 
 
@@ -470,7 +481,7 @@ rule apply_brainmask_ihmt:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
                 
-        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr")
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
         for map in "${{MTmaps[@]}}"; do
             ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
             if [ -f $ihmt ]; then

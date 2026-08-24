@@ -10,7 +10,7 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
     #limit possible values of field_strength
     assert field_strength in ["3T", "7T", "custom"]
     #limit possible values of map_type
-    assert map_type in ["MT0", "MTs_Positive", "MTs_Negative", "MTd_CM", "MTd_ALT", "MTs", "ihMT_CM", "ihMT_ALT", "BP", "MTsR_Positive", "MTsR_Negative", "MTsR", "MTdR_CM", "MTdR_ALT", "ihMTR_CM", "ihMTR_ALT", "BPR", "ALL"]
+    assert map_type in ["MT0", "MTs_Positive", "MTs_Negative", "MTd_CM", "MTd_ALT", "MTs", "ihMT_CM", "ihMT_ALT", "BP", "MTsR_Positive", "MTsR_Negative", "MTsR", "MTdR_CM", "MTdR_ALT", "ihMTR_CM", "ihMTR_ALT", "BPR", "DO_ALT", "DO_CM", "ALL"]
     #make file strings Paths
     ihmt_nifti = Path(ihmt_nifti)
     ihmt_json = Path(ihmt_json)
@@ -131,6 +131,6 @@ if __name__ == '__main__':
     parser.add_argument("b1map_json", type=str, help="Path to the B1+ flip angle map json metadata BIDS sidecar.")
     parser.add_argument("mask_nifti", type=str, help="Path to the mask nifit, in the same space as the ihMT map.")
     parser.add_argument("field_strength", type=str, help="Field strength used to collect the MRI data. Must be one of '7T', '3T', or 'custom'. If 'custom', edit the system values in ihmt_b1corr_system_config.yaml under 'custom_system'.")
-    parser.add_argument("map_type", type=str, help='ihMT derived map or raw volume type. Must be one of "MT0", "MTs_Positive", "MTs_Negative", "MTd_CM", "MTd_ALT", "MTs", "ihMT_CM", "ihMT_ALT", "BP", "MTsR_Positive", "MTsR_Negative", "MTsR", "MTdR_CM", "MTdR_ALT", "ihMTR_CM", "ihMTR_ALT", "BPR", "ALL"')
+    parser.add_argument("map_type", type=str, help='ihMT derived map or raw volume type. Must be one of "MT0", "MTs_Positive", "MTs_Negative", "MTd_CM", "MTd_ALT", "MTs", "ihMT_CM", "ihMT_ALT", "BP", "MTsR_Positive", "MTsR_Negative", "MTsR", "MTdR_CM", "MTdR_ALT", "ihMTR_CM", "ihMTR_ALT", "BPR", "DO_CM", "DO_ALT", "ALL"')
     args = parser.parse_args()
     ihmt_b1corr(args.ihmt_nifti, args.ihmt_json, args.b1map_nifti, args.b1map_json, args.mask_nifti, args.field_strength, args.map_type)
