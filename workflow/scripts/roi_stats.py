@@ -38,7 +38,7 @@ def ROI_dict(ROI_lookuptable_filepath):
     roi_dict = dict(zip(roi_df.iloc[:,1], roi_df.iloc[:,0]))
     return roi_dict
 
-def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_directory, subject, session, acq, contrast, remove_outliers=False):
+def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_directory, field_strength, modality, subject, session, acq, contrast, remove_outliers=False):
     """
     Main function for generating the statistics dataframe and saving to pickle.
     """
@@ -103,6 +103,8 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
         {
             'subject': [subject] * len(l_kurt),
             'session': [session] * len(l_kurt),
+            'field_strength': [field_strength] * len(l_kurt),
+            'modality': [modality] * len(l_kurt),
             'acquisition': [acq] * len(l_kurt),
             'segmentation': [seg_name] * len(l_kurt),
             'contrast': [contrast] * len(l_kurt),
@@ -146,6 +148,8 @@ if __name__ == '__main__':
     parser.add_argument('seg_filepath', type=str, help="Filepath for the segmentation file to be applied to quantitative MRI maps (must be .nii.gz or mgz file). e.g. '/home/Documents/segmentation.nii.gz'")
     parser.add_argument('ROI_lookuptable_filepath', type=str, help="Filepath for an ASCII, pickle, or tsv file where the first column corresponds to the ROI index and the second column corresponds to the ROI name.")
     parser.add_argument('output_directory', type=str, help="Filepath for the output directory")
+    parser.add_argument('field_strength', type=str, help="Field strength, i.e. 3T, 7T, etc. For use in file naming and as a column in the pickle file.")
+    parser.add_argument('modality', type=str, help="Modality name, i.e. ihMT, DWI, etc. For use in file naming and as a column in the pickle file.")
     parser.add_argument('subject', type=str, help="Subject name, for use in file naming and as a column in the pickle file.")
     parser.add_argument('session', type=str, help="Session name, for use in file naming and as a column in the pickle file.")
     parser.add_argument('acquisition', type=str, help="Acquisition name, for use in file naming and as a column in the pickle file.")
@@ -155,6 +159,6 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--remove_outliers', action="store_true", help="When flag is applied, remove outliers more than 3 standard deviations from the mean. Without this flag, data remains unfiltered.")
     args = parser.parse_args()
     if args.remove_outliers:
-        ROI_stats(args.data_filepath, args.seg_filepath, args.ROI_lookuptable_filepath, args.output_directory, args.subject, args.session, args.acquisition, args.contrast, remove_outliers=True)
+        ROI_stats(args.data_filepath, args.seg_filepath, args.ROI_lookuptable_filepath, args.output_directory, args.field_strength, args.modality, args.subject, args.session, args.acquisition, args.contrast, remove_outliers=True)
     else:
-        ROI_stats(args.data_filepath, args.seg_filepath, args.ROI_lookuptable_filepath, args.output_directory, args.subject, args.session, args.acquisition, args.contrast, remove_outliers=False)
+        ROI_stats(args.data_filepath, args.seg_filepath, args.ROI_lookuptable_filepath, args.output_directory, args.field_strength, args.modality, args.subject, args.session, args.acquisition, args.contrast, remove_outliers=False)
