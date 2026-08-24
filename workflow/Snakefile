@@ -19,7 +19,7 @@ else: #create BIDSLayout for each subdirectory of bidspath (which correspond to 
         input: #do all preprocessing for each field strength
             "data/rawdata/bidsify.done",
             expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.csv", field_strength=next(os.walk(bidspath))[1]),
-            expand("data/derivatives/{field_strength}/ihmt/ihmt_stats.csv", field_strength=next(os.walk(bidspath))[1]),
+            expand("data/derivatives/{field_strength}/ihmt/ihmt_stats.pickle", field_strength=next(os.walk(bidspath))[1]),
             # expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_ihmt.done", field_strength=next(os.walk(bidspath))[1]),
             expand("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done", field_strength=next(os.walk(bidspath))[1]),
             expand("data/derivatives/{field_strength}/freesurfer/qMT_stats.done", field_strength=next(os.walk(bidspath))[1]),

@@ -144,25 +144,25 @@ def mp2rage_roi_statslist(wildcards):
 #     fs_subjectarray = " ".join(fs_subjectlist)
 #     return fs_subjectarray
 
-def aggregate_mp2rage(wildcards):
+# def aggregate_mp2rage(wildcards):
     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-    layout=layout_dict[wildcards.field_strength]
-    mp2rage_list = []
-    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-    subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-    subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-    subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
-    for subject in subjectlist:
-        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-        sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-        sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-        sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
-        for session in sessionlist:
-            acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
-            for acq in acqlist:
-                # mp2rage_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_T1map_b1corr_brain_denoised_n4.nii.gz")
-                mp2rage_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_T1map_b1corr_brain.nii.gz")
-    return sorted(mp2rage_list)
+    # layout=layout_dict[wildcards.field_strength]
+    # mp2rage_list = []
+    # subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
+    # subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
+    # subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
+    # subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
+    # for subject in subjectlist:
+    #     sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
+    #     sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
+    #     sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
+    #     sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
+    #     for session in sessionlist:
+    #         acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
+    #         for acq in acqlist:
+    #             # mp2rage_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_T1map_b1corr_brain_denoised_n4.nii.gz")
+    #             mp2rage_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_T1map_b1corr_brain.nii.gz")
+    # return sorted(mp2rage_list)
 
 
 rule add_xml_data_to_meta_mp2rage:
@@ -188,8 +188,9 @@ rule add_xml_data_to_meta_mp2rage:
         touch {output}
         """
 
+#first register to B1map
 
-rule json_for_uncorr_qT1:
+rule json_for_uncorr_T1map:
     input:
         addXMLdone = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_addXMLdata.done",
         b1map_nifti = get_last_b1map_run,
@@ -221,13 +222,13 @@ rule json_for_uncorr_qT1:
         """
 
 
-rule create_uncorr_qT1:
+rule create_uncorr_T1map:
     input:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map.json"
     params:
         qT1="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qT1_msUnit.nii.gz"
     output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map.nii.gz"
+        temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map.nii.gz")
     threads:
         8
     container:
@@ -245,7 +246,109 @@ rule create_uncorr_qT1:
         """
 
 
-rule json_for_mp2proc:
+rule synthstrip_T1map:
+    input:
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map.nii.gz"
+    output:
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz"
+    container:
+        "docker://freesurfer/synthstrip:1.8-gpu"
+    threads: 4
+    resources: 
+        mem_mb=8000
+    log:
+       "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.log" 
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        if command -v nvidia-smi; then
+            export CUDA_VISIBLE_DEVICES=0
+        fi
+        mri_synthstrip -i {input} -m {output} -t {threads} -g --no-csf || mri_synthstrip -i {input} -m {output} -t {threads} --no-csf
+        """
+
+
+rule apply_brainmask_T1map_mp2rage:
+    input:
+        input_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map.nii.gz",
+        brain_mask = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz"
+    output:
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain.nii.gz"
+    conda:
+        "../envs/fslmaths.yaml"
+    resources: 
+        mem_mb=500
+    log:
+       "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain.log" 
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FSLOUTPUTTYPE='NIFTI_GZ'
+        fslmaths {input.input_image} -mas {input.brain_mask} {output}
+        """
+
+
+rule DenoiseImage_T1map_mp2rage:
+    input:
+        input_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain.nii.gz",
+        mask_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz"
+    output:
+        temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_denoised.nii.gz")
+    conda:
+        "../envs/qMT.yaml"
+    resources: 
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_denoised.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+
+        DenoiseImage \
+        --image-dimensionality 3 \
+        --noise-model Rician \
+        --verbose 1 \
+        -i {input.input_image} \
+        -x {input.mask_image} \
+        -o {output}
+        """
+
+
+rule N4BiasFieldCorrection_T1map_mp2rage: #create input for module B1map rule register_b1anat_to_mp2rage
+    input:
+        input_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_denoised.nii.gz",
+        mask_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz"
+    output:
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_denoised_n4.nii.gz"
+    conda:
+        "../envs/qMT.yaml"
+    resources: 
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_denoised_n4.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+        
+        N4BiasFieldCorrection \
+        --image-dimensionality 3 \
+        --verbose 1 \
+        -i {input.input_image} \
+        -x {input.mask_image} \
+        -o {output}
+        """
+
+#then process MP2RAGE images
+
+rule json_for_mp2proc: 
+    #b1map_nifti created by B1map module rule apply_reg_b1_to_mp2rage 
+    #b1map_json created by B1map module rule copy_b1map_json_after_regtoMP2RAGE
     input:
         b1map_nifti = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.nii.gz",
         b1map_json = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.json",
@@ -281,11 +384,11 @@ rule run_mp2proc:
         b1map_json = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.json"
     output:
         b1="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_smooth_norm.nii.gz",
-        t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr.nii.gz",
-        r1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_R1map_b1corr.nii.gz",
-        uniden_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr.nii.gz",
-        uniden_uncorr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
-        uni_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNI_b1corr.nii.gz"
+        t1map=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr.nii.gz"),
+        r1map=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_R1map_b1corr.nii.gz"),
+        uniden_corr=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr.nii.gz"),
+        uniden_uncorr=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz"),
+        uni_corr=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNI_b1corr.nii.gz")
     params:
         b1="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/b1_processed_relativeUnit_perThousand.nii.gz",
         t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qT1_msUnit.nii.gz",
@@ -312,6 +415,38 @@ rule run_mp2proc:
         mv {params.uniden_corr} {output.uniden_corr}
         mv {params.uniden_uncorr} {output.uniden_uncorr}
         mv {params.uni_corr} {output.uni_corr}
+        """
+
+
+rule apply_brainmask_mp2rage:
+    input:
+        brain_mask = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz",
+        t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr.nii.gz",
+        r1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_R1map_b1corr.nii.gz",
+        uniden_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr.nii.gz",
+        uniden_uncorr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
+        uni_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNI_b1corr.nii.gz"
+    output:
+        t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr_brain.nii.gz",
+        r1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_R1map_b1corr_brain.nii.gz",
+        uniden_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_brain.nii.gz",
+        uniden_uncorr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_brain.nii.gz",
+        uni_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNI_b1corr_brain.nii.gz"
+    conda:
+        "../envs/fslmaths.yaml"
+    resources: 
+        mem_mb=500
+    log:
+       "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain.log" 
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FSLOUTPUTTYPE='NIFTI_GZ'
+        fslmaths {input.t1map} -mas {input.brain_mask} {output.t1map}
+        fslmaths {input.r1map} -mas {input.brain_mask} {output.r1map}
+        fslmaths {input.uniden_corr} -mas {input.brain_mask} {output.uniden_corr}
+        fslmaths {input.uniden_uncorr} -mas {input.brain_mask} {output.uniden_uncorr}
+        fslmaths {input.uni_corr} -mas {input.brain_mask} {output.uni_corr}
         """
 
 
@@ -455,7 +590,7 @@ rule register_mp2rage_acqs:
     #register to first mp2rage acq in freesurfer space
     input:
         target=antsdnbrain_first_acq_mp2rage,
-        moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_brain.nii.gz"
+        moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_brain.nii.gz"
     output:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta"
     container:
@@ -564,10 +699,10 @@ rule apply_reg_first_mp2rage_acq:
 rule aparc_aseg_to_subject_mp2rage:
     input:
         reg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
-        mp2rage="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_brain.nii.gz",
+        mp2rage="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_brain.nii.gz",
         seg=aparc_aseg_first_acq_freesurfer
     output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_aparc+aseg.nii.gz"
+        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_aparc+aseg.nii.gz"
     resources: 
         mem_mb=500
     container:
@@ -725,7 +860,7 @@ rule warp_subject_mp2rage_to_mni152:
         subj2fs="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
         fs2mni152=fs2mni152_first_acq
     output:
-        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz"
+        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/masks_segs/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
@@ -747,14 +882,14 @@ rule warp_subject_mp2rage_to_mni152:
 
 rule apply_warp_mni_atlases_to_subject_mp2rage:
     input:
-        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz",
-        aparc_aseg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_aparc+aseg.nii.gz",
+        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/masks_segs/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz",
+        aparc_aseg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_aparc+aseg.nii.gz",
         wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
     output:
-        wm_mask="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_wm_mask.nii.gz",
-        wm90percent_lobes="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
-        wm_lobes="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mni_icbm152_wm_lobes.nii.gz",
+        wm_mask="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_wm_mask.nii.gz",
+        wm90percent_lobes="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm_lobes="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mni_icbm152_wm_lobes.nii.gz",
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
@@ -832,7 +967,7 @@ rule mp2rage_roi_stats:
         # mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz",
         mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}.nii.gz",
         # seg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.nii.gz",
-        seg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{segmentation}.nii.gz",
+        seg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{segmentation}.nii.gz",
         lut="data/atlases/{segmentation}_lut.txt"
     params:
         # outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/"
@@ -946,103 +1081,7 @@ rule mp2rage_roi_stats_agg_subjs:
 
 #rules for registering with ANTs
 
-rule synthstrip_qT1:
-    input:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}.nii.gz"
-    output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain_mask.nii.gz"
-    container:
-        "docker://freesurfer/synthstrip:1.8-gpu"
-    threads: 4
-    resources: 
-        mem_mb=8000
-    log:
-       "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain_mask.log" 
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        if command -v nvidia-smi; then
-            export CUDA_VISIBLE_DEVICES=0
-        fi
-        mri_synthstrip -i {input} -m {output} -t {threads} -g --no-csf || mri_synthstrip -i {input} -m {output} -t {threads} --no-csf
-        """
 
-
-rule apply_brainmask_qT1:
-    input:
-        input_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}.nii.gz",
-        brain_mask = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz"
-    output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain.nii.gz"
-    conda:
-        "../envs/fslmaths.yaml"
-    resources: 
-        mem_mb=500
-    log:
-       "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain.log" 
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.input_image} -mas {input.brain_mask} {output}
-        """
-
-
-rule DenoiseImage_qT1:
-    input:
-        input_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain.nii.gz",
-        mask_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz"
-    output:
-        temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain_denoised.nii.gz")
-    conda:
-        "../envs/qMT.yaml"
-    resources: 
-        mem_mb=1000
-    threads: 1
-    log:
-        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain_denoised.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-        DenoiseImage \
-        --image-dimensionality 3 \
-        --noise-model Rician \
-        --verbose 1 \
-        -i {input.input_image} \
-        -x {input.mask_image} \
-        -o {output}
-        """
-
-
-rule N4BiasFieldCorrection_qT1:
-    input:
-        input_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain_denoised.nii.gz",
-        mask_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz"
-    output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain_denoised_n4.nii.gz"
-    conda:
-        "../envs/qMT.yaml"
-    resources: 
-        mem_mb=1000
-    threads: 1
-    log:
-        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{qT1}_brain_denoised_n4.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-        
-        N4BiasFieldCorrection \
-        --image-dimensionality 3 \
-        --verbose 1 \
-        -i {input.input_image} \
-        -x {input.mask_image} \
-        -o {output}
-        """
 
 
 # rule aggregate_mp2rage_by_field_strength:
