@@ -29,7 +29,8 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
         system_config = yaml.safe_load(f)
 
     param_paths = dict(
-        flipAngle = b1map_nifti,
+        # flipAngle = b1map_nifti,
+        relative_transmitB1 = b1map_nifti,
         mask = mask_nifti
     )
 
@@ -46,7 +47,7 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
         param_maps[key] = load(val).get_fdata()
 
     param_maps['mask'] = param_maps['mask'].astype(bool)
-    param_maps['flipAngle'] = param_maps['flipAngle'] * ihmt_meta["FlipAngle_deg"] * ihmt_meta["TxRefAmp"] / b1map_meta["TxRefAmp"]
+    param_maps['relative_transmitB1'] = param_maps['relative_transmitB1'] * ihmt_meta["TxRefAmp"] / b1map_meta["TxRefAmp"]
 
     for key, val in data_paths.items():
         norm = 1
@@ -74,8 +75,9 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
         N_pulsePerOffset=1,
         N_pulse = ihmt_meta["NumberPulses"],
         N_burst = ihmt_meta["NumberBursts"],
-        N_adc = ihmt_meta["TurboFactor"] - ihmt_meta["DummyEchoes"],
+        N_adc = ihmt_meta["TurboFactor"],
         N_dummyADC = ihmt_meta["DummyEchoes"],
+        N_totalADC = ihmt_meta["TurboFactor"] + ihmt_meta["DummyEchoes"],
         dt_interPulse = Duration.from_micro(ihmt_meta["PulseRepetitionTime_us"]),
         TR_burst = Duration.from_micro(ihmt_meta["BurstRepetitionTime_us"]),
         dt_lastBurst = Duration.from_micro(ihmt_meta["TotalPrepDuration_us"]) - (Duration.from_micro(ihmt_meta["BurstRepetitionTime_us"]) * (ihmt_meta["NumberBursts"] - 1)),
