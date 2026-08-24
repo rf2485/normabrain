@@ -448,7 +448,6 @@ rule apply_warp_mni_atlases_to_ihmt:
 rule ihmt_roi_stats:
     input:
         ihmt_done="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done",
-        # seg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{ihmt_params}/mri/ihmt/{segmentation}_reg2{ihmt_params}.nii.gz",
         seg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}.nii.gz",
         lut="data/atlases/{segmentation}_lut.txt",
     params:
@@ -456,8 +455,6 @@ rule ihmt_roi_stats:
         outdir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp",
     output:
         temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.done"),
-        # stats=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.pickle"),
-        # nooutliers_stats=temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_nooutliers_stats.pickle")
     resources:
         mem_mb=1000
     threads: 1
@@ -471,8 +468,8 @@ rule ihmt_roi_stats:
         for map in "${{MTmaps[@]}}"; do
             ihmt="{params.ihmtprefix}_${{map}}_brain.nii.gz"
             if [ -f $ihmt ]; then
-                python3 workflow/scripts/roi_stats.py "${{ihmt}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"
-                python3 workflow/scripts/roi_stats.py -r "${{ihmt}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"
+                python3 workflow/scripts/roi_stats.py "${{ihmt}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "ihMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"
+                python3 workflow/scripts/roi_stats.py -r "${{ihmt}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "ihMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"
             fi
         done
 
@@ -518,7 +515,7 @@ rule ihmt_roi_stats_agg_subjs:
         df_stats.to_pickle(str(output))
 
 
-rule aggregate_multimodal_ihmt_mp2rage:
+rule aggregate_ihmt_stats:
     input:
         expand("data/derivatives/{field_strength}/ihmt/ihmt_stats_{field_strength}.pickle", field_strength=field_strength_list),
     output:
@@ -530,7 +527,7 @@ rule aggregate_multimodal_ihmt_mp2rage:
         "logs/ihmt_stats.log"
     run:
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_pickle(i) for i in input.stats), ignore_index=True)
+        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
         df_stats.to_pickle(str(output))
 
 

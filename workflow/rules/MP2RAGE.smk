@@ -36,55 +36,21 @@ def get_unit1(wildcards):
 def get_unit1_json(wildcards):
     return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*UNIT1.json'))[0]
 
-# def get_preproc_uniden_list(wildcards):
-#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-#     layout=layout_dict[wildcards.field_strength]
-#     mp2rage_params_list=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)
-#     return expand('data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_brain.nii.gz', mp2rage_params=mp2rage_params_list, allow_missing=True)
-
-# def get_mp2rage_brainmask_list(wildcards):
-#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-#     layout=layout_dict[wildcards.field_strength]
-#     mp2rage_params_list=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)
-#     return expand('data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz', mp2rage_params=mp2rage_params_list, allow_missing=True)
-
-def get_mp2rage_acq_array(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-    layout=layout_dict[wildcards.field_strength]
-    mp2rage_params_list=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)
-    mp2rage_params_array = " ".join(mp2rage_params_list)
-    return mp2rage_params_array
-
 def antsdnbrain_first_acq_mp2rage(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz', mp2rage_params=first_acq, allow_missing=True)
 
 def aparc_aseg_first_acq_freesurfer(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz', mp2rage_params=first_acq, allow_missing=True)
 
 def fs2mni152_first_acq(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz', 
     mp2rage_params=first_acq, session=wildcards.session, subject=wildcards.subject, field_strength=wildcards.field_strength)
-
-# def wm90percent_lobes_first_acq_mp2rage(wildcards):
-#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-#     layout=layout_dict[wildcards.field_strength]
-#     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-#     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz', mp2rage_params=first_acq, allow_missing=True)
-
-# def wm_lobes_first_acq_mp2rage(wildcards):
-#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-#     layout=layout_dict[wildcards.field_strength]
-#     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-#     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes.nii.gz', mp2rage_params=first_acq, allow_missing=True)
 
 def mp2rage_roi_statslist(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -101,68 +67,8 @@ def mp2rage_roi_statslist(wildcards):
         for session in sessionlist:
             acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
             for acq in acqlist:
-                # statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/coreg/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
                 statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     return statslist
-
-# def mp2rage_statslist(wildcards):
-#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-#     layout=layout_dict[wildcards.field_strength]
-#     statslist = []
-#     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-#     subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-#     subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-#     subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
-#     for subject in subjectlist:
-#         sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-#         sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-#         sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-#         sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
-#         for session in sessionlist:
-#             acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
-#             for acq in acqlist:
-#                 statslist.append("data/derivatives/{field_strength}/freesurfer/sub-" + subject + "_ses-" + session + "_acq-" + acq + "/stats/MP2RAGE_{mp2rage_map}.stats")
-#     return sorted(statslist)
-
-# def freesurfer_subjectlist_mp2rage(wildcards):
-#     # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-#     layout=layout_dict[wildcards.field_strength]
-#     fs_subjectlist = []
-#     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-#     subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-#     subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-#     subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
-#     for subject in subjectlist:
-#         sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-#         sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-#         sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-#         sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
-#         for session in sessionlist:
-#             acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
-#             for acq in acqlist:
-#                 fs_subjectlist.append("sub-" + subject + "_ses-" + session + "_acq-" + acq)
-#     fs_subjectarray = " ".join(fs_subjectlist)
-#     return fs_subjectarray
-
-# def aggregate_mp2rage(wildcards):
-    # bidspath = Path("data/rawdata/bids/" + wildcards.field_strength)
-    # layout=layout_dict[wildcards.field_strength]
-    # mp2rage_list = []
-    # subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-    # subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-    # subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-    # subjectlist = list((set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mp2rage))
-    # for subject in subjectlist:
-    #     sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-    #     sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-    #     sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-    #     sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
-    #     for session in sessionlist:
-    #         acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
-    #         for acq in acqlist:
-    #             # mp2rage_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_T1map_b1corr_brain_denoised_n4.nii.gz")
-    #             mp2rage_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_T1map_b1corr_brain.nii.gz")
-    # return sorted(mp2rage_list)
 
 
 rule add_xml_data_to_meta_mp2rage:
@@ -515,7 +421,6 @@ rule crop_mp2rage_256:
 rule recon_all:
     input:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_MPRAGEise_cropped.nii.gz"
-        # "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_cropped.nii.gz"
     params:
         subjects_dir="data/derivatives/{field_strength}/freesurfer/",
         subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}"
@@ -566,26 +471,6 @@ rule recon_all:
         """
 
 
-# rule convert_mgz_to_nii:
-#     input:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz",
-#     params:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz",
-#     output:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.nii.gz",
-#     threads: 1
-#     resources:
-#         mem_mb=15000
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     log:
-#         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/convert_mgz_to_nii.log"
-#     shell:
-#         """
-#         mri_convert {params} {output}
-#         """
-
-
 rule register_mp2rage_acqs:
     #register to first mp2rage acq in freesurfer space
     input:
@@ -613,63 +498,6 @@ rule register_mp2rage_acqs:
         --satit --iscale --initorient
 
         """
-
-# rule register_mp2rage_acqs:
-#     input:
-#         img_list=get_preproc_uniden_list,
-#         mask_list=get_mp2rage_brainmask_list
-#     params:
-#         acq_array=get_mp2rage_acq_array,
-#         regdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/",
-#         subject="sub-{subject}_ses-{session}"
-#     output:
-#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/mp2rage_acqs_registration.done"
-#     conda:
-#         "../envs/qMT.yaml"
-#     resources: 
-#         mem_mb=1000
-#     threads: 4
-#     log:
-#         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/mp2rage_acqs_registration.log"
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-#         img_array=( {input.img_list} )
-#         mask_array=( {input.mask_list} )
-#         acq_array=( {params.acq_array} )
-
-#         if [ "${{#img_array[@]}}" -gt 1 ]; then
-#             first_acq="${{acq_array[0]}}"
-#             first_img="${{img_array[0]}}"
-#             first_mask="${{mask_array[0]}}"
-#             img_array_clipped=("${{img_array[@]:1}}")
-            
-#             i=0
-#             for img in "${{img_array_clipped[@]}}"; do
-#                 i=$((i+1))
-#                 acq="${{acq_array[$i]}}"
-#                 mask="${{mask_array[$i]}}"
-                
-#                 mkdir -p {params.regdir}/acq-$acq/coreg/
-
-#                 antsRegistration \
-#                 --random-seed 1 \
-#                 --dimensionality 3 \
-#                 --verbose 1 \
-#                 --convergence [ 1000x500x250x100, 1e-7, 100 ] \
-#                 --shrink-factors 8x4x2x1 \
-#                 --smoothing-sigmas 4x2x1x0vox \
-#                 --transform Rigid[0.1] \
-#                 --metric MI[ ${{first_img}}, ${{img}}, 1, 32 ] \
-#                 -o {params.regdir}/acq-$acq/coreg/{params.subject}_acq-${{acq}}_reg2${{first_acq}}_ \
-#                 -x [ ${{first_mask}}, ${{mask}} ] 
-#             done
-#         fi
-#         touch {output}
-#         """
 
 
 rule apply_reg_first_mp2rage_acq:
@@ -722,45 +550,6 @@ rule aparc_aseg_to_subject_mp2rage:
         --o {output}
         """ 
 
-
-# rule apply_reg_first_mp2rage_acq:
-#     input:
-#         reg_done="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/mp2rage_acqs_registration.done",
-#         moving="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}.nii.gz"
-#     params:
-#         acq_array=get_mp2rage_acq_array,
-#         sessiondir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/",
-#         subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}"
-#     output:
-#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
-#     resources: 
-#         mem_mb=500
-#     conda:
-#         "../envs/qMT.yaml"
-#     threads: 1
-#     log:
-#         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.log"
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-#         acq_array=( {params.acq_array} )
-#         first_acq="${{acq_array[0]}}"
-#         if [ -f {params.sessiondir}/acq-{wildcards.mp2rage_params}/coreg/{params.subject}_reg2${{first_acq}}_0GenericAffine.mat ]; then    
-#             antsApplyTransforms \
-#             --dimensionality 3 \
-#             --interpolation Linear \
-#             --verbose 1 \
-#             -i {input.moving} \
-#             --reference-image {params.sessiondir}/acq-$first_acq/sub-{wildcards.subject}_ses-{wildcards.session}_acq-${{first_acq}}_{wildcards.mp2rage_map}.nii.gz \
-#             --transform {params.sessiondir}/acq-{wildcards.mp2rage_params}/coreg/{params.subject}_reg2${{first_acq}}_0GenericAffine.mat \
-#             -o {output}
-#         else
-#             cp {input.moving} {output}
-#         fi
-#         """
 
 rule copy_aparc_aseg_lut:
     output:
@@ -910,72 +699,17 @@ rule apply_warp_mni_atlases_to_subject_mp2rage:
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
         mri_mask {output.wm_lobes} {output.wm_mask} {output.wm_lobes}
         """
-# rule mni152_atlases_to_subject_mp2rage_space:                                                                 
-#     input:
-#         aparc_aseg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.nii.gz",
-#         wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
-#         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
-#     params:
-#         warp_mni152_to_subject="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.inv.nii.gz"
-#     output:
-#         wm90percent_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
-#         wm_lobes="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_wm_lobes.nii.gz",
-#         fs_wm_mask="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/fs_wm_mask.nii.gz"
-#     threads: 1
-#     resources:
-#         mem_mb=700
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     log:
-#         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/mni_icbm152_nlin_asym_09c_wm90percent_lobes.log"
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-#         export FS_LICENSE=".snakemake/scripts/.license"
-
-#         mri_binarize --i {input.aparc_aseg} --o {output.fs_wm_mask} --match 2 7 41 46
-        
-#         mri_synthmorph apply {params.warp_mni152_to_subject} {input.wm90percent_lobes} {output.wm90percent_lobes} -m nearest
-#         mri_mask {output.wm90percent_lobes} {output.fs_wm_mask} {output.wm90percent_lobes}
-        
-#         mri_synthmorph apply {params.warp_mni152_to_subject} {input.wm_lobes} {output.wm_lobes} -m nearest
-#         mri_mask {output.wm_lobes} {output.fs_wm_mask} {output.wm_lobes}
-#         """
-
-
-# rule reslice_segmentation:
-#     input:
-#         seg=segmentation_first_acq_mp2rage,
-#         ref="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr_coreg.nii.gz"
-#     output:
-#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.nii.gz"
-#     resources:
-#         mem_mb=1000
-#     conda:
-#         "../envs/qMT.yaml"
-#     log:
-#         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.log"
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-#         mrgrid {input.seg} regrid -template {input.ref} -strides {input.ref} -interp nearest {output} -force
-#         """
     
 
 rule mp2rage_roi_stats:
     input:
-        # mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz",
-        mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}.nii.gz",
-        # seg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.nii.gz",
+        mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_brain.nii.gz",
         seg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{segmentation}.nii.gz",
         lut="data/atlases/{segmentation}_lut.txt"
     params:
-        # outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/"
         outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/"
     output:
-        # stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle",
         stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle"),
-        # nooutliers_stats="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle",
         nooutliers_stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle"),
     resources:
         mem_mb=1000
@@ -986,21 +720,18 @@ rule mp2rage_roi_stats:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        python3 workflow/scripts/roi_stats.py "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}" "{wildcards.mp2rage_map}"
-        python3 workflow/scripts/roi_stats.py -r "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}" "{wildcards.mp2rage_map}"
+        python3 workflow/scripts/roi_stats.py "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "MP2RAGE" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}" "{wildcards.mp2rage_map}"
+        python3 workflow/scripts/roi_stats.py -r "{input.mp2rage_map}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "MP2RAGE" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}" "{wildcards.mp2rage_map}"
         """
 
 
 rule mp2rage_roi_stats_agg_segs:
     input:
-        # stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle", 
         stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle", 
         segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True),
-        # nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle", 
         nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle", 
         segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True)
     output:
-        # temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.pickle"),
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.pickle",
     resources:
         mem_mb=1000
@@ -1019,88 +750,34 @@ rule mp2rage_roi_stats_agg_subjs:
     input:
         mp2rage_roi_statslist
     output:
-        "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.pickle"
+        "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats_{field_strength}.pickle"
     resources:
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/MP2RAGE/MP2RAGE_stats.log"
+        "logs/{field_strength}/MP2RAGE/MP2RAGE_stats_{field_strength}.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
         df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
         df_stats.to_pickle(str(output))
 
 
-# rule mp2rage_segstats:
-#     input:
-#         seg="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg_resliced.nii.gz",
-#         mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
-#     output:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/stats/MP2RAGE_{mp2rage_map}.stats"
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     log:
-#         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/MP2RAGE_{mp2rage_map}_stats.log"
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-        
-#         mri_segstats --seg {input.seg} --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --i {input.mp2rage_map} --sum {output} --excludeid 0
-#         """  
-
-
-# rule mp2rage_tsv:
-#     input:
-#         mp2rage_statslist,
-#         # "data/rawdata/bidsify.done"
-#     params:
-#         subjects_dir="data/derivatives/{field_strength}/freesurfer/",
-#         subjects_list=freesurfer_subjectlist_mp2rage,
-#         statsfile="MP2RAGE_{mp2rage_map}.stats"
-#     output:
-#         "data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv"  
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     log:
-#         "logs/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats_tsv.log"
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-
-#         if ! [ -n {params.subjects_list} ]; then
-#             asegstats2table --subjects {params.subjects_list} --statsfile {params.statsfile} -t {output} --meas mean --common-segs --no-segno 0
-#         fi
-#         touch {output}       
-#         """
-
-
-#rules for registering with ANTs
-
-
-
-
-# rule aggregate_mp2rage_by_field_strength:
-#     input:
-#         aggregate_mp2rage
-#     output:
-#         "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE.done"
-#     log:
-#         "logs/{field_strength}/MP2RAGE/MP2RAGE.log"
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         touch {output}
-#         """
+rule aggregate_mp2rage_stats:
+    input:
+        expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats_{field_strength}.pickle", field_strength=field_strength_list),
+    output:
+        "data/derivatives/MP2RAGE_stats.pickle"
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/MP2RAGE_stats.log"
+    run:
+        logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
+        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        df_stats.to_pickle(str(output))
 
 
 rule aggregate_mp2rage:
     input:
-        # expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE.done", field_strength=field_strength_list),
-        expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_stats.pickle", field_strength=field_strength_list),
-        # expand("data/derivatives/{field_strength}/freesurfer/MP2RAGE_{mp2rage_map}_stats.tsv", field_strength=field_strength_list, mp2rage_map=["R1map_b1corr", "T1map_b1corr"])
+        "data/derivatives/MP2RAGE_stats.pickle"
