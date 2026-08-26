@@ -669,7 +669,7 @@ rule warp_subject_mp2rage_to_mni152:
         subj2fs="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
         fs2mni152=fs2mni152_first_acq
     output:
-        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/masks_segs/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz"
+        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
@@ -691,7 +691,7 @@ rule warp_subject_mp2rage_to_mni152:
 
 rule apply_warp_mni_atlases_to_subject_mp2rage:
     input:
-        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/masks_segs/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz",
+        subj2mni152="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2mni152_warp.nii.gz",
         aparc_aseg="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_aparc+aseg.nii.gz",
         wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
