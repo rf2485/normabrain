@@ -33,10 +33,10 @@ def symlink_dicoms_by_field_strength(source_dicoms_folder: str, output_folder: s
             while True:
                 first_dicom_path = list(session.rglob('*.dcm'))[j]
                 first_dicom = pydicom.dcmread(first_dicom_path)
-                try:
+                try: #if possible, report the field strength
                     field_value = str(first_dicom[0x18, 0x87].value)
                     break
-                except:
+                except: #otherwise try the next dicom
                     j=j+1
             
             # Create new folder path based on field strength
