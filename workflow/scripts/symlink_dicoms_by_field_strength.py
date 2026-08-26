@@ -33,11 +33,9 @@ def symlink_dicoms_by_field_strength(source_dicoms_folder: str, output_folder: s
             while True:
                 first_dicom_path = list(session.rglob('*.dcm'))[j]
                 first_dicom = pydicom.dcmread(first_dicom_path)
-            # if isinstance(first_dicom[0x18, 0x87].value, str):
                 try:
                     field_value = str(first_dicom[0x18, 0x87].value)
                     break
-            # else:
                 except:
                     j=j+1
             
