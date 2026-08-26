@@ -131,7 +131,7 @@ if __name__ == '__main__':
     parser.add_argument("ihmt_json", type=str, help="Path to the ihMT map json BIDS sidecar file.")
     parser.add_argument("b1map_nifti", type=str, help="Path to the B1+ flip angle map nifti, in the same space as the ihMT map, normalized by the B1+ target flip angle.")
     parser.add_argument("b1map_json", type=str, help="Path to the B1+ flip angle map json metadata BIDS sidecar.")
-    parser.add_argument("mask_nifti", type=str, help="Path to the mask nifit, in the same space as the ihMT map.")
+    parser.add_argument("mask_nifti", type=str, help="Path to the mask nifti, in the same space as the ihMT map.")
     parser.add_argument("field_strength", type=str, help="Field strength used to collect the MRI data. Must be one of '7T', '3T', or 'custom'. If 'custom', edit the system values in ihmt_b1corr_system_config.yaml under 'custom_system'.")
     parser.add_argument("map_type", type=str, help='ihMT derived map or raw volume type. Must be one of "MT0", "MTs_Positive", "MTs_Negative", "MTd_CM", "MTd_ALT", "MTs", "ihMT_CM", "ihMT_ALT", "BP", "MTsR_Positive", "MTsR_Negative", "MTsR", "MTdR_CM", "MTdR_ALT", "ihMTR_CM", "ihMTR_ALT", "BPR", "DO_CM", "DO_ALT", "ALL"')
     args = parser.parse_args()

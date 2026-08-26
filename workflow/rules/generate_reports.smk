@@ -15,7 +15,9 @@ rule ihmt_b1corr_test_retest:
     input:
         "data/derivatives/ihmt_stats.pickle"
     output:
-        "data/derivatives/ihmt_b1corr_test_retest.csv"
+        vref="data/derivatives/ihmt_vref100vs80.csv",
+        b1corr="data/derivatives/ihmt_b1corr_vs_uncorr.csv",
+        sym="data/derivatives/ihmt_rightleft_symmetry.csv"
     conda:
         "../envs/stats_plots.yaml"
     log:
