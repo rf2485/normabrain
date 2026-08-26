@@ -2,7 +2,7 @@ rule filter_data:
     input:
        "data/derivatives/ihmt_stats.pickle"
     output:
-        "data/derivatives/3T/ihmt/ihmt_stats_filteredROIs.csv" 
+        "data/derivatives/ihmt_stats_filteredROIs.csv" 
     conda:
         "../envs/stats_plots.yaml"
     log:
@@ -13,15 +13,15 @@ rule filter_data:
 
 rule ihmt_b1corr_test_retest:
     input:
-        "data/derivatives/3T/ihmt/ihmt_stats_filteredROIs.csv"
+        "data/derivatives/ihmt_stats.pickle"
     output:
-        "data/derivatives/3T/ihmt/ihmt_b1corr_test_retest.csv"
+        "data/derivatives/ihmt_b1corr_test_retest.csv"
     conda:
         "../envs/stats_plots.yaml"
     log:
         "logs/3T/ihmt/ihmt_b1corr_test_retest.csv"
     notebook:
-        "../notebooks/ihmt_b1corr_test_retest.py.inpynb"
+        "../notebooks/ihmt_b1corr_test_retest.py.ipynb"
 
 
 rule view_ihmt_stats_datavzrd:
