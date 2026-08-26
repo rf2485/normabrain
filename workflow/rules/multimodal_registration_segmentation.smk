@@ -321,7 +321,7 @@ rule apply_reg_ihmt_to_freesurfer_bbregister:
         
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
-        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "DO" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
         mkdir -p "{params.acqdir}/reg2MP2RAGE"
         for map in "${{MTmaps[@]}}"; do
             moving="{params.acqdir}/{params.subject}_"$map"_brain.nii.gz"
@@ -372,7 +372,7 @@ rule apply_aparc_aseg_to_ihmt_bbregister:
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
         #choose ref based on what maps are available
-        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "DO" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
         for map in "${{MTmaps[@]}}"; do
             ref_init="{params.refprefix}_"$map"_brain.nii.gz"
             if [ -f $ref_init ]; then #if file exists, then set ref
@@ -464,7 +464,7 @@ rule ihmt_roi_stats:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "DO" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
         for map in "${{MTmaps[@]}}"; do
             ihmt="{params.ihmtprefix}_${{map}}_brain.nii.gz"
             if [ -f $ihmt ]; then
