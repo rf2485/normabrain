@@ -386,7 +386,7 @@ rule MPRAGEise:
         outdir = temp(directory("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/MPRAGEise/")),
         outimg = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_MPRAGEise.nii.gz"
     params:
-        "sub-{subject}_ses-{session}_acq-{mp2rage_params}_UNIT1_unbiased_clean.nii.gz"
+        "sub-{subject}_ses-{session}_acq-{mp2rage_params}*_UNIT1_unbiased_clean.nii.gz"
     container:
          "docker://afni/afni_cmake_build:AFNI_26.1.04"
     resources:
