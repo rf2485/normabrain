@@ -29,14 +29,17 @@ rule ihmt_b1corr_test_retest:
 rule view_ihmt_stats_datavzrd:
     input:
         config="config/datavzrd_ihmt.yaml",
-        table="data/derivatives/3T/ihmt/ihmt_stats_filteredROIs.csv"
+        desc_stats="data/derivatives/ihmt_stats_filteredROIs.csv",
+        vref_stats="data/derivatives/ihmt_vref100vs80.csv",
+        b1corr_stats="data/derivatives/ihmt_b1corr_vs_uncorr.csv",
+        sym_stats="data/derivatives/ihmt_rightleft_symmetry.csv"
     output:
         report(
             directory("reports/tables/ihmt"),
             htmlindex="index.html",
             caption="report/ihmt.rst",
             category="Tables",
-            labels={"table": "cars"},
+            labels={"table": "ihMT"},
         ),
     log:
             "logs/datavzrd.log"
