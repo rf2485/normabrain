@@ -5,7 +5,7 @@
   poolFreeBound_exchangeRate: 21
   poolBound_M0: 0.16
   poolBound_T1: 1
-  poolBound_T2: 0.00001
+  poolBound_T2: 0.000003
   poolBound_T1D: 0.01
   poolBound_lineshapeAsymmetry: 0
 
@@ -16,7 +16,7 @@
   poolFreeBound_exchangeRate: 11
   poolBound_M0: 0.1565
   poolBound_T1: .5
-  poolBound_T2: 0.00001056010813550731
+  poolBound_T2: 0.000003
   poolBound_T1D: 0.0020601
   poolBound_lineshapeAsymmetry: -594
 
@@ -27,6 +27,6 @@ custom_system:
   poolFreeBound_exchangeRate: 19
   poolBound_M0: 0.08
   poolBound_T1: 1
-  poolBound_T2: 0.00001
+  poolBound_T2: 0.000003
   poolBound_T1D: 0.01
   poolBound_lineshapeAsymmetry: 0
