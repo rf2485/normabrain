@@ -68,7 +68,7 @@ rule add_xml_data_to_meta_ihmt:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        python workflow/scripts/add_xml_data_to_meta.py {input.json_path} {params.protocol_path}
+        python workflow/scripts/add_xml_pdf_data_to_meta.py {input.json_path} {params.protocol_path}
         touch {output}
         """
 

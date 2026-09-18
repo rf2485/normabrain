@@ -108,9 +108,9 @@ rule add_xml_data_to_meta_mp2rage:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        python workflow/scripts/add_xml_data_to_meta.py {input.inv1_json} {params.protocol_path}
-        python workflow/scripts/add_xml_data_to_meta.py {input.inv2_json} {params.protocol_path}
-        python workflow/scripts/add_xml_data_to_meta.py {input.unit1_json} {params.protocol_path}
+        python workflow/scripts/add_xml_pdf_data_to_meta.py {input.inv1_json} {params.protocol_path}
+        python workflow/scripts/add_xml_pdf_data_to_meta.py {input.inv2_json} {params.protocol_path}
+        python workflow/scripts/add_xml_pdf_data_to_meta.py {input.unit1_json} {params.protocol_path}
         touch {output}
         """
 
