@@ -10,7 +10,6 @@ import argparse
 import os
 import glob
 import pydicom
-from pydicom.uid import RLELossless
 import numpy as np
 import dicognito.anonymizer
 
@@ -57,11 +56,57 @@ def _spatial_frame_index(ds, pixel_array):
     return int(np.argsort(positions_along_slice_normal)[len(positions) // 2])
 
 
+def _crop_to_nonzero_bbox(ds, pixels):
+    """Crop rows and columns around all nonzero pixels without changing frames."""
+    spatial_pixels = pixels if pixels.ndim == 2 else pixels.reshape((-1,) + pixels.shape[-2:])
+    nonzero = np.any(spatial_pixels != 0, axis=0)
+    row_indices, column_indices = np.where(nonzero)
+    if not len(row_indices):
+        return pixels
+
+    row_start, row_end = row_indices.min(), row_indices.max() + 1
+    column_start, column_end = column_indices.min(), column_indices.max() + 1
+    pixels = pixels[..., row_start:row_end, column_start:column_end]
+
+    old_pixel_spacing = getattr(ds, "PixelSpacing", None)
+    if old_pixel_spacing and len(old_pixel_spacing) >= 2:
+        row_spacing = float(old_pixel_spacing[0])
+        column_spacing = float(old_pixel_spacing[1])
+        ds.PixelSpacing = [row_spacing, column_spacing]
+        if "ImagePositionPatient" in ds:
+            orientation = getattr(ds, "ImageOrientationPatient", None)
+            if orientation and len(orientation) >= 6:
+                row_direction = np.asarray(orientation[:3], dtype=float)
+                column_direction = np.asarray(orientation[3:6], dtype=float)
+                position = np.asarray(ds.ImagePositionPatient, dtype=float)
+                ds.ImagePositionPatient = (
+                    position
+                    + row_start * row_spacing * row_direction
+                    + column_start * column_spacing * column_direction
+                ).tolist()
+
+    ds.Rows = pixels.shape[-2]
+    ds.Columns = pixels.shape[-1]
+    return pixels
+
+
+def _keep_single_frame(ds, pixels, frame_id):
+    """Keep one spatial frame and its matching enhanced-DICOM metadata."""
+    pixels = pixels[frame_id:frame_id + 1, ...]
+    ds.NumberOfFrames = 1
+
+    frame_groups = getattr(ds, "PerFrameFunctionalGroupsSequence", None)
+    if frame_groups and len(frame_groups) > frame_id:
+        ds.PerFrameFunctionalGroupsSequence = [frame_groups[frame_id]]
+
+    return pixels
+
+
 def robust_directory_slice_extractor(input_dir: str, output_dir: str):
     """
     Scans a directory, isolates a midpoint row cross-section by masking adjacent rows,
-    anonymizes metadata, and compresses the output using RLE Lossless
-    to make the files small enough for a GitHub repository.
+    anonymizes metadata and writes the output using the source DICOM transfer
+    syntax.
     """
     if not os.path.isdir(input_dir):
         raise NotADirectoryError(f"Provided path '{input_dir}' is not a valid directory.")
@@ -104,26 +149,16 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
         
         for r in raw_records:
             ds = pydicom.dcmread(r["filename"])
-            ds.decompress()
             pixels = ds.pixel_array.copy()
             total_rows = ds.Rows
             target_frame_idx = _spatial_frame_index(ds, pixels)
 
-            if target_frame_idx is not None:
-                print(f"  ↳ Keeping axial frame {target_frame_idx} in {r['basename']}")
-                pixels[:target_frame_idx, ...] = 0
-                pixels[target_frame_idx + 1:, ...] = 0
-            else:
-                target_row_idx = total_rows // 4
-                print(f"  ↳ Masking rows in {r['basename']}. Keeping row index: {target_row_idx}")
-
-                if len(pixels.shape) == 3:
-                    pixels[:, :target_row_idx, :] = 0
-                    pixels[:, target_row_idx + 1:, :] = 0
-                else:
-                    pixels[:target_row_idx, :] = 0
-                    pixels[target_row_idx + 1:, :] = 0
+            if target_frame_idx is None:
+                target_frame_idx = pixels.shape[0] // 2
+            print(f"  ↳ Keeping axial frame {target_frame_idx} in {r['basename']}")
+            pixels = _keep_single_frame(ds, pixels, target_frame_idx)
                 
+            pixels = _crop_to_nonzero_bbox(ds, pixels)
             ds.PixelData = pixels.tobytes()
             
             # Save physics headers and anonymize names
@@ -132,24 +167,16 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             for tag, elem in saved_tags.items():
                 ds[tag] = elem
             
-            # RLE stays lossless, is well supported by dcm2niix, and is compact
-            # for the mostly-zero test images produced above.
-            try:
-                ds.compress(RLELossless)
-            except Exception as e:
-                print(f"  ⚠️ Compression notice for {r['basename']}: Codec missing or fallback to uncompressed. ({e})")
-            
             ds.save_as(os.path.join(output_dir, r["basename"]))
 
     # =========================================================================
     # ROUTE 2: Folder of Disjoint 2D Files
     # =========================================================================
     else:
-        print(f"📁 Found 2D Slice Series ({len(raw_records)} discrete files). Masking and compressing...")
+        print(f"📁 Found 2D Slice Series ({len(raw_records)} discrete files). Masking and cropping...")
         
         for r in raw_records:
             ds = pydicom.dcmread(r["filename"])
-            ds.decompress()
             pixels = ds.pixel_array.copy()
             total_rows = ds.Rows
             target_row_idx = total_rows // 4
@@ -157,6 +184,7 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             pixels[:target_row_idx, :] = 0
             pixels[target_row_idx+1:, :] = 0
             
+            pixels = _crop_to_nonzero_bbox(ds, pixels)
             ds.PixelData = pixels.tobytes()
             
             saved_tags = {tag: ds[tag] for tag in protected_physics_tags if tag in ds}
@@ -164,14 +192,8 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             for tag, elem in saved_tags.items():
                 ds[tag] = elem
                 
-            # Compress individual 2D files with a dcm2niix-compatible codec.
-            try:
-                ds.compress(RLELossless)
-            except Exception as e:
-                pass
-                
             ds.save_as(os.path.join(output_dir, r["basename"]))
-            print(f"  ↳ Preserved, anonymized, and compressed: {r['basename']}")
+            print(f"  ↳ Preserved and anonymized: {r['basename']}")
             
     print(f"✅ Tiny, orientation-preserved GitHub test assets created inside: {output_dir}\n")
 
