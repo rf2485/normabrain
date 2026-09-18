@@ -12,3 +12,4 @@ dependencies:
   - pip:
     - pybids==0.22.0
     - lxml==6.1.1
+    - pdfplumber==0.11.10
