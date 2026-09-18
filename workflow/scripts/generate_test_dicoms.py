@@ -10,7 +10,7 @@ import argparse
 import os
 import glob
 import pydicom
-from pydicom.uid import JPEG2000Lossless
+from pydicom.uid import RLELossless
 import numpy as np
 import dicognito.anonymizer
 
@@ -60,7 +60,7 @@ def _spatial_frame_index(ds, pixel_array):
 def robust_directory_slice_extractor(input_dir: str, output_dir: str):
     """
     Scans a directory, isolates a midpoint row cross-section by masking adjacent rows,
-    anonymizes metadata, and compresses the output using JPEG 2000 Lossless 
+    anonymizes metadata, and compresses the output using RLE Lossless
     to make the files small enough for a GitHub repository.
     """
     if not os.path.isdir(input_dir):
@@ -104,6 +104,7 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
         
         for r in raw_records:
             ds = pydicom.dcmread(r["filename"])
+            ds.decompress()
             pixels = ds.pixel_array.copy()
             total_rows = ds.Rows
             target_frame_idx = _spatial_frame_index(ds, pixels)
@@ -131,10 +132,10 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             for tag, elem in saved_tags.items():
                 ds[tag] = elem
             
-            # CRITICAL COMPRESSION STEP
-            # Converts the raw pixel byte block into an compressed JPEG 2000 stream bitstream
+            # RLE stays lossless, is well supported by dcm2niix, and is compact
+            # for the mostly-zero test images produced above.
             try:
-                ds.compress(JPEG2000Lossless)
+                ds.compress(RLELossless)
             except Exception as e:
                 print(f"  ⚠️ Compression notice for {r['basename']}: Codec missing or fallback to uncompressed. ({e})")
             
@@ -148,6 +149,7 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
         
         for r in raw_records:
             ds = pydicom.dcmread(r["filename"])
+            ds.decompress()
             pixels = ds.pixel_array.copy()
             total_rows = ds.Rows
             target_row_idx = total_rows // 4
@@ -162,9 +164,9 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             for tag, elem in saved_tags.items():
                 ds[tag] = elem
                 
-            # Compress individual 2D files
+            # Compress individual 2D files with a dcm2niix-compatible codec.
             try:
-                ds.compress(JPEG2000Lossless)
+                ds.compress(RLELossless)
             except Exception as e:
                 pass
                 
