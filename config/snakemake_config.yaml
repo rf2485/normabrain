@@ -2,6 +2,6 @@
 segmentations: "aparc+aseg mni_icbm152_nlin_asym_09c_wm90percent_lobes mni_icbm152_wm_lobes"
 qmt_sequence: "vibeMT"
 qmt_contrasts: "mt0 mtw pdw t1w"
-input_dicoms_path: ".tests/input/dicoms/"
-protocol_path: ".tests/input/protocol_xml_pdf/"
+input_dicoms_path: "test_input/dicoms/"
+protocol_path: ".tests/test_input/protocol_xml_pdf/"
 subject_list_dicom: "test3Ta"
