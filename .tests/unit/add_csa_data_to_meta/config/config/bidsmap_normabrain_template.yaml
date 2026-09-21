@@ -1,0 +1,3152 @@
+# -------------------------------------------------------------------------------------
+# This is a template bidsmap with the key-value mappings for the different BIDS
+# datatypes (anat, func, dwi, etc). The datatype attributes are the keys that map onto
+# the BIDS labels.
+#
+# NB:
+# 1) This bidsmap is intended to be used by the bidsmapper for data discovery. Although
+#    generally not recommended, it can also be used directly by the bidscoiner
+# 2) This bidsmap is tailored to standard data acquisitions at the Donders Centre for
+#    Cognitive Neuroimaging (DCCN). You may consider (Institute) users may create their
+#    own bidsmap_[template].yaml or bidsmap_[sample].yaml file
+#
+# For more information, see: https://bidscoin.readthedocs.io
+# -------------------------------------------------------------------------------------
+
+$schema: schema.json
+
+
+Options:
+# -----------------------------------
+# General BIDScoin and plugin options
+# -----------------------------------
+  bidscoin:
+    version: 4.6.2                  # BIDScoin version (should correspond with the version in pyproject.toml)
+    subprefix: sub-                 # The subject prefix of the source data
+    sesprefix: ses-                 # The session prefix of the source data
+    bidsignore: [extra_data/, sub-*_ct.*, sub-*_swi.*, sub-*_minIP.*, sub-*_ihmt.*]   # List of entries that are added to the .bidsignore file (for more info, see BIDS specifications), e.g. [extra_data/, pet/, myfile.txt, yourfile.csv]
+    unknowntypes: [extra_data]      # A list of datatypes that are converted to BIDS-like datatype folders
+    ignoretypes: [exclude]          # A list of datatypes that are excluded / not converted to BIDS
+    anon: y                         # Set this anonymization flag to 'y' to round off age and discard acquisition date from the metadata
+    stripsuffix: y                  # Strips off the suffix from bids-values (to reduce redundancy within filenames)
+    unzip:                          # Wildcard pattern to select tarball/zip-files in the source folders that need to be unzipped (in a tempdir) to expose the data, e.g. '*.tar.gz'
+  plugins:                          # List of plugins with plugin-specific key-value pairs (that can be used by the plugin)
+    dcm2niix2bids:                  # See dcm2niix -h and https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage#General_Usage for more info
+      command: dcm2niix             # Command to run dcm2niix, e.g. "module add dcm2niix/1.0.20180622; dcm2niix" or "PATH=/opt/dcm2niix/bin:$PATH; dcm2niix" or /opt/dcm2niix/bin/dcm2niix or 'C:\"Program Files"\dcm2niix\dcm2niix.exe' (use quotes to deal with whitespaces in the path)
+      args: -b y -z y -i n -l n     # Argument string that is passed to dcm2niix. Tip: SPM users may want to use '-z n' (which produces unzipped NIfTI's, see dcm2niix -h for more information)
+      meta: [.json, .tsv, .tsv.gz]  # The file extensions of the equally named metadata source files that are copied over to the BIDS sidecar files
+      fallback: y                   # Appends unhandled dcm2niix suffixes to the `acq` label if 'y' (recommended, else the suffix data is discarded)
+    events2bids:
+      extraInfo: 7                  # The number of `extraInfo` attribute items in PsychoPy output data
+      meta: [.json]
+
+
+DICOM:
+# ------------------------------------------------------------------
+# DICOM heuristics (DICOM fields that are mapped to the BIDS labels)
+# ------------------------------------------------------------------
+  participant:                      # Attributes or properties to populate the participants tsv/json files
+    participant_id: &participant_id
+      value: <<filepath:/sub-(.*?)/>>           # This filesystem property extracts the subject label from the source directory. NB: Any property or attribute can be used as subject-label, e.g. <PatientID>
+      meta:                                     # All data in "meta" is stored in the participants json sidecar-file
+        Description: The unique participant identifier, matching a participant entity found in the dataset
+    session_id: &session_id
+      value: <<filepath:/sub-.*?/ses-(.*?)/>>   # This filesystem property extracts the session label from the source directory. NB: Any property or attribute can be used as session-label, e.g. <StudyID>
+      meta:
+        Description: The session identifier, matching a session found in the dataset
+    age<<session_id>>: &age
+      value: <<PatientAge>>
+      meta:
+        Description: Age of the participant at the time of the acquired session
+        Units: year
+    sex: &sex
+      value: <<PatientSex>>
+      meta:
+        Description: Sex of the participant
+        Levels:
+          M: male
+          F: female
+          O: other
+    height: &height
+      value: <<PatientSize>>
+      meta:
+        Description: Height of the participant
+        Units: meter
+    weight: &weight
+      value: <<PatientWeight>>
+      meta:
+        Description: Weight of the participant
+        Units: kilogram
+  anat:       # ----------------------- All anatomical run-items --------------------
+  - properties:                   # This is an optional (stub) entry of properties matching (could be added to any run-item)
+      filepath:                   # File folder, e.g. ".*/Parkinson/.*" or ".*(phantom|bottle).*"
+      filename:                   # File name, e.g. ".*fmap.*" or ".*(fmap|field.?map|B0.?map).*"
+      filesize:                   # File size, e.g. "2[4-6]\d MB" for matching files between 240-269 MB
+      nrfiles:                    # Number of files in the folder
+    attributes: &anat_dicomattr   # An empty / non-matching reference dictionary that can be dereferenced in other run-items of this data type
+      Modality:
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      SequenceName:
+      PulseSequenceName:
+      SequenceVariant:
+      ScanningSequence:
+      EchoPulseSequence:          # Enhanced DICOM
+      MRAcquisitionType:
+      SliceThickness:
+      FlipAngle:
+      EchoNumbers:
+      EchoTime:
+      EffectiveEchoTime:
+      RepetitionTime:
+      InPlanePhaseEncodingDirection:
+      ComplexImageComponent:
+      MagnetizationTransfer:
+    bids: &anat_dicoment_nonparametric  # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <SeriesDescription>    # This will be expanded by the bidsmapper (so the user can edit it in the bidseditor)
+      ce:
+      rec: <VolumetricProperties>
+      run: <<>>                   # This will be updated dynamically during bidscoiner runtime (as it depends on the already existing files)
+      echo:
+      part: ['', mag, phase, real, imag, 0]   # This BIDS value list will be shown as a dropdown menu in the bidseditor with the first (empty) item selected (as indicated by the last item, i.e. 0)
+      chunk:
+      suffix: T1w
+    meta: {}                      # This is an optional entry for metadata that will be appended to the json sidecar files produced by the plugin
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T1|t1).?map.*
+    bids: &anat_dicoment_parametric     # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <ProtocolName>
+      ce:
+      rec:
+      run: <<>>
+      chunk:
+      suffix: T1map
+  - attributes:
+      <<: *anat_dicomattr
+      ImageType: .*T1.?MAP.*
+    bids: *anat_dicoment_parametric
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T2|t2).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: T2map
+  - attributes:
+      <<: *anat_dicomattr
+      ImageType: .*'T2_MAP'.*
+    bids: 
+      <<: *anat_dicoment_parametric
+      suffix: T2map
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T2star|t2star).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: T2starmap
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(R1|r1).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: R1map
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(R2|r2).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: R2map
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(R2star|r2star).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: R2starmap
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(PD|pd).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: PDmap
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MTR|mtr).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: MTRmap
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MPM|mpm).*
+      EffectiveEchoTime:
+    bids: &anat_dicoment_vfamt          # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      run: <<>>
+      echo: 
+      flip: <FlipAngle>
+      mt:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MPM
+    meta:
+      EffectiveEchoTime: <<EffectiveEchoTime>>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(vibemt|vibeMT|gremt|greMT).*mtw.*
+      ComplexImageComponent: .*PHASE.*
+    bids: 
+      <<: *anat_dicoment_vfamt
+      mt: 'on'
+      part: phase
+    meta:
+      Units: arbitrary
+      RepetitionTimePreparation: <RepetitionTime>
+      RepetitionTimeExcitation: <RepetitionTime>
+      EffectiveEchoTime: <<EffectiveEchoTime>>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(vibemt|vibeMT|gremt|greMT).*mtw.*
+    bids: 
+      <<: *anat_dicoment_vfamt
+      mt: 'on'
+      part: mag
+    meta:
+      RepetitionTimePreparation: <RepetitionTime>
+      RepetitionTimeExcitation: <RepetitionTime>
+      EffectiveEchoTime: <<EffectiveEchoTime>>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(vibemt|vibeMT|gremt|greMT).*
+      ComplexImageComponent: .*PHASE.*
+    bids: 
+      <<: *anat_dicoment_vfamt
+      mt: 'off'
+      part: phase
+    meta:
+      Units: arbitrary
+      RepetitionTimePreparation: <RepetitionTime>
+      RepetitionTimeExcitation: <RepetitionTime>
+      EffectiveEchoTime: <<EffectiveEchoTime>>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(vibemt|vibeMT|gremt|greMT).*
+    bids: 
+      <<: *anat_dicoment_vfamt
+      mt: 'off'
+      part: mag
+    meta:
+      RepetitionTimePreparation: <RepetitionTime>
+      RepetitionTimeExcitation: <RepetitionTime>
+      EffectiveEchoTime: <<EffectiveEchoTime>>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MPRAGE|T1w|mprage|t1w).*
+      MRAcquisitionType: 3D
+    bids: *anat_dicoment_nonparametric
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T2w|t2w|t2_semc|quantorage|qrage).*
+      # SequenceVariant: "['SK', 'SP']"
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: T2w
+  - attributes:
+      <<: *anat_dicomattr
+      SeriesDescription: (?i).*(pcbSSFP).*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: T2w
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(TSE|tse).*vfl.*
+      ImageType: .*'NORM'.*             # NB: The non-NORM image is saved in 'extra_data'
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: T2w
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T2star|t2star|t2s).*
+      ImageType: .*MINIMUM.*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: minIP
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T2star|t2star|t2s).*
+      ImageType: .*SWI.*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: swi
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T2star|t2star|t2s).*
+      ComplexImageComponent: .*MAGNITUDE.*    
+    bids:
+      <<: *anat_dicoment_nonparametric
+      part: mag
+      suffix: T2starw
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T2star|t2star|t2s).*
+      ComplexImageComponent: .*PHASE.*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      part: phase
+      suffix: T2starw
+    meta:
+      Units: arbitrary
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T2star|t2star|t2s).*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: T2starw
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(FLAIR|flair).*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: FLAIR
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(Inplane|inplane).?(T1|t1).*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: inplaneT1
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(Inplane|inplane).?(T2|t2).*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: inplaneT2
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: .*(PDT2|pdt2).*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: PDT2
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(ANGIO|angio).*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: angio
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(ihMT|ihmt).*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: ihmt
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MT|mt).?sat.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: MTsat
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*(den|DEN).*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_dicoment_parametric
+      rec: UNIDEN
+      suffix: T1w
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*(uni|UNI).*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: UNIT1
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(T1rho|t1rho).*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: T1rho
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MWF|mwf).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: MWFmap
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MTV|mtv).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: MTVmap
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(Chi|chi).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: Chimap
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(S0|s0).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: S0map
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(M0|m0).?map.*
+    bids:
+      <<: *anat_dicoment_parametric
+      suffix: M0map
+  - attributes: *anat_dicomattr
+    bids: &anat_dicoment_defacemask     # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      run: <<>>
+      mod:
+      chunk:
+      suffix: defacemask
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(ME|me).?(SE|se).*
+    bids: &anat_dicoment_multiecho      # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      run: <<>>
+      echo: <EchoNumbers>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MESE
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(ME|me).?(GRE|gre).*
+    bids:
+      <<: *anat_dicoment_multiecho
+      suffix: MEGRE
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(VFA|vfa).*
+    bids: &anat_dicoment_multiflip      # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      echo: <EchoNumbers>
+      run: <<>>
+      flip:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: VFA
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(IR|ir).?(T1|t1).* 
+    bids: &anat_dicoment_multiinv       # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      run: <<>>
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: IRT1
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*(inv1|INV1).*
+      MRAcquisitionType: 3D
+    bids: &anat_dicoment_mp2rage        # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <ProtocolName>
+      ce:
+      rec:
+      run: <<>>
+      echo:
+      flip:
+      inv: 1
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MP2RAGE
+    meta:
+      RepetitionTimeExcitation: <RepetitionTime>
+      RepetitionTimePreparation: <RepetitionTime>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*(inv2|INV2).*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_dicoment_mp2rage
+      inv: 2
+    meta:
+      RepetitionTimeExcitation: <RepetitionTime>
+      RepetitionTimePreparation: <RepetitionTime>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: .*(PDw|pdw).*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      suffix: PDw
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MTS|mts).*
+    bids:
+      <<: *anat_dicoment_vfamt
+      suffix: MTS
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MTR|mtr).*
+    bids: &anat_dicoment_mtr            # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      run: <<>>
+      mt:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MTR
+  - attributes: &ct_dicomattr           # ----------- Experimental CT support (see BEP024) -------------
+      Modality: CT
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      PixelSpacing:
+      Rows:
+      Columns:
+      SliceThickness:
+    bids: &ct_dicoment_nonparametric
+      acq: <SeriesDescription>          # This will be expanded by the bidsmapper (so the user can edit it in the bidseditor)
+      ce:
+      rec:
+      run: <<>>                         # This will be updated dynamically during bidscoiner runtime (as it depends on the already existing files)
+      chunk:
+      suffix: ct
+
+  func:       # ----------------------- All functional run-items --------------------
+  - attributes: &func_dicomattr         # The first item with empty attributes will not match anything but is used by default when changing datatype in the bidseditor GUI -> suffix = bold
+      Modality:
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      SequenceName:
+      PulseSequenceName:
+      SequenceVariant:
+      ScanningSequence:
+      EchoPulseSequence:                # Enhanced DICOM
+      MRAcquisitionType:
+      SliceThickness:
+      FlipAngle:
+      EchoNumbers:
+      EchoTime:
+      EffectiveEchoTime:
+      RepetitionTime:
+      PhaseEncodingDirection:
+    bids: &func_dicoment_func           # See: schema/rules/files/raw/func.yaml
+      task: <SeriesDescription>              # More consistent between SBREF and PHYSIO files
+      acq:
+      ce:
+      dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
+      rec:
+      run: <<>>
+      echo:                             # Or use <EchoNumbers>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: bold
+    meta: &func_meta
+      TaskName: <SeriesDescription>
+      B0FieldSource:
+      B0FieldIdentifier:
+  - attributes:                         # First match the SBREF bold run-items (the normal bold run-items don't have SBREF in the seriesdescription)
+      <<: *func_dicomattr
+      SeriesDescription: (?i).*(f.?MRI|f.?mri|task|BOLD|bold|func|rest|RSN|rsn).*(SBREF|sbref).*
+    bids:
+      <<: *func_dicoment_func
+      suffix: sbref
+    meta: *func_meta
+  - attributes:
+      <<: *func_dicomattr
+      ImageType: .*('FMRI'|'fMRI'|'fmri').*             # XA-30 Enhanced DICOM
+      SeriesDescription: (?i).*(SBREF|sbref).*
+    bids:
+      <<: *func_dicoment_func
+      suffix: sbref
+    meta: *func_meta
+  - attributes: *func_dicomattr
+    bids:
+      <<: *func_dicoment_func
+      mod:
+      suffix: noRF
+  - attributes:                         # Then match the PHYSIO run-items (the normal bold run-items don't have PHYSIO in the seriesdescription)
+      <<: *func_dicomattr
+      ProtocolName: (?i).*(f.?MRI|f.?mri|task|BOLD|bold|func|rest|RSN|rsn).*
+      ImageType: .*'PHYSIO'.*
+    bids: &func_dicoment_timeseries     # See: schema/rules/files/raw/func.yaml
+      task: <SeriesDescription>
+      acq:
+      ce:
+      dir:
+      rec:
+      recording:
+      run: <<>>
+      chunk:
+      suffix: physio
+    meta:
+      TaskName: <SeriesDescription>
+  - attributes:
+      <<: *func_dicomattr
+      SeriesDescription: (?i).*(f.?MRI| f.?mri|task|BOLD|bold|func|rest|RSN|rsn).*(PHYSIO|physio).*
+    bids: *func_dicoment_timeseries
+    meta: *func_meta
+  - attributes:                         # Then catch the bold run-items themselves
+      <<: *func_dicomattr
+      ProtocolName: (?i).*(f.?MRI|f.?mri|task|BOLD|bold|func|rest|RSN|rsn).*
+    bids: *func_dicoment_func
+    meta: *func_meta
+  - attributes:
+      <<: *func_dicomattr
+      ImageType: .*('FMRI'|'fmri').*             # XA-30 Enhanced DICOM
+    bids: *func_dicoment_func
+    meta: *func_meta
+  - attributes:
+      <<: *func_dicomattr
+      ProtocolName: (?i).*(CBV|cvb|CerebralBloodVolume).*
+    bids:
+      <<: *func_dicoment_func
+      suffix: cbv
+    meta: *func_meta
+  - attributes: *func_dicomattr
+    bids:
+      <<: *func_dicoment_timeseries
+      suffix: stim
+    meta:
+      TaskName: <SeriesDescription>
+
+  perf:       # ----------------------- All perfusion run-items ---------------------
+  - attributes: &perf_dicomattr
+      Modality:
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      SequenceName:
+      PulseSequenceName:
+      SequenceVariant:
+      ScanningSequence:
+      EchoPulseSequence:                # Enhanced DICOM
+      MRAcquisitionType:
+      SliceThickness:
+      FlipAngle:
+      EchoNumbers:
+      EchoTime:
+      EffectiveEchoTime:
+      RepetitionTime:
+      PhaseEncodingDirection:
+    bids: &perf_dicoment_group1         # See: schema/rules/files/raw/perf.yaml
+      acq: <SeriesDescription>
+      rec:
+      dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
+      run: <<>>
+      echo:
+      part: ['', mag, phase, real, imag, 0]
+      suffix: asl
+    meta: &perf_meta
+      ArterialSpinLabelingType: "CASL / PCASL / PASL"
+      # PostLabelingDelay:
+      BackgroundSuppression: 
+      M0Type: "Separate / Included / Estimate / Absent"
+      RepetitionTimePreparation: <RepetitionTime>
+      VascularCrushing: <ASLCrusherFlag>
+      LabelingDuration: <ASLPulseTrainDuration>
+      AcquisitionVoxelSize:
+      B0FieldSource:
+      B0FieldIdentifier:
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*pcasl_tgse.*
+      PulseSequenceName: .*1296.*
+      SeriesDescription: .*AP.*
+    bids: 
+      <<: *perf_dicoment_group1
+      dir: AP
+    meta: 
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      # PostLabelingDelay: 1296
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 9
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*pcasl_tgse.*
+      PulseSequenceName: .*1296.*
+      SeriesDescription: .*PA.*
+    bids: 
+      <<: *perf_dicoment_group1
+      dir: PA
+    meta: 
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      # PostLabelingDelay: 1296
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 9
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*pcasl_tgse.*
+      PulseSequenceName: .*1296.*
+      ImageType: .*SUBTRACTION.*
+    bids: 
+      <<: *perf_dicoment_group1
+      rec: subtraction
+    meta:
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      # PostLabelingDelay: 1296
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 9
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*pcasl_tgse.*
+      PulseSequenceName: .*1296.*
+      ImageType: .*RCBF.*
+    bids: 
+      <<: *perf_dicoment_group1
+      rec: rcbf
+    meta:
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      # PostLabelingDelay: 1296
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 9
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(pcasl).*(singleTI).*
+      ImageType: .*SUBTRACTION.*
+    bids: 
+      <<: *perf_dicoment_group1
+      rec: subtraction
+    meta: 
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 10
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(pcasl).*(singleTI).*
+      ImageType: .*RCBF.*
+    bids: 
+      <<: *perf_dicoment_group1
+      rec: rcbf
+    meta: 
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 10
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(pcasl).*(singleTI).*
+    bids: *perf_dicoment_group1
+    meta: 
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 10
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(pcasl).*(multiti).*
+      ImageType: .*BAT.*
+    bids: 
+      <<: *perf_dicoment_group1
+      rec: bat
+    meta: 
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 16
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(pcasl).*(multiti).*
+      ImageType: .*SUBTRACTION.*
+    bids: 
+      <<: *perf_dicoment_group1
+      rec: subtraction
+    meta: 
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 16
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(pcasl).*(multiti).*
+      ImageType: .*RCBF.*
+    bids: 
+      <<: *perf_dicoment_group1
+      rec: rcbf
+    meta: 
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 16
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(pcasl).*(multiti).*
+    bids: *perf_dicoment_group1
+    meta: 
+      <<: *perf_meta
+      ArterialSpinLabelingType: PCASL
+      BackgroundSuppression: 'true'
+      M0Type: Included
+      TotalAcquiredPairs: 16
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(ASL|asl|Perfusion|perfusion).*
+    bids: *perf_dicoment_group1
+    meta: *perf_meta
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(M0.?scan|m0.?scan).*
+    bids:
+      <<: *perf_dicoment_group1
+      suffix: m0scan
+    meta: *perf_meta
+  - attributes: 
+     <<: *perf_dicomattr
+     SeriesDescription: (?i).*(ASL|asl|Perfusion|perfusion).*(noRF|NoRF|NORF|norf).*
+    bids:
+      <<: *perf_dicoment_group1
+      suffix: noRF
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(ASL|asl|Perfusion|perfusion).*
+      ImageType: .*SUBTRACTION.*
+    bids: 
+      <<: *perf_dicoment_group1
+      rec: subtraction
+    meta: *perf_meta
+  - attributes:
+      <<: *perf_dicomattr
+      ProtocolName: (?i).*(ASL|asl|Perfusion|perfusion).*
+      ImageType: .*RCBF.*
+    bids: 
+      <<: *perf_dicoment_group1
+      rec: rcbf
+    meta: *perf_meta
+  - attributes: *perf_dicomattr
+    bids: &perf_dicoment_group2         # See: schema/rules/files/raw/perf.yaml
+      acq: <SeriesDescription>
+      rec: <SeriesDescription>
+      dir:
+      run: <<>>
+      suffix: aslcontext
+    meta:
+      VolumeType: <ASLContext>
+  - attributes: *perf_dicomattr
+    bids: &perf_dicoment_group3         # See: schema/rules/files/raw/perf.yaml
+      acq: <SeriesDescription>
+      rec: <SeriesDescription>
+      run: <<>>
+      suffix: asllabeling
+    meta: *perf_meta
+#  - attributes: *perf_dicomattr
+#    bids: &perf_dicoment_physio         # See: schema/rules/files/raw/perf.yaml
+#      acq: <SeriesDescription>
+#      rec:
+#      task: <SeriesDescription>
+#      recording:
+#      dir:
+#      run: <<>>
+#      suffix: physio
+#    meta: *perf_meta
+
+  dwi:        # ----------------------- All diffusion run-items ---------------------
+  - attributes: &dwi_dicomattr          # The first item with empty attributes will not match anything but is used by default when changing datatype in the bidseditor GUI -> suffix = dwi
+      Modality:
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      SequenceName:
+      PulseSequenceName:
+      SequenceVariant:
+      ScanningSequence:
+      EchoPulseSequence:                # Enhanced DICOM
+      MRAcquisitionType:
+      SliceThickness:
+      FlipAngle:
+      EchoNumbers:
+      EchoTime:
+      EffectiveEchoTime:
+      RepetitionTime:
+      PhaseEncodingDirection:
+    bids: &dwi_dicoment_DWI             # See: schema/rules/files/raw/dwi.yaml
+      acq: <SeriesDescription>               # More consistent between SBREF and PHYSIO files
+      rec:
+      dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: dwi
+    meta: &dwi_meta
+      B0FieldSource:
+      B0FieldIdentifier:
+  - attributes:                         # First match the SBREF dwi run-items (the normal dwi run-items don't have SBREF in the seriesdescription)
+      <<: *dwi_dicomattr
+      SeriesDescription: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dti|DW.?MRI|dw.?mri).*(SBREF|sbref).*
+    bids: &dwi_dicoment_sbref           # See: schema/rules/files/raw/dwi.yaml
+      acq: <SeriesDescription>
+      rec:
+      dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: sbref
+    meta: *dwi_meta
+  - attributes:                         # Then match the PHYSIO run-items (the normal bold run-items don't have PHYSIO in the seriesdescription)
+      <<: *dwi_dicomattr
+      ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*
+      ImageType: .*'PHYSIO'.*
+    bids: &dwi_dicoment_physio          # See: schema/rules/files/raw/dwi.yaml
+      acq: <SeriesDescription>
+      dir:
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      recording:
+      chunk:
+      suffix: physio
+  - attributes:
+      <<: *dwi_dicomattr
+      SeriesDescription: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*(PHYSIO|physio).*
+    bids: *dwi_dicoment_physio
+  - attributes:
+      <<: *dwi_dicomattr
+      ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*
+      ImageType: .*TRACE.*
+    bids:
+      <<: *dwi_dicoment_DWI
+      rec: TRACE
+    meta: *dwi_meta
+  - attributes:                         
+      <<: *dwi_dicomattr
+      ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*
+    bids: *dwi_dicoment_DWI
+    meta: *dwi_meta
+  # - attributes:                         # Then catch the normal DWI run-items
+  #     <<: *dwi_dicomattr
+  #     ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*
+  #     SeriesDescription: .*PA.*
+  #   bids: 
+  #     <<: *dwi_dicoment_DWI
+  #     dir: PA
+  #   meta: *dwi_meta
+  # - attributes:                         
+  #     <<: *dwi_dicomattr
+  #     ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*
+  #     SeriesDescription: .*AP.*
+  #   bids: 
+  #     <<: *dwi_dicoment_DWI
+  #     dir: AP
+  #   meta: *dwi_meta
+  - attributes:
+      <<: *dwi_dicomattr
+      ImageType: .*'DIFFUSION'.*
+    bids: *dwi_dicoment_DWI
+    meta: *dwi_meta
+
+  fmap:       # ----------------------- All fieldmap run-items ----------------------
+  - attributes: &fmap_dicomattr         # The first item with empty attributes will not match anything but is used by default when changing datatype in the bidseditor GUI -> suffix = magnitude
+      Modality:
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      SequenceName:
+      PulseSequenceName:
+      SequenceVariant:
+      ScanningSequence:
+      EchoPulseSequence:                # Enhanced DICOM
+      MRAcquisitionType:
+      SliceThickness:
+      FlipAngle:
+      EchoNumbers:
+      EchoTime:
+      EffectiveEchoTime:
+      RepetitionTime:
+      PhaseEncodingDirection:
+    bids: &fmap_dicoment_fieldmaps      # See: schema/rules/files/raw/fmap.yaml
+      acq: <SeriesDescription>
+      run: <<>>
+      chunk:
+      suffix: magnitude1
+    meta: &fmap_meta
+      B0FieldIdentifier:
+      IntendedFor:
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(field.?map|B0.?map|b0.?map).*
+      EchoNumbers: '2'
+      ImageType: .*'P'.*
+    bids:
+      <<: *fmap_dicoment_fieldmaps
+      suffix: phasediff
+    meta: *fmap_meta
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(field.?map|B0.?map|b0.?map).*
+      EchoNumbers: '1'
+      ImageType: .*'M'.*
+    bids:
+      <<: *fmap_dicoment_fieldmaps
+      suffix: magnitude1
+    meta: *fmap_meta
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(field.?map|B0.?map|b0.?map).*
+      EchoNumbers: '2'
+      ImageType: .*'M'.*
+    bids:
+      <<: *fmap_dicoment_fieldmaps
+      suffix: magnitude2
+    meta: *fmap_meta
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(field.?map|B0.?map|b0.?map).*
+      EchoNumbers: '1'
+      ImageType: .*'P'.*
+    bids:
+      <<: *fmap_dicoment_fieldmaps
+      suffix: phase1
+    meta: *fmap_meta
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(field.?map|B0.?map|b0.?map).*
+      EchoNumbers: '2'
+      ImageType: .*'P'.*
+    bids:
+      <<: *fmap_dicoment_fieldmaps
+      suffix: phase2
+    meta: *fmap_meta
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(field.?map|B0.?map|b0.?map).*
+    bids:
+      <<: *fmap_dicoment_fieldmaps
+      suffix: fieldmap
+    meta: *fmap_meta
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(field.?map|B0.?map|b0.?map).*
+    bids:
+      <<: *fmap_dicoment_fieldmaps
+      suffix: magnitude
+    meta: *fmap_meta
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(inverted|pepolar|_inv).*
+      ScanningSequence: EP
+    bids: &fmap_dicoment_PEPolar        # See: schema/rules/files/raw/fmap.yaml
+      acq: <SeriesDescription>          # NB: <SeriesDescription> is consistent between SBREF and PHYSIO files but causes name clashes
+      ce:
+      dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: epi
+    meta: *fmap_meta
+  - attributes:                         # Siemens XA30 enhanced DICOM
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(inverted|pepolar|_inv).*
+      EchoPlanarPulseSequence: YES
+    bids:
+      <<: *fmap_dicoment_PEPolar
+      suffix: epi
+    meta: *fmap_meta
+  - attributes: *fmap_dicomattr
+    bids:
+      <<: *fmap_dicoment_PEPolar
+      suffix: m0scan
+    meta: *fmap_meta
+  - attributes: *fmap_dicomattr
+    bids: &fmap_dicoment_TB1DAM         # See: schema/rules/files/raw/fmap.yaml
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      flip:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1DAM
+    meta: &fmap_meta_B0Field
+      B0FieldIdentifier:
+  - attributes: *fmap_dicomattr
+    bids: &fmap_dicoment_TB1EPI         # See: schema/rules/files/raw/fmap.yaml
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      flip:
+      echo:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1EPI
+    meta: *fmap_meta_B0Field
+  - attributes: 
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(afi|AFI).*
+    bids: &fmap_dicoment_RFFieldMaps    # See: schema/rules/files/raw/fmap.yaml
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      flip:
+      echo:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1AFI
+    meta: *fmap_meta_B0Field
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(B1.?map|b1.?map).*
+      ImageType: .*FLIP ANGLE MAP.*
+    bids:
+      <<: *fmap_dicoment_RFFieldMaps    # See: https://bids-specification.readthedocs.io/en/stable/99-appendices/11-qmri.html#tb1tfl-and-tb1rfm-specific-notes
+      acq: famp
+      suffix: TB1TFL
+    meta: *fmap_meta_B0Field
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(B1.?map|b1.?map).*
+      ImageType: .*'M'.*
+    bids:
+      <<: *fmap_dicoment_RFFieldMaps
+      acq: anat
+      suffix: TB1TFL
+    meta: *fmap_meta_B0Field
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(RF.?map|rf.?map).*
+      ImageType: .*'M'.*
+    bids:
+      <<: *fmap_dicoment_RFFieldMaps
+      acq: anat
+      suffix: TB1RFM
+    meta: *fmap_meta_B0Field
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*(RF.?map|rf.?map).*
+    bids:
+      <<: *fmap_dicoment_RFFieldMaps
+      acq: famp
+      suffix: TB1RFM
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_dicomattr
+    bids:
+      <<: *fmap_dicoment_RFFieldMaps
+      suffix: RB1COR
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_dicomattr
+    bids: &fmap_dicoment_TB1SRGE        # See: schema/rules/files/raw/fmap.yaml
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      flip:
+      echo:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1SRGE
+    meta: *fmap_meta_B0Field
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*b1.?map.*
+      ImageType: .*FLIP ANGLE MAP.*
+    bids: &fmap_dicoment_parametric     # See: schema/rules/files/raw/fmap.yaml
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      run: <<>>
+      chunk:
+      suffix: TB1map
+    meta: *fmap_meta_B0Field
+  - attributes:
+      <<: *fmap_dicomattr
+      ProtocolName: (?i).*b1.?map.*
+    bids:
+      <<: *fmap_dicoment_parametric
+      suffix: RB1map
+    meta: *fmap_meta_B0Field
+
+  pet:        # ----------------------- All PET run-items ---------------------------
+  - attributes: &pet_dicomattr
+      Modality: PT
+      StudyDescription:
+      SeriesDescription:
+      SeriesType:
+      Radiopharmaceutical:
+      ReconstructionMethod:
+      ImageType:
+      NumberOfSlices:
+      NumberOfTimeSlices:
+      SliceThickness:
+      PixelSpacing:
+      Rows:
+      Columns:
+    bids: &pet_dicoment_pet             # See: schema/rules/files/raw/pet.yaml
+      task: <SeriesDescription>
+      trc: <Radiopharmaceutical>
+      rec: ['', acdyn, acstat, nacdyn, nacstat, 0]
+      run: <<>>
+      suffix: pet
+    meta: &pet_meta
+      TracerName: <<Radiopharmaceutical>>
+      TracerRadionuclide:
+      InjectedRadioactivity: <<RadionuclideTotalDose>>
+      InjectedRadioactivityUnits:
+      InjectedMass:
+      InjectedMassUnits:
+      ModeOfAdministration:
+      SpecificRadioactivity:
+      SpecificRadioactivityUnits:
+      TimeZero: <<RadiopharmaceuticalStartTime>>
+      InjectionStart: <<ContrastBolusStartTime>>
+      FrameDuration: <<ActualFrameDuration>>
+      Units:
+  - attributes: *pet_dicomattr
+    bids:
+      <<: *pet_dicoment_pet
+      recording:
+      suffix: blood
+    meta: *pet_meta
+
+  eeg:        # ----------------------- All EEG data ---------------------------
+  - attributes:
+      Modality: EEG
+      ProtocolName:
+      SeriesDescription:
+    bids:                               # See: schema/rules/files/raw/eeg.yaml
+      acq: <ProtocolName>
+      task: <SeriesDescription>
+      run: <<>>
+      suffix: eeg
+
+  ieeg:       # ----------------------- All iEEG data --------------------------
+  - attributes:
+      Modality: EEG
+      ProtocolName:
+      SeriesDescription:
+    bids:                               # See: schema/rules/files/raw/ieeg.yaml
+      acq: <ProtocolName>
+      task: <SeriesDescription>
+      run: <<>>
+      suffix: ieeg
+
+  extra_data: # ----------------------- All extra data -------------------------
+  - attributes: &extra_data_attributes_dicom
+      Modality:
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      SequenceName:
+      PulseSequenceName:
+      SequenceVariant:
+      ScanningSequence:
+      MRAcquisitionType:
+      SliceThickness:
+      FlipAngle:
+      EchoNumbers:
+      EchoTime:
+      EffectiveEchoTime:
+      RepetitionTime:
+      PhaseEncodingDirection:
+    bids: &extra_data_bids_dicom
+      acq: <ProtocolName>
+      inv:
+      rec:
+      ce:
+      task:
+      echo: <EchoNumbers>
+      dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
+      run: <<>>
+      mod: <SeriesDescription>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: <ScanningSequence>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(TSE|tse).*vfl.*
+      ImageType: ((?!NORM).)*           # Make an exception for this non-NORM TSE T2w-image (i.e. ['ORIGINAL', 'PRIMARY', 'M', 'ND'], the filtered 'NORM' version is saved in 'anat')
+    bids:
+      <<: *anat_dicoment_nonparametric
+      part: ['', mag, phase, real, imag, 0]
+      suffix: T2w
+  - attributes: *extra_data_attributes_dicom  # The last item, taken if nothing else matches
+    bids: *extra_data_bids_dicom
+
+  exclude:    # ----------------------- Data that will be left out -------------
+  - attributes: &leaveout_attributes_dicom
+      Modality:
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      SequenceName:
+      PulseSequenceName:
+      SequenceVariant:
+      ScanningSequence:
+      MRAcquisitionType:
+      SliceThickness:
+      FlipAngle:
+      EchoNumbers:
+      EchoTime:
+      EffectiveEchoTime:
+      RepetitionTime:
+      InPlanePhaseEncodingDirection:
+    bids: &leaveout_bids_dicom
+      acq: <ProtocolName>
+      task: <SeriesDescription>
+      echo: <EchoNumbers>
+      suffix: <ScanningSequence>
+  - attributes:
+      <<: *leaveout_attributes_dicom
+      ProtocolName: (?i).*(Scout|scout|localizer|t2_haste_sag_ipat2|AAhead|aahead|tracew).*
+    bids: *leaveout_bids_dicom
+  - attributes:
+      <<: *leaveout_attributes_dicom
+      SeriesDescription: (?i).*(Scout|scout|localizer|t2_haste_sag_ipat2|AAhead|aahead|tracew).*
+    bids: *leaveout_bids_dicom
+  - attributes:
+      <<: *leaveout_attributes_dicom
+      Modality: SR
+    bids:
+      <<: *leaveout_bids_dicom
+      rec: REPORT
+  - attributes:
+      <<: *leaveout_attributes_dicom
+      ImageType: .*'CSA REPORT'.*
+      ProtocolName: .*Phoenix.*
+    bids:
+      <<: *leaveout_bids_dicom
+      rec: REPORT
+  - attributes:
+      <<: *leaveout_attributes_dicom
+      ImageType: .*'DERIVED'.*
+      ProtocolName: (?i)((?!MP2RAGE|mp2r|asl|ASL).)*     # Make an exception for DERIVED 3D MP2RAGE and ASL images
+    bids:
+      <<: *leaveout_bids_dicom
+      rec: DERIVED
+
+
+Presentation:
+# --------------------------------------------------------------------------------------
+# Presentation heuristics (NeuroBS logfiles that are mapped to BIDS-compliant tsv files)
+# --------------------------------------------------------------------------------------
+  participant:                          # Attributes or properties to populate the participants tsv/json files
+    participant_id: *participant_id
+    session_id: *session_id
+
+  beh:        # ----------------------- All behavioural run-items -------------------
+  - attributes: &presentation_attr      # See: https://www.neurobs.com/pres_docs/html/04_reference/02_header_parameters.htm
+      Scenario:
+    bids: &presentationent_beh          # See: schema/rules/files/raw/task.yaml
+      task: <Scenario>
+      acq:
+      run: <<>>
+      suffix: events
+    meta: &presentation_beh_meta
+      TaskName:
+      TaskDescription:
+      Instructions:
+      Scenario: <Scenario>
+      LogfileWritten: <<Logfile written>>
+    events: &presentation_events
+      parsing:                          # The settings to parse the source table from the log file
+        table: [event, stimulus, video, survey, 0]   # The Presentation table that is used to generate the output table (https://www.neurobs.com/pres_docs/html/03_presentation/07_data_reporting/01_logfiles/index.html)
+      columns:                          # Columns that are included in the output table, i.e. {output column: input column}
+      - onset: Time                     # The mapping for the first required column 'onset'
+      - duration: Duration              # The mapping for the second required column 'duration'
+      - code: Code
+      - event_type: Event Type
+      - trial_nr: Trial
+      rows:                             # Rows that are included in the output table
+      - condition:                      # Dict(s): key = column name of the log input table, value = fullmatch regular expression to select the rows of interest
+          Event Type: .*
+        cast:                           # Dict(s): column name + value(s) of the condition in the output table
+      time:
+        cols: ['(?i).*Time.*', '(?i).*Duration.*', Uncertainty, ReqDur]
+        unit: 10000                     # The precision of Presentation clock times is 0.1 milliseconds
+        start:
+          Code:                         # The column name and event-code used to log the first (or any) scanner pulse
+
+  eeg:        # ----------------------- All EEG run-items ---------------------------
+  - attributes: *presentation_attr
+    bids: *presentationent_beh
+    meta: *presentation_beh_meta
+    events: *presentation_events
+
+  ieeg:       # ----------------------- All iEEG run-items --------------------------
+  - attributes: *presentation_attr
+    bids: *presentationent_beh
+    meta: *presentation_beh_meta
+    events: *presentation_events
+
+  meg:        # ----------------------- All MEG run-items ---------------------------
+  - attributes: *presentation_attr
+    bids: *presentationent_beh
+    meta: *presentation_beh_meta
+    events: *presentation_events
+
+  nirs:       # ----------------------- All NIRS run-items --------------------------
+  - attributes: *presentation_attr
+    bids: *presentationent_beh
+    meta: *presentation_beh_meta
+    events: *presentation_events
+
+  func:       # ----------------------- All functional run-items --------------------
+  - attributes: *presentation_attr
+    bids:
+      <<: *presentationent_beh
+      ce:
+      dir:
+      rec:
+    meta: *presentation_beh_meta
+    events: *presentation_events
+  - properties:
+      filename: (?i).*(f.?MRI|task|BOLD|func|rest|task|RSN).*
+    attributes: *presentation_attr
+    bids:
+      <<: *presentationent_beh
+      ce:
+      dir:
+      rec:
+    meta: *presentation_beh_meta
+    events: *presentation_events
+
+  extra_data: # ----------------------- All extra data -------------------------
+  - attributes: *presentation_attr
+    bids: *presentationent_beh
+    meta: *presentation_beh_meta
+    events: *presentation_events
+
+  exclude:    # ----------------------- Data that will be left out -------------
+  - attributes: *presentation_attr
+    bids: *presentationent_beh
+    meta: *presentation_beh_meta
+    events: *presentation_events
+
+
+Psychopy:
+# ----------------------------------------------------------------------------------------
+# PsychoPy heuristics (psydat or tsv logfiles that are mapped to BIDS-compliant tsv files)
+# ----------------------------------------------------------------------------------------
+  participant:                          # Attributes or properties to populate the participants tsv/json files
+    participant_id: *participant_id
+    session_id: *session_id
+
+  beh:        # ----------------------- All behavioural run-items -------------------
+  - attributes: &psychopy_attr
+      expName:
+      psychopyVersion:
+    bids: &psychopy_beh                 # See: schema/rules/files/raw/task.yaml
+      task: <expName>
+      acq:
+      run: <<>>
+      suffix: events
+    meta: &psychopy_func_meta
+      TaskName:
+      TaskDescription:
+      Instructions:
+      expName: <expName>
+      participant: <<participant>>
+      visit: <<visit>>
+      fMRIsess: <<fMRIsess>>
+      time: '<<date:_(\d{2}h\d{2}\.\d{2})\.>>'  # date: '2025-02-14_10h29.17.971'
+      psychopyVersion: <psychopyVersion>
+      frameRate: <<frameRate>>
+    events: &psychopy_events
+      parsing:                          # The settings to parse the source table from the log file
+        table: [long-wide, pivot, 1]    # The raw source table or a pivoted 'onset', 'duration', 'event_type' version
+        add_started:                    # Columns for which the .started time is added, i.e. that are converted to absolute timestamps (e.g. the .rt columns)
+        expand:                         # Expands lists into columns for each array item
+      columns:                          # Columns that are included in the output table, i.e. {output column: input column}
+      - onset: onset                    # The mapping for the first required column 'onset'
+      - duration: duration              # The mapping for the second required column 'duration'
+      - event_type: event_type
+      rows:
+      - condition:                      # Dict(s): key = column name of the log input table, value = fullmatch regular expression to select the rows of interest
+          event_type: '.*'
+      time:
+        cols: ['(?i).*time.*', '(?i).*duration.*', '(?i).*onset.*', '(?i).*start.*', '(?i).*stop.*', '.*\.rt']
+        start:
+          event_type:                   # E.g. scannerPulse.rt_0
+
+  eeg:        # ----------------------- All EEG run-items ---------------------------
+  - attributes: *psychopy_attr
+    bids: *psychopy_beh
+    meta: *psychopy_func_meta
+    events: *psychopy_events
+
+  ieeg:       # ----------------------- All iEEG run-items --------------------------
+  - attributes: *psychopy_attr
+    bids: *psychopy_beh
+    meta: *psychopy_func_meta
+    events: *psychopy_events
+
+  meg:        # ----------------------- All MEG run-items ---------------------------
+  - attributes: *psychopy_attr
+    bids: *psychopy_beh
+    meta: *psychopy_func_meta
+    events: *psychopy_events
+
+  nirs:       # ----------------------- All NIRS run-items --------------------------
+  - attributes: *psychopy_attr
+    bids: *psychopy_beh
+    meta: *psychopy_func_meta
+    events: *psychopy_events
+
+  func:       # ----------------------- All functional run-items --------------------
+  - attributes: *psychopy_attr
+    bids:
+      <<: *psychopy_beh
+      ce:
+      dir:
+      rec:
+    meta: *psychopy_func_meta
+    events: *psychopy_events
+  - properties:
+      filename: (?i).*(f.?MRI|task|BOLD|func|rest|task|RSN).*
+    attributes: *psychopy_attr
+    bids:
+      <<: *psychopy_beh
+      ce:
+      dir:
+      rec:
+    meta: *psychopy_func_meta
+    events: *psychopy_events
+
+  extra_data: # ----------------------- All extra data -------------------------
+  - attributes: *psychopy_attr
+    bids: *psychopy_beh
+    meta: *psychopy_func_meta
+    events: *psychopy_events
+
+  exclude:    # ----------------------- Data that will be left out -------------
+  - attributes: *psychopy_attr
+    bids: *psychopy_beh
+    meta: *psychopy_func_meta
+    events: *psychopy_events
+
+
+Logdata:
+# ----------------------------------------------------------------------------------------------
+# Generic logging data heuristics (tabular logfiles that are mapped to BIDS-compliant tsv files)
+# ----------------------------------------------------------------------------------------------
+  participant:                          # Attributes or properties to populate the participants tsv/json files
+    participant_id: *participant_id
+    session_id: *session_id
+
+  beh:        # ----------------------- All behavioural run-items -------------------
+  - properties: &free_prop
+      filename: .*
+    bids: &free_beh
+      task:
+      acq:
+      run: <<>>
+      suffix: events
+    meta: &free_func_meta
+      TaskName:
+    events: &free_events
+      time:
+        cols: ['(?i).*time.*', '(?i).*duration.*', '(?i).*onset.*', '(?i).*start.*', '(?i).*stop.*']
+
+  eeg:        # ----------------------- All EEG run-items ---------------------------
+  - properties: *free_prop
+    bids: *free_beh
+    meta: *free_func_meta
+    events: *free_events
+
+  ieeg:       # ----------------------- All iEEG run-items --------------------------
+  - properties: *free_prop
+    bids: *free_beh
+    meta: *free_func_meta
+    events: *free_events
+
+  meg:        # ----------------------- All MEG run-items ---------------------------
+  - properties: *free_prop
+    bids: *free_beh
+    meta: *free_func_meta
+    events: *free_events
+
+  nirs:       # ----------------------- All NIRS run-items --------------------------
+  - properties: *free_prop
+    bids: *free_beh
+    meta: *free_func_meta
+    events: *free_events
+
+  func:       # ----------------------- All functional run-items --------------------
+  - properties: *free_prop
+    bids:
+      <<: *free_beh
+      ce:
+      dir:
+      rec:
+    meta: *free_func_meta
+    events: *free_events
+  - properties:
+      filename: (?i).*(f.?MRI|task|BOLD|func|rest|task|RSN).*
+    bids:
+      <<: *free_beh
+      ce:
+      dir:
+      rec:
+    meta: *free_func_meta
+    events: *free_events
+
+  extra_data: # ----------------------- All extra data -------------------------
+  - properties: *free_prop
+    bids: *free_beh
+    meta: *free_func_meta
+    events: *free_events
+
+  exclude:    # ----------------------- Data that will be left out -------------
+  - bids: *free_beh
+    meta: *free_func_meta
+    events: *free_events
+
+
+PAR:
+# ----------------------------------------------------------------------
+# PAR heuristics (Philips PAR fields that are mapped to the BIDS labels)
+# ----------------------------------------------------------------------
+  participant:                          # Attributes or properties to populate the participants tsv/json files
+    participant_id: *participant_id
+    session_id: *session_id
+
+  anat:       # ----------------------- All anatomical run-items --------------------
+  - attributes: &anat_parattr           # The fullpath name of the PAR file from which the attributes are read. Serves also as a look-up key to find a run-item in the bidsmap
+      series_type:
+      exam_name:
+      protocol_name:
+      tech:
+      diffusion:
+      fov:
+      scan_resolution:
+      scan_mode:
+      max_slices:
+      flow_compensation:
+      max_echoes:
+      # repetition_time:                # The TR may vary from acquisition to acquisition when "shortest TR" is set (https://neurostars.org/t/regexp-for-repetition-time/32368/6)
+      prep_direction:
+    bids: &anat_parent_nonparametric    # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <protocol_name>
+      ce:
+      rec: <exam_name>
+      run: <<>>
+      echo:
+      part: ['', mag, phase, real, imag, 0]   # This BIDS value list will be shown as a dropdown menu in the bidseditor with the first (empty) item selected (as indicated by the last item, i.e. 0)
+      chunk:
+      suffix: T1w
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(3DTFE|3dtfe|T1w|t1w).*
+    bids: *anat_parent_nonparametric
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(T2w|t2w).*
+    bids:
+      <<: *anat_parent_nonparametric
+      suffix: T2w
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(T2star|t2star).*
+    bids:
+      <<: *anat_parent_nonparametric
+      suffix: T2starw
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(FLAIR|flair).*
+    bids:
+      <<: *anat_parent_nonparametric
+      suffix: FLAIR
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(Inplane.?T1|inplane.?t1).*
+    bids:
+      <<: *anat_parent_nonparametric
+      suffix: inplaneT1
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(Inplane.?T2|inplane.?t2).*
+    bids:
+      <<: *anat_parent_nonparametric
+      suffix: inplaneT2
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(PDT2|pdt2).*
+    bids:
+      <<: *anat_parent_nonparametric
+      suffix: PDT2
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(ANGIO|angio).*
+    bids:
+      <<: *anat_parent_nonparametric
+      suffix: angio
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(T1.?map|t1.?map).*
+    bids: &anat_parent_parametric       # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <protocol_name>
+      ce:
+      rec: <exam_name>
+      run: <<>>
+      chunk:
+      suffix: T1map
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(T2.?map|t2.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: T2map
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(T2star.?map|t2star.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: T2starmap
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(R1.?map|r1.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: R1map
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(R2.?map|r2.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: R2map
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(R2star.?map|r2star.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: R2starmap
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(PD.?map|pd.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: PDmap
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(MTR.?map|mtr.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: MTRmap
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(MT.?sat|mt.?sat).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: MTsat
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(3DTFE|3dtfe).*(UNI|uni).*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_parent_parametric
+      suffix: UNIT1
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(T1rho|t1rho).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: T1rho
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(MWF.?map|mwf.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: MWFmap
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(MTV.?map|mtv.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: MTVmap
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(Chi.?map|chi.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: Chimap
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(S0.?map|s0.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: S0map
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(M0.?map|m0.?map).*
+    bids:
+      <<: *anat_parent_parametric
+      suffix: M0map
+  - attributes: *anat_parattr
+    bids: &anat_parent_defacemask       # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <protocol_name>
+      ce:
+      rec: <exam_name>
+      run: <<>>
+      mod:
+      chunk:
+      suffix: defacemask
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(ME.?SE|me.?se).*
+    bids: &anat_parent_multiecho        # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <protocol_name>
+      ce:
+      rec: <exam_name>
+      run: <<>>
+      echo:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MESE
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(ME.?GRE|me.?gre).*
+    bids:
+      <<: *anat_parent_multiecho
+      suffix: MEGRE
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(VFA|vfa).*
+    bids: &anat_parent_multiflip        # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <protocol_name>
+      ce:
+      rec: <exam_name>
+      echo:
+      run: <<>>
+      flip:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: VFA
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(IR.?T1|ir.?t1).*
+    bids: &anat_parent_multiinv         # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <protocol_name>
+      ce:
+      rec: <exam_name>
+      run: <<>>
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: IRT1
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(3DTFE|3dtfe).*(INV1|inv1).*
+    bids: &anat_parent_mp2rage          # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <protocol_name>
+      ce:
+      rec: <exam_name>
+      run: <<>>
+      echo:
+      flip:
+      inv: 1
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MP2RAGE
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(3DTFE|3dtfe).*(INV2|inv2).*
+    bids:
+      <<: *anat_parent_mp2rage
+      inv: 2
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(MPM|mpm).*
+    bids: &anat_parent_vfamt            # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <protocol_name>
+      ce:
+      rec: <exam_name>
+      run: <<>>
+      echo:
+      flip:
+      mt:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MPM
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(MTS|mts).*
+    bids:
+      <<: *anat_parent_vfamt
+      suffix: MTS
+  - attributes:
+      <<: *anat_parattr
+      protocol_name: (?i).*(MTR|mtr).*
+    bids: &anat_parent_mtr              # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <protocol_name>
+      ce:
+      rec: <exam_name>
+      run: <<>>
+      mt:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MTR
+
+  func:       # ----------------------- All functional run-items --------------------
+  - attributes: &func_parattr
+      series_type:
+      exam_name:
+      protocol_name:
+      tech:
+      diffusion:
+      fov:
+      scan_resolution:
+      scan_mode:
+      max_slices:
+      flow_compensation:
+      max_echoes:
+      # repetition_time:
+      prep_direction:
+    bids: &func_parent_func             # See: schema/rules/files/raw/func.yaml
+      task: <exam_name>
+      acq: <protocol_name>
+      ce:
+      dir:
+      rec:
+      run: <<>>
+      echo:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: bold
+    meta:
+      <<: *func_meta
+      TaskName: <exam_name>
+  - attributes:                         # First match the SBREF bold run-items (the normal bold run-items don't have SBREF in the seriesdescription)
+      <<: *func_parattr
+      protocol_name: (?i).*(f.?MRI|f.?mri|task|BOLD|bold|func|rest|RSN|rsn).*(SBREF|sbref).*
+    bids:
+      <<: *func_parent_func
+      suffix: sbref
+    meta: *func_meta
+  - attributes:                         # Then catch the bold run-items themselves
+      <<: *func_parattr
+      protocol_name: (?i).*(f.?MRI|f.?mri|task|BOLD|bold|func|rest|RSN|rsn).*
+    bids: *func_parent_func
+    meta: *func_meta
+  - attributes:
+      <<: *func_parattr
+      protocol_name: (?i).*(CBV|CerebralBloodVolume|cbv|cerebralbloodvolume).*
+    bids:
+      <<: *func_parent_func
+      suffix: cbv
+    meta: *func_meta
+  - attributes: *func_parattr
+    bids:
+      <<: *func_parent_func
+      mod:
+      suffix: noRF
+  - attributes: *func_parattr
+    bids: &func_parent_timeseries       # See: schema/rules/files/raw/func.yaml
+      task: <exam_name>
+      acq: <protocol_name>
+      ce:
+      dir:
+      rec:
+      recording:
+      run: <<>>
+      chunk:
+      suffix: physio
+    meta:
+      TaskName: <exam_name>
+  - attributes: *func_parattr
+    bids:
+      <<: *func_parent_timeseries
+      suffix: stim
+    meta:
+      TaskName: <exam_name>
+
+  perf:       # ----------------------- All perfusion run-items ---------------------
+  - attributes: &perf_parattr
+      series_type:
+      exam_name:
+      protocol_name:
+      tech:
+      diffusion:
+      fov:
+      scan_resolution:
+      scan_mode:
+      max_slices:
+      flow_compensation:
+      max_echoes:
+      # repetition_time:
+      prep_direction:
+    bids: &perf_parent_group1           # See: schema/rules/files/raw/perf.yaml
+      acq: <protocol_name>
+      rec: <exam_name>
+      dir:
+      run: <<>>
+      echo:
+      part: ['', mag, phase, real, imag, 0]
+      suffix: asl
+    meta: *perf_meta
+  - attributes:
+      <<: *perf_parattr
+      protocol_name: (?i).*(ASL|Perfusion|asl|perfusion).*
+    bids: *perf_parent_group1
+    meta: *perf_meta
+  - attributes:
+      <<: *perf_parattr
+      protocol_name: (?i).*(M0.?scan|m0.?scan).*
+    bids:
+      <<: *perf_parent_group1
+      echo:
+      part: [ '', mag, phase, real, imag, 0 ]
+      suffix: m0scan
+    meta: *perf_meta
+  - attributes: *perf_parattr
+    bids:
+      <<: *perf_parent_group1
+      mod:
+      suffix: noRF
+  - attributes: *perf_parattr
+    bids: &perf_parent_group2           # See: schema/rules/files/raw/perf.yaml
+      acq: <protocol_name>
+      rec: <exam_name>
+      dir:
+      run: <<>>
+      suffix: aslcontext
+    meta: *perf_meta
+  - attributes: *perf_parattr
+    bids: &perf_parent_group3           # See: schema/rules/files/raw/perf.yaml
+      acq: <protocol_name>
+      rec: <exam_name>
+      run: <<>>
+      suffix: asllabeling
+    meta: *perf_meta
+
+  dwi:        # ----------------------- All diffusion run-items ---------------------
+  - attributes: &dwi_parattr
+      series_type:
+      exam_name:
+      protocol_name:
+      tech:
+      diffusion:
+      fov:
+      scan_resolution:
+      scan_mode:
+      max_slices:
+      flow_compensation:
+      max_echoes:
+      # repetition_time:
+      prep_direction:
+    bids: &dwi_parent_DWI               # See: schema/rules/files/raw/dwi.yaml
+      acq: <protocol_name>
+      rec:
+      dir:
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: dwi
+    meta: *dwi_meta
+  - attributes:                         # First match the SBREF dwi run-items (the normal dwi run-items don't have SBREF in the seriesdescription)
+      <<: *dwi_parattr
+      protocol_name: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*(SBREF|sbref).*
+    bids: &dwi_parent_sbref             # See: schema/rules/files/raw/dwi.yaml
+      acq: <protocol_name>
+      rec:
+      dir:
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: sbref
+  - attributes:                         # Then catch the normal DWI run-items
+      <<: *dwi_parattr
+      diffusion: '1'
+    bids: *dwi_parent_DWI
+    meta: *dwi_meta
+
+  fmap:       # ----------------------- All fieldmap run-items ----------------------
+  - attributes: &fmap_parattr
+      series_type:
+      exam_name:
+      protocol_name: (?i).*(field.?map|B0.?map|b0.?map|AFI|afi).*
+      tech:
+      diffusion:
+      fov:
+      scan_resolution:
+      scan_mode:
+      max_slices:
+      flow_compensation:
+      max_echoes:
+      # repetition_time:
+      prep_direction:
+    bids: &fmap_parent_fieldmaps        # See: schema/rules/files/raw/fmap.yaml
+      acq: <protocol_name>
+      run: <<>>
+      chunk:
+      suffix: magnitude1
+    meta: *fmap_meta
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_fieldmaps
+      suffix: magnitude2
+    meta: *fmap_meta
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_fieldmaps
+      suffix: phasediff
+    meta: *fmap_meta
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_fieldmaps
+      suffix: phase1
+    meta: *fmap_meta
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_fieldmaps
+      suffix: phase2
+    meta: *fmap_meta
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_fieldmaps
+      suffix: fieldmap
+    meta: *fmap_meta
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_fieldmaps
+      suffix: magnitude
+    meta: *fmap_meta
+  - attributes: *fmap_parattr
+    bids: &fmap_parent_PEPolar          # See: schema/rules/files/raw/fmap.yaml
+      acq: <protocol_name>
+      ce:
+      dir:
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: epi
+    meta: *fmap_meta
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_PEPolar
+      suffix: m0scan
+    meta: *fmap_meta
+  - attributes: *fmap_parattr
+    bids: &fmap_parent_TB1DAM           # See: schema/rules/files/raw/fmap.yaml
+      acq: <protocol_name>
+      ce:
+      rec:
+      flip:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1DAM
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_parattr
+    bids: &fmap_parent_TB1EPI           # See: schema/rules/files/raw/fmap.yaml
+      acq: <protocol_name>
+      ce:
+      rec:
+      flip:
+      echo:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1EPI
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_parattr
+    bids: &fmap_parent_RFFieldMaps      # See: schema/rules/files/raw/fmap.yaml
+      acq: <protocol_name>
+      ce:
+      rec:
+      flip:
+      echo:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1AFI
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_RFFieldMaps      # See: schema/rules/files/raw/fmap.yaml
+      suffix: TB1TFL
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_RFFieldMaps      # See: schema/rules/files/raw/fmap.yaml
+      suffix: TB1RFM
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_RFFieldMaps      # See: schema/rules/files/raw/fmap.yaml
+      suffix: RB1COR
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_parattr
+    bids: &fmap_parent_TB1SRGE          # See: schema/rules/files/raw/fmap.yaml
+      acq: <protocol_name>
+      ce:
+      rec:
+      flip:
+      echo:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1SRGE
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_parattr
+    bids: &fmap_parent_parametric       # See: schema/rules/files/raw/fmap.yaml
+      acq: <protocol_name>
+      ce:
+      rec:
+      run: <<>>
+      chunk:
+      suffix: TB1map
+    meta: *fmap_meta_B0Field
+  - attributes: *fmap_parattr
+    bids:
+      <<: *fmap_parent_parametric
+      suffix: RB1map
+    meta: *fmap_meta_B0Field
+
+  extra_data: # ----------------------- All extra data -------------------------
+  - attributes:
+      series_type:
+      exam_name:
+      protocol_name:
+      tech:
+      diffusion:
+      fov:
+      scan_resolution:
+      scan_mode:
+      max_slices:
+      flow_compensation:
+      max_echoes:
+      # repetition_time:
+      prep_direction:
+    bids:
+      acq: <protocol_name><exam_name>
+      inv:
+      rec: <tech>
+      ce:
+      task:
+      echo:
+      dir:
+      run: <<>>
+      mod:
+      part: ['', mag, phase, real, imag, 0]
+      suffix: <exam_name>
+
+  exclude:    # ----------------------- Data that will be left out -------------
+  - attributes: &leaveout_attributes_par
+      series_type:
+      exam_name:
+      protocol_name:
+      tech:
+      diffusion:
+      fov:
+      scan_resolution:
+      scan_mode:
+      max_slices:
+      flow_compensation:
+      max_echoes:
+      # repetition_time:
+      prep_direction:
+    bids: &leaveout_bids_par
+      acq: <protocol_name><exam_name>
+      suffix: <series_type>
+  - attributes:
+      <<: *leaveout_attributes_par
+      protocol_name: (?i).*(Scout|scout|localizer).*
+    bids: *leaveout_bids_par
+
+
+SPAR:
+# -----------------------------------------------------------------------
+# SPAR heuristics (Philips MRS fields that are mapped to the BIDS labels)
+# -----------------------------------------------------------------------
+  participant:                          # Attributes or properties to populate the participants tsv/json files
+    participant_id: *participant_id
+    session_id: *session_id
+
+  mrs:        # ---------------------- All spectroscopy run-items ------------------
+  - attributes: &mrs_sparattr
+      examination_name:
+      scan_id:
+      echo_time:
+      repetition_time:
+      samples:
+      averages:
+      ap_size:
+      lr_size:
+      cc_size:
+    bids: &mrs_sparent                  # See: schema/rules/files/raw/mrs.yaml
+      task:
+      acq:
+      rec:
+      echo:
+      inv:
+      nuc:
+      voi:
+      run: <<>>                         # This will be updated during bidscoiner runtime (as it depends on the already existing files)
+      suffix: svs
+  - attributes: *mrs_sparattr
+    bids:
+      <<: *mrs_sparent
+      suffix: mrsi
+  - attributes: *mrs_sparattr
+    bids:
+      <<: *mrs_sparent
+      suffix: unloc
+  - attributes: *mrs_sparattr
+    bids:
+      <<: *mrs_sparent
+      suffix: mrsref
+
+  extra_data: # ----------------------- All extra data -------------------------
+  - attributes: *mrs_sparattr
+    bids: *mrs_sparent
+
+  exclude:    # ----------------------- Data that will be left out -------------
+  - attributes: *mrs_sparattr
+    bids: *mrs_sparent
+
+
+Twix:
+# -----------------------------------------------------------------------
+# Twix heuristics (Siemens MRS fields that are mapped to the BIDS labels)
+# -----------------------------------------------------------------------
+  participant:                          # Attributes or properties to populate the participants tsv/json files
+    participant_id: *participant_id
+    session_id: *session_id
+    age: *age
+    sex: *sex
+    height: *height
+    weight: *weight
+
+  mrs:        # ---------------------- All spectroscopy run-items ------------------
+  - attributes: &mrs_twixattr
+      Modality:
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      SequenceName:
+      PulseSequenceName:
+      SequenceVariant:
+      ScanningSequence:
+      MRAcquisitionType:
+      SliceThickness:
+      FlipAngle:
+      EchoNumbers:
+      EchoTime:
+      EffectiveEchoTime:
+      RepetitionTime:
+    bids: &mrs_twixent                  # See: schema/rules/files/raw/mrs.yaml
+      task:
+      acq:
+      rec:
+      echo:
+      inv:
+      nuc:
+      voi:
+      run: <<>>                         # This will be updated during bidscoiner runtime (as it depends on the already existing files)
+      suffix: svs
+  - attributes: *mrs_twixattr
+    bids:
+      <<: *mrs_twixent
+      suffix: mrsi
+  - attributes: *mrs_twixattr
+    bids:
+      <<: *mrs_twixent
+      suffix: unloc
+  - attributes: *mrs_twixattr
+    bids:
+      <<: *mrs_twixent
+      suffix: mrsref
+
+  extra_data: # ----------------------- All extra data -------------------------
+  - attributes: *mrs_twixattr
+    bids: *mrs_twixent
+
+  exclude:    # ----------------------- Data that will be left out -------------
+  - attributes: *mrs_twixattr
+    bids: *mrs_twixent
+
+
+Pfile:
+# --------------------------------------------------------------------
+# P-file heuristics (GE MRS fields that are mapped to the BIDS labels)
+# --------------------------------------------------------------------
+  participant:                          # Attributes or properties to populate the participants tsv/json files
+    participant_id: *participant_id
+    session_id: *session_id
+    age:
+      <<: *age
+      value: <<rhr_rh_scan_date>>-<<rhe_dateofbirth>>
+    sex:
+      <<: *sex
+      value: <<rhe_patsex>>
+
+  mrs:        # ---------------------- All spectroscopy run-items ------------------
+  - attributes: &mrs_p7attr             # The matching (regex) criteria for spec2nii2bids go in here
+      rhr_rh_logo:                      # INVALIDNMR
+      rhr_rh_navs:                      # 8
+      rhr_rh_nframes:                   # 14
+      rhr_rh_frame_size:                # 4096
+      rhr_rh_point_size:                # 4
+      rhr_rh_da_xres:                   # 4096
+      rhr_rh_da_yres:                   # 15
+      rhr_spectral_width:               # 5000.0
+      rhr_csi_dims:                     # 0
+      rhr_xcsi:                         # 1
+      rhr_ycsi:                         # 1
+      rhr_zcsi:                         # 1
+      rhr_roilenx:                      # 20.0
+      rhr_roileny:                      # 20.0
+      rhr_roilenz:                      # 20.0
+      rhe_magstrength:                  # 30000
+      rhs_se_desc:                      # PRESS ACC TE 30ms
+      rhi_scanspacing:                  # 20.0
+      rhi_nex:                          # 8.0
+      rhi_tr:                           # 3000000
+      rhi_ti:                           # 0
+      rhi_te:                           # 30000
+      rhi_mr_flip:                      # 90
+      rhi_psdname:                      # PROBE-P
+      rhi_cname:                        # 8HRBRAIN
+    bids: &mrs_p7ent                    # See: schema/rules/files/raw/mrs.yaml
+      task:
+      acq:
+      rec:
+      echo:
+      inv:
+      nuc:
+      voi:
+      run: <<>>                         # This will be updated during bidscoiner runtime (as it depends on the already existing files)
+      suffix: svs
+  - attributes: *mrs_p7attr
+    bids:
+      <<: *mrs_p7ent
+      suffix: mrsi
+  - attributes: *mrs_p7attr
+    bids:
+      <<: *mrs_p7ent
+      suffix: unloc
+  - attributes: *mrs_p7attr
+    bids:
+      <<: *mrs_p7ent
+      suffix: mrsref
+
+  extra_data: # ----------------------- All extra data -------------------------
+  - attributes: *mrs_p7attr
+    bids: *mrs_p7ent
+
+  exclude:    # ----------------------- Data that will be left out -------------
+  - attributes: *mrs_p7attr
+    bids: *mrs_p7ent
+
+
+Nibabel:
+# ---------------------------------------------------------------------
+# Nibabel heuristics (header fields that are mapped to the BIDS labels)
+# ---------------------------------------------------------------------
+  participant:                          # Attributes or properties to populate the participants tsv/json files
+    participant_id: *participant_id
+    session_id: *session_id
+
+  anat:       # ----------------------- All anatomical run-items --------------------
+  - attributes: &nibattr                # An empty / non-matching reference dictionary that can be dereferenced in other run-items of this data type
+      dim:
+      dim_info:
+      pixdim:
+#      descrip:                         # Unfortunately dcm2niix save the AcquisitionTime in here :-(
+      intent_name:
+      Modality:
+      ProtocolName:
+      SeriesDescription:
+      ImageType:
+      SequenceName:
+      PulseSequenceName:
+      SequenceVariant:
+      ScanningSequence:
+      MRAcquisitionType:
+      SliceThickness:
+      FlipAngle:
+      EchoTime:
+      RepetitionTime:
+      InPlanePhaseEncodingDirectionDICOM:
+      PhaseEncodingDirection:
+    bids: &anat_nibent_nonparametric    # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <descrip>                    # This will be expanded by the bidsmapper (so the user can edit it)
+      ce:
+      rec:
+      run: <<>>                         # This will be updated during bidscoiner runtime (as it depends on the already existing files)
+      echo:
+      part: ['', mag, phase, real, imag, 0]   # This BIDS value list will be shown as a dropdown menu in the bidseditor with the first (empty) item selected (as indicated by the last item, i.e. 0)
+      chunk:
+      suffix: T1w
+  - properties:
+      filename: (?i).*(MPRAGE|T1w|mprage|t1w).* 
+    attributes: *nibattr
+    bids: *anat_nibent_nonparametric
+  - properties:
+      filename: (?i).*(T2w|t2w).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_nonparametric
+      suffix: T2w
+  - properties:
+      filename: (?i).*(PDw|pdw).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_nonparametric
+      suffix: PDw
+  - properties:
+      filename: (?i).*(T2star|t2star).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_nonparametric
+      suffix: T2starw
+  - properties:
+      filename: (?i).*(FLAIR|flair).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_nonparametric
+      suffix: FLAIR
+  - properties:
+      filename: (?i).*(Inplane|inplane).?(T1|t1).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_nonparametric
+      suffix: inplaneT1
+  - properties:
+      filename: (?i).*(Inplane|inplane).?(T2|t2).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_nonparametric
+      suffix: inplaneT2
+  - properties:
+      filename: (?i).*(PDT2|pdt2).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_nonparametric
+      suffix: PDT2
+  - properties:
+      filename: (?i).*(ANGIO|angio).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_nonparametric
+      suffix: angio
+  - properties:
+      filename: (?i).*(T1|t1).?map.*
+    attributes: *nibattr
+    bids: &anat_nibent_parametric       # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <descrip>
+      ce:
+      rec:
+      run: <<>>
+      chunk:
+      suffix: T1map
+  - properties:
+      filename: (?i).*(T2|t2).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: T2map
+  - properties:
+      filename: (?i).*(T2star|t2star).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: T2starmap
+  - properties:
+      filename: (?i).*(R1|r1).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: R1map
+  - properties:
+      filename: (?i).*(R2|r2).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: R2map
+  - properties:
+      filename: (?i).*(R2star|r2star).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: R2starmap
+  - properties:
+      filename: (?i).*(PD|pd).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: PDmap
+  - properties:
+      filename: (?i).*(MTR|mtr).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: MTRmap
+  - properties:
+      filename: (?i).*(MT|mt).?sat.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: MTsat
+  - properties:
+      filename: (?i).*(MP2RAGE|UNIT1|mp2rage|unit1).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: UNIT1
+  - properties:
+      filename: (?i).*(T1rho|t1rho).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: T1rho
+  - properties:
+      filename: (?i).*(MWF|mwf).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: MWFmap
+  - properties:
+      filename: (?i).*(MTV|mtv).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: MTVmap
+  - properties:
+      filename: (?i).*(Chi|chi).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: Chimap
+  - properties:
+      filename: (?i).*(S0|s0).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: S0map
+  - properties:
+      filename: (?i).*(M0|m0).?map.*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_parametric
+      suffix: M0map
+  - attributes: *nibattr
+    bids: &anat_nibent_defacemask       # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <descrip>
+      ce:
+      rec:
+      run: <<>>
+      mod:
+      chunk:
+      suffix: defacemask
+  - properties:
+      filename: (?i).*(ME|me).?(SE|se).*
+    attributes: *nibattr
+    bids: &anat_nibent_multiecho        # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <descrip>
+      ce:
+      rec:
+      run: <<>>
+      echo:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MESE
+  - properties:
+      filename: (?i).*(ME|me).?(GRE|gre).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_multiecho
+      suffix: MEGRE
+  - properties:
+      filename: (?i).*(VFA|vfa).*
+    attributes: *nibattr
+    bids: &anat_nibent_multiflip        # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <descrip>
+      ce:
+      rec:
+      echo:
+      run: <<>>
+      flip:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: VFA
+  - properties:
+      filename: (?i).*(IR|ir).?(T1|t1).*
+    attributes: *nibattr
+    bids: &anat_nibent_multiinv         # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <descrip>
+      ce:
+      rec:
+      run: <<>>
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: IRT1
+  - properties:
+      filename: (?i).*(MP2RAGE|INV1|mp2rage|inv1).*
+    attributes: *nibattr
+    bids: &anat_nibent_mp2rage           # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <descrip>
+      ce:
+      rec:
+      run: <<>>
+      echo:
+      flip:
+      inv: 1
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MP2RAGE
+  - properties:
+      filename: (?i).*(MP2RAGE|INV2|mp2rage|inv2).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_mp2rage
+      inv: 2
+  - properties:
+      filename: (?i).*(MPM|mpm).*
+    attributes: *nibattr
+    bids: &anat_nibent_vfamt            # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <descrip>
+      ce:
+      rec:
+      run: <<>>
+      echo:
+      flip:
+      mt:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MPM
+  - properties:
+      filename: (?i).*(MTS|mts).*
+    attributes: *nibattr
+    bids:
+      <<: *anat_nibent_vfamt
+      suffix: MTS
+  - properties:
+      filename: (?i).*(MTR|mtr).*
+    attributes: *nibattr
+    bids: &anat_nibent_mtr              # See: schema/rules/files/raw/anat.yaml
+      task:
+      acq: <SeriesDescription>
+      ce:
+      rec:
+      run: <<>>
+      mt:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MTR
+
+  func:       # ----------------------- All functional run-items --------------------
+  - attributes: *nibattr
+    bids: &func_nibent_func             # See: schema/rules/files/raw/func.yaml
+      task:
+      acq: <descrip>
+      ce:
+      dir:
+      rec:
+      run: <<>>
+      echo:
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: bold
+    meta: *func_meta
+  - properties:                         # First match the SBREF bold run-items (the normal bold run-items won't have SBREF in the name)
+      filename: (?i).*(f.?MRI|fmri|task|BOLD|bold|func|rest|RSN|rsn).*(SBREF|sbref).*
+    attributes: *nibattr
+    bids:
+      <<: *func_nibent_func
+      suffix: sbref
+    meta: *func_meta
+  - properties:                         # Then catch the bold run-items themselves
+      filename: (?i).*(f.?MRI|fmri|task|BOLD|bold|func|rest|RSN|rsn).*
+    attributes: *nibattr
+    bids: *func_nibent_func
+    meta: *func_meta
+  - properties:
+      filename: (?i).*(CBV|cbv|CerebralBloodVolume|cerebralbloodvolume).*
+    attributes: *nibattr
+    bids:
+      <<: *func_nibent_func
+      suffix: cbv
+    meta: *func_meta
+  - attributes: *nibattr
+    bids:
+      <<: *func_nibent_func
+      mod:
+      suffix: noRF
+  - attributes: *nibattr
+    bids: &func_nibent_events           # See: schema/rules/files/raw/func.yaml
+      task: <descrip>
+      acq:
+      ce:
+      dir:
+      rec:
+      run: <<>>
+      chunk:
+      suffix: events
+    meta:
+      TaskName:
+  - attributes: *nibattr
+    bids: &func_nibent_timeseries       # See: schema/rules/files/raw/func.yaml
+      task: <descrip>
+      acq:
+      ce:
+      dir:
+      rec:
+      recording:
+      run: <<>>
+      chunk:
+      suffix: physio
+    meta:
+      TaskName:
+  - attributes: *nibattr
+    bids:
+      <<: *func_nibent_timeseries
+      suffix: stim
+    meta:
+      TaskName:
+
+  perf:       # ----------------------- All perfusion run-items ---------------------
+  - attributes: *nibattr
+    bids: &perf_nibent_group1           # See: schema/rules/files/raw/perf.yaml
+      acq: <descrip>
+      rec:
+      dir:
+      run: <<>>
+      echo:
+      part: [ '', mag, phase, real, imag, 0 ]
+      suffix: asl
+    meta: *perf_meta
+  - properties:
+      filename: (?i).*(ASL|asl|Perfusion|perfusion).*
+    attributes: *nibattr
+    bids: *perf_nibent_group1
+    meta: *perf_meta
+  - properties:
+      filename: (?i).*(M0|m0).?scan.*
+    attributes: *nibattr
+    bids:
+      <<: *perf_nibent_group1
+      echo:
+      part: [ '', mag, phase, real, imag, 0 ]
+      suffix: m0scan
+    meta: *perf_meta
+  - attributes: *nibattr
+    bids:
+      <<: *perf_nibent_group1
+      mod:
+      suffix: noRF
+  - attributes: *nibattr
+    bids: &perf_nibent_group2           # See: schema/rules/files/raw/perf.yaml
+      acq: <descrip>
+      rec:
+      dir:
+      run: <<>>
+      suffix: aslcontext
+    meta: *perf_meta
+  - attributes: *nibattr
+    bids: &perf_nibent_group3           # See: schema/rules/files/raw/perf.yaml
+      acq: <descrip>
+      rec:
+      run: <<>>
+      suffix: asllabeling
+    meta: *perf_meta
+#  - properties: *fileprop
+#    attributes: *nibattr
+#    bids: &perf_nibent_physio           # See: schema/rules/files/raw/perf.yaml
+#      task: <descrip>
+#      acq:
+#      rec:
+#      recording:
+#      dir:
+#      run: <<>>
+#      suffix: physio
+#    meta: *perf_meta
+
+  dwi:        # ----------------------- All diffusion run-items ---------------------
+  - attributes: *nibattr
+    bids: &dwi_nibent_DWI               # See: schema/rules/files/raw/dwi.yaml
+      acq: <descrip>
+      rec:
+      dir:
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: dwi
+    meta: *dwi_meta
+  - properties:                         # First catch the SBREF run-items
+      filename: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*(SBREF|sbref).*
+    attributes: *nibattr
+    bids: &dwi_nibent_sbref             # See: schema/rules/files/raw/dwi.yaml
+      acq: <descrip>
+      rec:
+      dir:
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: sbref
+    meta: *dwi_meta
+  - properties:                         # Then catch the normal DWI run-items
+      filename: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*
+    attributes: *nibattr
+    bids: *dwi_nibent_DWI
+    meta: *dwi_meta
+  - attributes: *nibattr
+    bids: &dwi_nibent_physio            # See: schema/rules/files/raw/dwi.yaml
+      acq: <descrip>
+      dir:
+      run: <<>>
+      part: ['', mag, phase, real, imag, 0]
+      recording:
+      chunk:
+      suffix: physio
+
+  fmap:       # ----------------------- All fieldmap run-items ----------------------
+  - properties:                         # The first item with empty attributes will not match anything but is used by default when changing datatype in the bidseditor GUI -> suffix = magnitude
+      filename: (?i).*magnitude1.*
+    attributes: *nibattr
+    bids: &fmap_nibent_fieldmaps        # See: schema/rules/files/raw/fmap.yaml
+      acq: <descrip>
+      run: <<>>
+      chunk:
+      suffix: magnitude1
+    meta: *fmap_meta
+  - properties:
+      filename: (?i).*magnitude2.*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_fieldmaps
+      suffix: magnitude2
+    meta: *fmap_meta
+  - properties:
+      filename: (?i).*magnitude.*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_fieldmaps
+      suffix: magnitude
+    meta: *fmap_meta
+  - properties:
+      filename: (?i).*(fmap|field.?map|B0.?map|b0.?map|phasediff).*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_fieldmaps
+      suffix: phasediff
+    meta: *fmap_meta
+  - properties:
+      filename: (?i).*(fmap|field.?map|B0.?map|b0.?map).*phase.*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_fieldmaps
+      suffix: phase1
+    meta: *fmap_meta
+  - attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_fieldmaps
+      suffix: phase2
+    meta: *fmap_meta
+  - properties:
+      filename: (?i).*(fmap|field.?map|B0.?map|b0.?map).*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_fieldmaps
+      suffix: fieldmap
+    meta: *fmap_meta
+  - properties:
+      filename: (?i).*(inverted|pepolar|_inv).*
+    attributes: *nibattr
+    bids: &fmap_nibent_PEPolar          # See: schema/rules/files/raw/fmap.yaml
+      acq: <descrip>
+      ce:
+      dir:
+      run: <<>>
+      part: [ '', mag, phase, real, imag, 0 ]
+      chunk:
+      suffix: epi
+    meta: *fmap_meta
+  - properties:
+      filename: (?i).*m0scan.*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_PEPolar
+      suffix: m0scan
+    meta: *fmap_meta
+  - properties:
+      filename: (?i).*(TB1DAM|tb1dam).*
+    attributes: *nibattr
+    bids: &fmap_nibent_TB1DAM           # See: schema/rules/files/raw/fmap.yaml
+      acq: <descrip>
+      ce:
+      rec:
+      flip:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1DAM
+    meta: *fmap_meta_B0Field
+  - properties:
+      filename: (?i).*(TB1EPI|tb1epi).*
+    attributes: *nibattr
+    bids: &fmap_nibent_TB1EPI           # See: schema/rules/files/raw/fmap.yaml
+      acq: <descrip>
+      ce:
+      rec:
+      flip:
+      echo:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1EPI
+    meta: *fmap_meta_B0Field
+  - properties:
+      filename: (?i).*(TB1AFI|tb1afi).*
+    attributes: *nibattr
+    bids: &fmap_nibent_RFFieldMaps      # See: schema/rules/files/raw/fmap.yaml
+      acq: <descrip>
+      ce:
+      rec:
+      flip:
+      echo:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1AFI
+    meta: *fmap_meta_B0Field
+  - properties:
+      filename: (?i).*(TB1TFL|tb1tfl).*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_RFFieldMaps     # See: schema/rules/files/raw/fmap.yaml & https://bids-specification.readthedocs.io/en/stable/99-appendices/11-qmri.html#tb1tfl-and-tb1rfm-specific-notes
+      acq: famp
+      suffix: TB1TFL
+    meta: *fmap_meta_B0Field
+  - properties:
+      filename: (?i).*(TB1RFM|tb1rfm).*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_RFFieldMaps    # See: schema/rules/files/raw/fmap.yaml
+      acq: anat
+      suffix: TB1RFM
+    meta: *fmap_meta_B0Field
+  - properties:
+      filename: (?i).*(RB1COR|rb1cor).*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_RFFieldMaps    # See: schema/rules/files/raw/fmap.yaml
+      suffix: RB1COR
+    meta: *fmap_meta_B0Field
+  - properties:
+      filename: (?i).*(TB1SRGE|tb1srge).*
+    attributes: *nibattr
+    bids: &fmap_nibent_TB1SRGE        # See: schema/rules/files/raw/fmap.yaml
+      acq: <descrip>
+      ce:
+      rec:
+      flip:
+      echo:
+      inv:
+      part: ['', mag, phase, real, imag, 0]
+      run: <<>>
+      chunk:
+      suffix: TB1SRGE
+    meta: *fmap_meta_B0Field
+  - properties:
+      filename: (?i)(.*TB1.?|.*tb1.?|FLIP.?ANGLE|flip.?angle)map.*
+    attributes: *nibattr
+    bids: &fmap_nibent_parametric     # See: schema/rules/files/raw/fmap.yaml
+      acq: <descrip>
+      ce:
+      rec:
+      run: <<>>
+      chunk:
+      suffix: TB1map
+    meta: *fmap_meta_B0Field
+  - properties:
+      filename: (?i).*(RB1.?map|rb1.?map).*
+    attributes: *nibattr
+    bids:
+      <<: *fmap_nibent_parametric
+      suffix: RB1map
+    meta: *fmap_meta_B0Field
+
+  extra_data: # ----------------------- All extra data -------------------------
+  - attributes: *nibattr
+    bids:
+      acq: <descrip>
+      inv:
+      rec:
+      ce:
+      task:
+      echo:
+      dir:
+      run: <<>>
+      mod:
+      part: ['', mag, phase, real, imag, 0]
+      suffix: unknown
+
+  exclude:    # ----------------------- Data that will be left out -------------
+  - attributes: *nibattr
+    bids:
+      acq: <ProtocolName>
+      rec: <descrip><ImageType>
+      task: <SeriesDescription>
+      echo: <EchoNumbers>
+      suffix: <ScanningSequence>
+  - properties:
+      filename: (?i).*(Scout|scout|localizer|t2_haste_sag_ipat2).*
+    attributes: *nibattr
+    bids:
+      acq: <ProtocolName>
+      rec: <descrip><ImageType>
+      task: <SeriesDescription>
+      echo: <EchoNumbers>
+      suffix: <ScanningSequence>

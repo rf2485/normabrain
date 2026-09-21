@@ -24,8 +24,8 @@ checkpoint symlink_dicoms_by_field_strength:
         subject_list=config["subject_list_dicom"]
     output:
         update(directory("data/rawdata/dicoms"))
-    conda:
-        "../envs/bidscoin.yaml"
+    container:
+        "oras://ghcr.io/donders-institute/bidscoin:4.6.2"
     threads: 1
     log:
         "logs/symlink_dicoms_by_field_strength.log"
@@ -49,8 +49,8 @@ rule bidsmapper:
         outdir="data/rawdata/bids/{field_strength}",
         template="config/bidsmap_normabrain_template",
         outcode="data/rawdata/bids/{field_strength}/code/bidscoin/bidsmapper.log"
-    conda:
-        "../envs/bidscoin.yaml"
+    container:
+        "oras://ghcr.io/donders-institute/bidscoin:4.6.2"
     threads: 1
     log:
         "logs/{field_strength}/bidsmapper.log"
@@ -71,8 +71,8 @@ checkpoint bidscoiner:
     params:
         outdir="data/rawdata/bids/{field_strength}",
         outcode="data/rawdata/bids/{field_strength}/code/bidscoin/bidscoiner.log"
-    conda:
-        "../envs/bidscoin.yaml"
+    container:
+        "oras://ghcr.io/donders-institute/bidscoin:4.6.2"
     threads: 1
     log:
         "logs/{field_strength}/bidscoiner.log"
@@ -91,8 +91,8 @@ checkpoint add_csa_data_to_meta:
         "data/rawdata/bids/{field_strength}/code/bidscoin/fixmeta.log"
     params:
         outdir="data/rawdata/bids/{field_strength}"
-    conda:
-        "../envs/bidscoin.yaml"
+    container:
+        "oras://ghcr.io/donders-institute/bidscoin:4.6.2"
     threads: 1
     log:
         "logs/{field_strength}/add_csa_data_to_meta.log"

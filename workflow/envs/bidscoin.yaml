@@ -1,9 +1,0 @@
-name: bidscoin
-channels:
-  - defaults
-dependencies:
-  - python=3.13.14
-  - pip=26.1.2
-  - pyqt=6.9.1
-  - pip:
-    - bidscoin[dcm2niix2bids]==4.6.2
