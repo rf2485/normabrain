@@ -9,9 +9,11 @@
 import argparse
 import os
 import glob
-import pydicom
-import numpy as np
 import dicognito.anonymizer
+import numpy as np
+import pydicom
+import SimpleITK as sitk
+
 
 
 def _spatial_frame_index(ds, pixel_array):
