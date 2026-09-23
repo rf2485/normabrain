@@ -357,7 +357,7 @@ rule qMT_nan_to_0:
     input:
         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz",
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_nan.nii.gz"
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_nan.nii.gz")
     conda:
         "../envs/fslmaths.yaml"
     resources: 
@@ -650,6 +650,7 @@ rule mtr:
         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
 
         ImageMath 3 {output} MTR {input.mt_off} {input.mt_on}
+        ImageMath 3 {output} Finite {output}
         """
 
 
