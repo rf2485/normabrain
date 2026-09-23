@@ -273,7 +273,7 @@ config_args=(
     "segmentations=${segmentations}"
 )
 config_string=" --config input_dicoms_path='${input_dicoms_path}' protocol_path='${protocol_path}' subject_list_dicom='${subject_list_dicom}' qmt_sequence='${qmt_sequence}' qmt_contrasts='${qmt_contrasts}' segmentations='${segmentations}'"
-first_pass_args=(--sdm conda --rerun-incomplete)
+first_pass_args=(--sdm conda apptainer --rerun-incomplete)
 first_pass_string=" --sdm conda apptainer --rerun-incomplete"
 main_args=(--sdm conda apptainer --rerun-incomplete)
 main_string=" --sdm conda apptainer --rerun-incomplete"
