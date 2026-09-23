@@ -353,10 +353,29 @@ rule sos:
         python workflow/scripts/sos_images.py {input} {output}
         """
 
+rule qMT_nan_to_0:
+    input:
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz",
+    output:
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_nan.nii.gz"
+    conda:
+        "../envs/fslmaths.yaml"
+    resources: 
+        mem_mb=500
+    threads: 1
+    log:
+       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_nan.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FSLOUTPUTTYPE='NIFTI_GZ'
+        fslmaths {input} -nan {output}
+        """
+    
 
 rule synthstrip_qMT:
     input:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_nan.nii.gz"
     output:
         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
     container:
