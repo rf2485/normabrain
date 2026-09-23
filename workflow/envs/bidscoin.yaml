@@ -1,0 +1,8 @@
+name: bidscoin
+channels:
+  - defaults
+dependencies:
+  - python=3.14.2
+  - pip=26.1.2
+  - pip:
+    - bidscoin[dcm2niix2bids]==4.6.2
