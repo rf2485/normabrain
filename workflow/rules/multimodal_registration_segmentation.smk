@@ -11,7 +11,8 @@ wildcard_constraints:
     contrast = '|'.join([re.escape(x) for x in config["qmt_contrasts"].split()]),
     seq = config["qmt_sequence"],
     part = 'mag|phase',
-    segmentation = config["segmentations"].split()
+    # qMT_params = "^[a-zA-Z0-9]*$",
+    # segmentation = config["segmentations"].split()
 
 bidspath = Path("data/rawdata/bids")
 try:
@@ -854,7 +855,7 @@ rule apply_reg_qMT_to_freesurfer_bbregister:
         mkdir -p {params.sessiondir}/reg2MP2RAGE
         for map in "${{qMTmaps[@]}}"; do
             moving="{params.sessiondir}/{params.subject}_"$map".nii.gz"
-            out="{params.acqdir}/reg2MP2RAGE/{params.subject}_"$map"_reg2FS{wildcards.mp2rage_params}.nii.gz"
+            out="{params.sessiondir}/reg2MP2RAGE/{params.subject}_"$map"_reg2FS{wildcards.mp2rage_params}.nii.gz"
             if [ -f $moving ]; then
                 mri_vol2vol --mov $moving --targ {input.target} --o $out --reg {input.reg} --no-save-reg
             fi
@@ -968,13 +969,14 @@ rule apply_warp_mni_atlases_to_qMT:
 rule qMT_roi_stats:
     input:
         qMT_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.nii.gz",
+        mtr="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.nii.gz",
         seg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_{segmentation}.nii.gz",
         lut="data/atlases/{segmentation}_lut.txt",
     params:
         qMTprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}",
-        outdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp",
+        outdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/acq-{seq}{qMT_params}/",
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_{segmentation}_stats.done"),
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.done"),
     resources:
         mem_mb=1000
     threads: 1
@@ -986,9 +988,11 @@ rule qMT_roi_stats:
 
         qMTmaps=("MPFmap" "MTRmap" "R1map" "T1map")
         for map in "${{qMTmaps[@]}}"; do
-            qMT="{params.ihmtprefix}_${{map}}.nii.gz"
+            qMT="{params.qMTprefix}_${{map}}.nii.gz"
             if [ -f $qMT ]; then
+                echo "${{map}} stats unfiltered"
                 python3 workflow/scripts/roi_stats.py "${{qMT}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.seq}{wildcards.qMT_params}" "${{map}}"
+                echo "${{map}}" stats without outliers
                 python3 workflow/scripts/roi_stats.py -r "${{qMT}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.seq}{wildcards.qMT_params}" "${{map}}"
             fi
         done
@@ -1000,10 +1004,10 @@ rule qMT_roi_stats:
 
 rule qMT_roi_stats_agg_segs:
     input:
-        stats=expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_{segmentation}_stats.done", 
+        stats=expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.done", 
         segmentation=config["segmentations"].split(), allow_missing=True),    
     params:
-        stats_temp="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp",
+        stats_temp="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/acq-{seq}{qMT_params}/",
     output:
         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_stats.pickle",
     resources:
@@ -1016,7 +1020,8 @@ rule qMT_roi_stats_agg_segs:
         stats_list = sorted(Path(input.stats[0]).parent.glob("*_stats.pickle"))
         df_stats = pd.concat((pd.read_pickle(s) for s in stats_list), ignore_index=True)
         df_stats.to_pickle(str(output))
-        shutil.rmtree(params.stats_temp)
+        if os.path.exists(params.stats_temp):
+            shutil.rmtree(params.stats_temp)
 
 
 rule qMT_roi_stats_agg_subjs:
@@ -1394,7 +1399,7 @@ rule apply_aparc_aseg_to_dwi_bbregister:
         #apply inverse reg so that seg is in dwi space, to avoid interpolation of dwi
         mri_vol2vol \
         --inv --nearest --no-save-reg \
-        --mov {input.ref} --targ {input.seg} --reg {input.reg} \
+        --mov {input.meanb0} --targ {input.seg} --reg {input.reg} \
         --o {output}
         """
 

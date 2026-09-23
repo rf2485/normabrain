@@ -22,7 +22,7 @@ else: #create BIDSLayout for each subdirectory of bidspath (which correspond to 
             expand("data/derivatives/{field_strength}/MP2RAGE_{mp2rage_map}_coreg.done", field_strength=next(os.walk(bidspath))[1], 
             mp2rage_map=["R1map_b1corr", "T1map_b1corr", "T1w_UNI_b1corr", "T1w_UNIDEN_b1corr"]),            
             "data/derivatives/ihmt_stats.pickle",
-            expand("data/derivatives/{field_strength}/qMT/ihmt_to_freesurfer.done", field_strength=next(os.walk(bidspath))[1]),
+            expand("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done", field_strength=next(os.walk(bidspath))[1]),
             "data/derivatives/qMT_stats.pickle",
             expand("data/derivatives/{field_strength}/qMT/qMT_to_freesurfer.done", field_strength=next(os.walk(bidspath))[1]),
             "data/derivatives/dwi_stats.pickle",
