@@ -87,7 +87,7 @@ def pdwmag_preproc(wildcards):
 def aggregate_qMT(wildcards):
     layout=layout_dict[wildcards.field_strength]
     qMT_list = []
-    T1map_list = []
+    R1map_list = []
     MTRmap_list = []
     subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
     subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
@@ -104,13 +104,13 @@ def aggregate_qMT(wildcards):
                 mpm = mpm.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
                 for contrast in config["qmt_contrasts"].split():
                     mpm = mpm.replace(contrast, "")
-                T1map_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_T1map_brain_denoised_n4.nii.gz")
+                R1map_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_R1map_brain_denoised_n4.nii.gz")
                 MTRmap_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_MTRmap.nii.gz")
-    counts_T1map = Counter(T1map_list)
-    T1map_list = [reg for reg, count in counts_T1map.items() if count > 3]
+    counts_R1map = Counter(R1map_list)
+    R1map_list = [reg for reg, count in counts_R1map.items() if count > 3]
     counts_MTRmap = Counter(MTRmap_list)
     MTRmap_list = [reg for reg, count in counts_MTRmap.items() if count > 3]
-    qMT_list = T1map_list + MTRmap_list
+    qMT_list = R1map_list + MTRmap_list
     return qMT_list
 
 
@@ -699,19 +699,19 @@ rule fit_JSPqMT_CLI:
 
 #rules for registering to MP2RAGE with ANTS
 
-rule apply_brainmask_T1map:
+rule apply_brainmask_R1map:
     input:
-        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map.nii.gz",
+        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map.nii.gz",
         brain_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain.nii.gz")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain.nii.gz")
     conda:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -720,19 +720,19 @@ rule apply_brainmask_T1map:
         """
 
 
-rule DenoiseImage_T1map:
+rule DenoiseImage_R1map:
     input:
-        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain.nii.gz",
+        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain.nii.gz",
         mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised.nii.gz")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised.nii.gz")
     conda:
         "../envs/qMT.yaml"
     resources: 
         mem_mb=500
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -749,19 +749,19 @@ rule DenoiseImage_T1map:
         """
 
 
-rule N4BiasFieldCorrection_T1map:
+rule N4BiasFieldCorrection_R1map:
     input:
-        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised.nii.gz",
+        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised.nii.gz",
         mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz"
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.nii.gz"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
     conda:
         "../envs/qMT.yaml"
     resources: 
         mem_mb=500
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console

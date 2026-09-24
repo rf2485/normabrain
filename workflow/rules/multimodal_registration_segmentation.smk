@@ -802,7 +802,7 @@ rule aggregate_multimodal_ihmt_mp2rage:
 
 rule register_qMT_to_freesurfer_bbregister:
     input:
-        qMT="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.nii.gz",
+        qMT="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz",
         orig_mgz="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz"
     output:
         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta"
@@ -832,7 +832,7 @@ rule apply_reg_qMT_to_freesurfer_bbregister:
     input:
         reg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta",
         target="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz",
-        qMT_maps_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.nii.gz"
+        qMT_maps_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
     params:
         sessiondir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/",
         subject="sub-{subject}_ses-{session}_acq-{seq}{qMT_params}"
@@ -883,7 +883,7 @@ rule apply_aparc_aseg_to_qMT_bbregister:
     input:
         seg = aparc_aseg_first_acq_freesurfer,
         reg = qMT_reg2first_acq_freesurfer,
-        ref="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.nii.gz"
+        ref="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
     params:
         refprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}"
     output:
@@ -968,7 +968,7 @@ rule apply_warp_mni_atlases_to_qMT:
 
 rule qMT_roi_stats:
     input:
-        qMT_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.nii.gz",
+        qMT_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz",
         mtr="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.nii.gz",
         seg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_{segmentation}.nii.gz",
         lut="data/atlases/{segmentation}_lut.txt",
@@ -1318,7 +1318,7 @@ rule register_dwi_to_freesurfer_bbregister:
         
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
         
-        bbregister --s {params.subject} --mov {input.meanb0} --reg {output} --t1 --init-rr
+        bbregister --s {params.subject} --mov {input.meanb0} --reg {output} --dti --init-rr
         mv {params.outbase}.log {log}
         """
 
@@ -1329,7 +1329,7 @@ rule apply_reg_dwi_to_freesurfer_bbregister:
         target="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz",
         dki_done="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/dki/",
     params:
-        acqdir="data/derivatives/{field_strength}/DWI/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/",
+        acqdir="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/",
         subject="sub-{subject}_ses-{session}_acq-DWI{dwi_params}"
     output:
         temp("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_applyreg2FS{mp2rage_params}.done")
