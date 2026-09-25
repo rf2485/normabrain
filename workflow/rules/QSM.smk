@@ -172,8 +172,8 @@ rule copy_raw_qsm:
 
 rule copy_denoised_qsm:
     input:
-        phase = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-phase_echos4d_riciancorr.nii",
-        mag = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii"
+        phase = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-phase_echos4d_riciancorr.nii.gz",
+        mag = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii.gz"
     params:
         anatdir="data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/",
         subject="sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}"

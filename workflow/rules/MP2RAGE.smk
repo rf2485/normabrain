@@ -802,7 +802,7 @@ rule aggregate_mp2rage_coreg:
     input:
         aggregate_mp2rage_coreg
     output:
-        "data/derivatives/{field_strength}/MP2RAGE_{mp2rage_map}_coreg.done"
+        temp("data/derivatives/{field_strength}/MP2RAGE_{mp2rage_map}_coreg.done")
     shell:
         "touch {output}"
 
