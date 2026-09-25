@@ -13,21 +13,25 @@ if not bidspath.is_dir():
             "data/rawdata/bidsify.done"
 else: #create BIDSLayout for each subdirectory of bidspath (which correspond to field strengths)
     layout_dict = {}
-    for field_strength in next(os.walk(bidspath))[1]:
+    field_strength_list=next(os.walk(bidspath))[1]
+    for field_strength in field_strength_list:
         layout_dict[field_strength] = BIDSLayout(Path("data/rawdata/bids") / field_strength, validate = False)
     rule all:
         input: #do all preprocessing for each field strength
             "data/rawdata/bidsify.done",
             "data/derivatives/MP2RAGE_stats.pickle",
-            expand("data/derivatives/{field_strength}/MP2RAGE_{mp2rage_map}_coreg.done", field_strength=next(os.walk(bidspath))[1], 
+            expand("data/derivatives/{field_strength}/MP2RAGE_{mp2rage_map}_coreg.done", field_strength=field_strength_list, 
             mp2rage_map=["R1map_b1corr", "T1map_b1corr", "T1w_UNI_b1corr", "T1w_UNIDEN_b1corr"]),            
             "data/derivatives/ihmt_stats.pickle",
-            expand("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done", field_strength=next(os.walk(bidspath))[1]),
+            expand("data/derivatives/{field_strength}/ihmt/ihmt_maps.done", field_strength=field_strength_list),
+            expand("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done", field_strength=field_strength_list),
             "data/derivatives/qMT_stats.pickle",
-            expand("data/derivatives/{field_strength}/qMT/qMT_to_freesurfer.done", field_strength=next(os.walk(bidspath))[1]),
+            expand("data/derivatives/{field_strength}/qMT/qMT.done", field_strength=field_strength_list),
+            expand("data/derivatives/{field_strength}/qMT/qMT_to_freesurfer.done", field_strength=field_strength_list),
             "data/derivatives/dwi_stats.pickle",
-            expand("data/derivatives/{field_strength}/dwi/dwi_to_freesurfer.done", field_strength=next(os.walk(bidspath))[1]),
-            expand("data/derivatives/{field_strength}/QSM/derivatives/qsmxt/", field_strength=next(os.walk(bidspath))[1]),
+            expand("data/derivatives/{field_strength}/dwi/dki.done", field_strength=field_strength_list),
+            expand("data/derivatives/{field_strength}/dwi/dwi_to_freesurfer.done", field_strength=field_strength_list),
+            expand("data/derivatives/{field_strength}/QSM/derivatives/qsmxt/", field_strength=field_strength_list),
 
 
 include: "rules/B1map.smk"

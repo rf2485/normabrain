@@ -497,7 +497,7 @@ rule aggregate_ihmt_maps_by_field_strength:
     input:
         aggregate_ihmt_maps
     output:
-        "data/derivatives/{field_strength}/ihmt/ihmt_maps.done"
+        temp("data/derivatives/{field_strength}/ihmt/ihmt_maps.done")
     log:
         "logs/{field_strength}/ihmt/ihmt_maps.log"
     shell:

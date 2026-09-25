@@ -340,7 +340,7 @@ rule gather_ihmt_to_freesurfer_bbregister:
     input:
         ihmt_to_freesurfer
     output:
-        "data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done"
+        temp("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done")
     log:
         "logs/{field_strength}/ihmt/ihmt_to_freesurfer.log"
     shell:
@@ -868,7 +868,7 @@ rule gather_qMT_to_freesurfer_bbregister:
     input:
         qMT_to_freesurfer
     output:
-        "data/derivatives/{field_strength}/qMT/qMT_to_freesurfer.done"
+        temp("data/derivatives/{field_strength}/qMT/qMT_to_freesurfer.done")
     log:
         "logs/{field_strength}/qMT/qMT_to_freesurfer.log"
     shell:
@@ -1363,7 +1363,7 @@ rule gather_dwi_to_freesurfer_bbregister:
     input:
         dwi_to_freesurfer
     output:
-        "data/derivatives/{field_strength}/dwi/dwi_to_freesurfer.done"
+        temp("data/derivatives/{field_strength}/dwi/dwi_to_freesurfer.done")
     log:
         "logs/{field_strength}/dwi/dwi_to_freesurfer.log"
     shell:

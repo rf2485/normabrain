@@ -335,7 +335,7 @@ rule aggregate_dki_by_field_strength:
     input:
         aggregate_dki
     output:
-        "data/derivatives/{field_strength}/dwi/dki.done"
+        temp("data/derivatives/{field_strength}/dwi/dki.done")
     log:
         "logs/{field_strength}/dwi/dki.log"
     shell:
