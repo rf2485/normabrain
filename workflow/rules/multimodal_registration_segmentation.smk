@@ -46,7 +46,7 @@ def qMT_to_freesurfer(wildcards):
                 mpm = mpm.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
                 for contrast in config["qmt_contrasts"].split():
                     mpm = mpm.replace(contrast, "")
-                apply_reg_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_applyreg2FS" + mp2rage_first_acq + ".done")
+                apply_reg_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + mpm + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_applyreg2FS" + mp2rage_first_acq + ".done")
     counts = Counter(apply_reg_list)
     apply_reg_list = [reg for reg, count in counts.items() if count > 3]
     return apply_reg_list
@@ -102,7 +102,7 @@ def ihmt_reg2first_acq_freesurfer(wildcards):
 def qMT_reg2first_acq_freesurfer(wildcards):
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
+    return expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
 
 def dwi_reg2first_acq_freesurfer(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -149,7 +149,7 @@ def qMT_statslist(wildcards):
                 acq = acq.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
                 for contrast in config["qmt_contrasts"].split():
                     acq = acq.replace(contrast, "")
-                statslist.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
+                statslist.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     counts = Counter(statslist)
     statslist = [stat for stat, count in counts.items() if count > 3]
     return sorted(statslist)
@@ -802,21 +802,21 @@ rule aggregate_multimodal_ihmt_mp2rage:
 
 rule register_qMT_to_freesurfer_bbregister:
     input:
-        qMT="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz",
+        qMT="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz",
         orig_mgz="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz"
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta"
     params:
         subjects_dir="data/derivatives/{field_strength}/freesurfer/",
         subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}",
-        outbase="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}"
+        outbase="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}"
     resources:
         mem_mb=1500
     threads: 1
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.log"
     shell:
         """
         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
@@ -830,21 +830,21 @@ rule register_qMT_to_freesurfer_bbregister:
 
 rule apply_reg_qMT_to_freesurfer_bbregister:
     input:
-        reg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta",
+        reg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta",
         target="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz",
-        qMT_maps_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
+        qMT_maps_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
     params:
-        sessiondir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/",
+        acqdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/",
         subject="sub-{subject}_ses-{session}_acq-{seq}{qMT_params}"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_applyreg2FS{mp2rage_params}.done")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_applyreg2FS{mp2rage_params}.done")
     resources:
         mem_mb=1500
     threads: 1
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_applyreg2FS{mp2rage_params}.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_applyreg2FS{mp2rage_params}.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -852,10 +852,10 @@ rule apply_reg_qMT_to_freesurfer_bbregister:
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
         qMTmaps=("MPFmap" "MTRmap" "R1map" "T1map")
-        mkdir -p {params.sessiondir}/reg2MP2RAGE
+        mkdir -p {params.acqdir}/reg2MP2RAGE
         for map in "${{qMTmaps[@]}}"; do
-            moving="{params.sessiondir}/{params.subject}_"$map".nii.gz"
-            out="{params.sessiondir}/reg2MP2RAGE/{params.subject}_"$map"_reg2FS{wildcards.mp2rage_params}.nii.gz"
+            moving="{params.acqdir}/{params.subject}_"$map".nii.gz"
+            out="{params.acqdir}/reg2MP2RAGE/{params.subject}_"$map"_reg2FS{wildcards.mp2rage_params}.nii.gz"
             if [ -f $moving ]; then
                 mri_vol2vol --mov $moving --targ {input.target} --o $out --reg {input.reg} --no-save-reg
             fi
@@ -883,18 +883,18 @@ rule apply_aparc_aseg_to_qMT_bbregister:
     input:
         seg = aparc_aseg_first_acq_freesurfer,
         reg = qMT_reg2first_acq_freesurfer,
-        ref="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
+        ref="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
     params:
-        refprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}"
+        refprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}"
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_aparc+aseg.nii.gz"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_aparc+aseg.nii.gz"
     resources: 
         mem_mb=500
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     threads: 1
     log:
-       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_aparc+aseg.log" 
+       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_aparc+aseg.log" 
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -914,14 +914,14 @@ rule warp_qMT_to_mni152:
         qMT2fs=qMT_reg2first_acq_freesurfer,
         fs2mni152=fs2mni152_first_acq
     output:
-        qMT2mni152="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2mni152_warp.nii.gz"
+        qMT2mni152="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2mni152_warp.nii.gz"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
         mem_mb=700
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2mni152_warp.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2mni152_warp.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -936,21 +936,21 @@ rule warp_qMT_to_mni152:
 
 rule apply_warp_mni_atlases_to_qMT:
     input:
-        subj2mni152="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2mni152_warp.nii.gz",
-        aparc_aseg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_aparc+aseg.nii.gz",
+        subj2mni152="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2mni152_warp.nii.gz",
+        aparc_aseg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_aparc+aseg.nii.gz",
         wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
     output:
-        wm_mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_wm_mask.nii.gz",
-        wm90percent_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
-        wm_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_mni_icbm152_wm_lobes.nii.gz",
+        wm_mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_wm_mask.nii.gz",
+        wm90percent_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_mni_icbm152_wm_lobes.nii.gz",
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
         mem_mb=700
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_apply_warp_mni_atlases_to_ihmt.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_apply_warp_mni_atlases_to_ihmt.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -968,20 +968,20 @@ rule apply_warp_mni_atlases_to_qMT:
 
 rule qMT_roi_stats:
     input:
-        qMT_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz",
-        mtr="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.nii.gz",
-        seg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_{segmentation}.nii.gz",
+        qMT_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz",
+        mtr="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.nii.gz",
+        seg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_{segmentation}.nii.gz",
         lut="data/atlases/{segmentation}_lut.txt",
     params:
-        qMTprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}",
-        outdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/acq-{seq}{qMT_params}/",
+        qMTprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}",
+        outdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/stats_temp",
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.done"),
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/stats_temp/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.done"),
     resources:
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -1004,12 +1004,12 @@ rule qMT_roi_stats:
 
 rule qMT_roi_stats_agg_segs:
     input:
-        stats=expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.done", 
+        stats=expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/stats_temp/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.done", 
         segmentation=config["segmentations"].split(), allow_missing=True),    
     params:
-        stats_temp="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/stats_temp/acq-{seq}{qMT_params}/",
+        stats_temp="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/stats_temp/",
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_stats.pickle",
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_stats.pickle",
     resources:
         mem_mb=1000
     threads: 1
