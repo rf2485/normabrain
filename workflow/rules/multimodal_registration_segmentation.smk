@@ -126,7 +126,7 @@ def ihmt_statslist(wildcards):
         for session in sessionlist:
             acqlist = layout.get_acquisition(suffix="ihmt", subject=subject, session=session)
             for acq in acqlist:
-                statslist.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
+                statslist.append("data/derivatives/" + wildcards.field_strength + "/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     return sorted(statslist)
 
 def qMT_statslist(wildcards):
@@ -149,7 +149,7 @@ def qMT_statslist(wildcards):
                 acq = acq.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
                 for contrast in config["qmt_contrasts"].split():
                     acq = acq.replace(contrast, "")
-                statslist.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
+                statslist.append("data/derivatives/" + wildcards.field_strength + "/qMT/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     counts = Counter(statslist)
     statslist = [stat for stat, count in counts.items() if count > 3]
     return sorted(statslist)
@@ -171,7 +171,7 @@ def dwi_statslist(wildcards):
         for session in sessionlist:
             acqlist = layout.get_acquisition(suffix="dwi", subject=subject, session=session)
             for acq in acqlist:
-                statslist.append("data/derivatives/{field_strength}/dwi/sub-" + subject + "/ses-" + session + "/acq-DWI" + acq + "/sub-" + subject + "_ses-" + session + "_acq-DWI" + acq + "_stats.pickle")
+                statslist.append("data/derivatives/" + wildcards.field_strength + "/dwi/sub-" + subject + "/ses-" + session + "/acq-DWI" + acq + "/sub-" + subject + "_ses-" + session + "_acq-DWI" + acq + "_stats.pickle")
     return sorted(statslist)
 
 
