@@ -513,7 +513,10 @@ rule ihmt_roi_stats_agg_subjs:
         "logs/{field_strength}/ihmt/ihmt_stats_{field_strength}.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        if input:
+            df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        else:
+            df_stats = pd.DataFrame()
         df_stats.to_pickle(str(output))
 
 
@@ -529,7 +532,10 @@ rule aggregate_ihmt_stats:
         "logs/ihmt_stats.log"
     run:
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        if input:
+            df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        else:
+            df_stats = pd.DataFrame()
         df_stats.to_pickle(str(output))
 
 
@@ -1036,7 +1042,10 @@ rule qMT_roi_stats_agg_subjs:
         "logs/{field_strength}/qMT/qMT_stats_{field_strength}.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        if input:
+            df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        else:
+            df_stats = pd.DataFrame()
         df_stats.to_pickle(str(output))
 
 
@@ -1052,7 +1061,10 @@ rule aggregate_qMT_stats:
         "logs/qMT_stats.log"
     run:
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        if input:
+            df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        else:
+            df_stats = pd.DataFrame()
         df_stats.to_pickle(str(output))
 
 
@@ -1527,7 +1539,10 @@ rule dwi_roi_stats_agg_subjs:
         "logs/{field_strength}/dwi/dwi_stats_{field_strength}.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        if input:
+            df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        else:
+            df_stats = pd.DataFrame()
         df_stats.to_pickle(str(output))
 
 
@@ -1543,7 +1558,10 @@ rule aggregate_dwi_stats:
         "logs/dwi_stats.log"
     run:
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        if input:
+            df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        else:
+            df_stats = pd.DataFrame()
         df_stats.to_pickle(str(output))
 
 
