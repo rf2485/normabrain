@@ -48,7 +48,7 @@ def aggregate_ihmt_maps(wildcards):
         for session in sessionlist:
             ihmt_acqlist = layout.get_acquisition(suffix="ihmt", subject=subject, session=session)
             for ihmt in ihmt_acqlist:
-                ihmt_map_list.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + ihmt + "/sub-" + subject + "_ses-" + session + "_acq-" + ihmt + "_b1corr_brain.done")
+                ihmt_map_list.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + ihmt + "/sub-" + subject + "_ses-" + session + "_acq-" + ihmt + "_brain.done")
     return ihmt_map_list
 
 
@@ -237,11 +237,6 @@ rule calculate_ihmt_maps:
         #ihMTR depending on contrast type
         ihMTR_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTR.nii.gz",
         ihMTR_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTR.nii.gz",
-        #bandpass
-        BP="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_BP.nii.gz",  
-        BPR="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BPR.nii.gz",      
-        #dipolar order
-        DO="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_DO.nii.gz",
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
     resources: 
@@ -289,14 +284,7 @@ rule calculate_ihmt_maps:
         then
             mrcalc 0 {params.mts_sum} {params.mtd_cosmod_sum} -subtract -max {params.ihMTmap_cosmod} -force
             mrcalc 1 0 {params.ihMTmap_cosmod} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.ihMTR_cosmod} -force
-            mrcalc 1 0 {params.ihMTmap_cosmod} {params.mtd_cosmod_avg} 0 -max -div nan 0 -replace -max -min {params.DO} -force
             cp {params.ihMTmap_cosmod} {output.MTmap}
-        fi
-
-        if [ -f {params.mtd_freqalt} ] && [ -f {params.mtd_cosmod} ]
-        then
-            mrcalc 0 {params.mtd_freqalt_sum} {params.mtd_cosmod_sum} -subtract -max {params.BP} -force
-            mrcalc 1 0 {params.BP} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.BPR} -force
         fi
         """
 
@@ -405,70 +393,14 @@ rule N4BiasFieldCorrection_ihmt:
         """
 
 
-rule b1corr_ihmt:
-    input:
-        # split_dir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/split",
-        ihmt_json=get_raw_ihmt_json,
-        b1map="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_acq-famp_reg2{ihmt_params}_smooth_norm.nii.gz",
-        b1map_json=get_raw_b1map_json,
-        mask="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_brain_mask.nii.gz"
-    output:
-        temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr.done")
-    params:
-        #ihMTR depending on contrast type
-        ihMTR_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTR.nii.gz",
-        ihMTR_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTR.nii.gz",
-        #bandpass
-        BPR="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BPR.nii.gz",
-        #dipolar order
-        DO="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_DO.nii.gz",  
-    conda:
-        "../envs/ihMT.yaml"
-    resources: #limit memory by input size
-        mem_mb=1000
-    threads: 1
-    log:
-       "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr.log"
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        
-        if [ -f {params.ihMTR_cosmod} ]
-        then
-            python workflow/scripts/ihmt_b1corr.py {params.ihMTR_cosmod} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} {wildcards.field_strength} "ihMTR_CM" || \
-            python workflow/scripts/ihmt_b1corr.py {params.ihMTR_cosmod} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} "custom" "ihMTR_CM"
-        fi
-
-        if [ -f {params.ihMTR_freqalt} ]
-        then
-            python workflow/scripts/ihmt_b1corr.py {params.ihMTR_freqalt} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} {wildcards.field_strength} "ihMTR_ALT" || \
-            python workflow/scripts/ihmt_b1corr.py {params.ihMTR_freqalt} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} "custom" "ihMTR_ALT"
-        fi
-
-        if [ -f {params.BPR} ]
-        then
-            python workflow/scripts/ihmt_b1corr.py {params.BPR} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} {wildcards.field_strength} "BPR" || \
-            python workflow/scripts/ihmt_b1corr.py {params.BPR} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} "custom" "BPR"
-        fi
-
-        if [ -f {params.DO} ]
-        then
-            python workflow/scripts/ihmt_b1corr.py {params.DO} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} {wildcards.field_strength} "DO_CM" || \
-            python workflow/scripts/ihmt_b1corr.py {params.DO} {input.ihmt_json} {input.b1map} {input.b1map_json} {input.mask} "custom" "DO_CM"
-        fi
-
-        touch {output}
-        """ 
-
-
 rule apply_brainmask_ihmt:
     input:
-        b1corr_done = "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr.done",
+        input_image = "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTmap.nii.gz",
         brain_mask = "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_brain_mask.nii.gz"
     params:
         ihmtprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}"
     output:
-        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done"
+        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_brain.done"
     conda:
         "../envs/fslmaths.yaml"
     resources: 
@@ -481,7 +413,7 @@ rule apply_brainmask_ihmt:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
                 
-        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "DO" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR")
         for map in "${{MTmaps[@]}}"; do
             ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
             if [ -f $ihmt ]; then

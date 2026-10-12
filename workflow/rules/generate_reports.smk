@@ -11,21 +11,6 @@ rule filter_data:
         "../notebooks/ihmt_stats_filteredROIs.py.ipynb"
 
 
-rule ihmt_b1corr_test_retest:
-    input:
-        "data/derivatives/ihmt_stats.pickle"
-    output:
-        vref="data/derivatives/ihmt_vref100vs80.csv",
-        b1corr="data/derivatives/ihmt_b1corr_vs_uncorr.csv",
-        sym="data/derivatives/ihmt_rightleft_symmetry.csv"
-    conda:
-        "../envs/stats_plots.yaml"
-    log:
-        "logs/3T/ihmt/ihmt_b1corr_test_retest.csv"
-    notebook:
-        "../notebooks/ihmt_b1corr_test_retest.py.ipynb"
-
-
 rule view_ihmt_stats_datavzrd:
     input:
         config="config/datavzrd_ihmt.yaml",
