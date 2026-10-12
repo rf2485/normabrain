@@ -282,7 +282,7 @@ rule json_for_mp2proc:
         inv2_nifti = get_inv2,
         unit1_nifti = get_unit1
     output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mp2proc.json"
+        os.getcwd() + "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mp2proc.json"
     threads:
         8
     resources: 
