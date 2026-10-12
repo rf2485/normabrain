@@ -29,14 +29,15 @@ def symlink_dicoms_by_field_strength(source_dicoms_folder: str, output_folder: s
             print(session)
             i=i+1 #change session name from date to index
             # Read the first DICOM file to get the field strength
-            first_dicom_path = list(session.rglob('*.dcm'))[0]
-            first_dicom = pydicom.dcmread(first_dicom_path)
-            if isinstance(first_dicom[0x18, 0x87].value, str):
-                field_value = str(first_dicom[0x18, 0x87].value)
-            else:
-                first_dicom_path = list(session.rglob('*.dcm'))[1]
+            j=0
+            while True:
+                first_dicom_path = list(session.rglob('*.dcm'))[j]
                 first_dicom = pydicom.dcmread(first_dicom_path)
-                field_value = str(first_dicom[0x18, 0x87].value)
+                try: #if possible, report the field strength
+                    field_value = str(first_dicom[0x18, 0x87].value)
+                    break
+                except: #otherwise try the next dicom
+                    j=j+1
             
             # Create new folder path based on field strength
             new_folder = Path(os.path.join(output_folder, field_value + 'T', 'sub-' + subject.name, 'ses-' + str(i)))

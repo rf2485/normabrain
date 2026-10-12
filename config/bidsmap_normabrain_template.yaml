@@ -119,7 +119,7 @@ DICOM:
       ProtocolName: (?i).*(T1|t1).?map.*
     bids: &anat_dicoment_parametric     # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
       rec:
       run: <<>>
@@ -464,7 +464,7 @@ DICOM:
       MRAcquisitionType: 3D
     bids: &anat_dicoment_mp2rage        # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
       rec:
       run: <<>>

@@ -21,6 +21,11 @@ def dki_tensor(preproc_nii: str, mask_nii: str, outprefix: str):
     # bvals = bvals * 0.001 #s/m^2 instead of usual s/mm^2
     #convert bvals and bvecs into GradientTable object needed for dipy data recon
     gtab = gradient_table(bvals, bvecs=bvecs)
+    #only use bvalues less than or equal to 2500 to fit the kurtosis tensor
+    bval_select = np.zeros_like(gtab.bvals)
+    bval_select[bvals <= 2500] = 1
+    data = data[..., bval_select == 1]
+    gtab = gradient_table(bvals[bval_select == 1], bvecs=bvecs[bval_select == 1])
     #load the mask
     mask, affine = load_nifti(mask_nii)
 

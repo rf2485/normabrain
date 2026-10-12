@@ -1,3 +1,4 @@
+### Hugo Dary, Aix Marseille Univ, CNRS, CRMBM, Marseille, France
 
 import nibabel.nicom.csareader as csareader
 

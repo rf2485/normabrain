@@ -13,7 +13,7 @@ bidspath = Path("data/rawdata/bids")
 
 def get_echos(wildcards):
     #get the list of echo files and sort it
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}{wildcards.contrast}*{wildcards.qMT_params}*_echo-*_flip-*_mt-{wildcards.mt}_part-{wildcards.part}_MPM.nii.gz'))
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}{wildcards.contrast}*{wildcards.qMT_params}_echo-*_flip-*_mt-{wildcards.mt}_part-{wildcards.part}_MPM.nii.gz'))
 
 def get_qMT_params(wildcards):
     json_path = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}mtw*{wildcards.qMT_params}_echo-1_flip-*_mt-on_part-mag_MPM.json'))[0]
@@ -52,42 +52,42 @@ def t1wmag_preproc(wildcards):
     #get preprocessed magnitude image depending on if phase is available
     try:
         raw_phase = glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}t1w*{wildcards.qMT_params}_echo-1_flip-*_mt-off_part-phase_MPM.nii.gz')[0]
-        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii"
+        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii.gz"
     except:
-        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d.nii"
+        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d.nii"
     return mag_preproc
 
 def mt0mag_preproc(wildcards):
     #get preprocessed magnitude image depending on if phase is available
     try:
         raw_phase = glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}mt0*{wildcards.qMT_params}*_echo-1_flip-*_mt-off_part-phase_MPM.nii.gz')[0]
-        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii"
+        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii.gz"
     except:
-        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d.nii"
+        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d.nii"
     return mag_preproc
 
 def mtwmag_preproc(wildcards):
     #get preprocessed magnitude image depending on if phase is available
     try:
         raw_phase = glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}mtw*{wildcards.qMT_params}_echo-1_flip-*_mt-on_part-phase_MPM.nii.gz')[0]
-        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_riciancorr.nii"
+        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_riciancorr.nii.gz"
     except:
-        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d.nii"
+        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d.nii"
     return mag_preproc
 
 def pdwmag_preproc(wildcards):
     #get preprocessed magnitude image depending on if phase is available
     try:
         raw_phase = glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}pdw*{wildcards.qMT_params}_echo-1_flip-*_mt-off_part-phase_MPM.nii.gz')[0]
-        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii"
+        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii.gz"
     except:
-        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d.nii"
+        mag_preproc = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d.nii"
     return mag_preproc
 
 def aggregate_qMT(wildcards):
     layout=layout_dict[wildcards.field_strength]
     qMT_list = []
-    T1map_list = []
+    R1map_list = []
     MTRmap_list = []
     subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
     subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
@@ -104,13 +104,13 @@ def aggregate_qMT(wildcards):
                 mpm = mpm.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
                 for contrast in config["qmt_contrasts"].split():
                     mpm = mpm.replace(contrast, "")
-                T1map_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_T1map_brain_denoised_n4.nii.gz")
-                MTRmap_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_MTRmap.nii.gz")
-    counts_T1map = Counter(T1map_list)
-    T1map_list = [reg for reg, count in counts_T1map.items() if count > 3]
+                R1map_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + mpm + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_R1map_brain_denoised_n4.nii.gz")
+                MTRmap_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + mpm + "/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_MTRmap.nii.gz")
+    counts_R1map = Counter(R1map_list)
+    R1map_list = [reg for reg, count in counts_R1map.items() if count > 3]
     counts_MTRmap = Counter(MTRmap_list)
     MTRmap_list = [reg for reg, count in counts_MTRmap.items() if count > 3]
-    qMT_list = T1map_list + MTRmap_list
+    qMT_list = R1map_list + MTRmap_list
     return qMT_list
 
 
@@ -118,13 +118,14 @@ rule concat_echos:
     input:
         echos = get_echos
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_echos4d.nii")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_echos4d.nii")
     resources: 
         mem_mb=2000
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-      "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_echos4d.log"  
+      "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_echos4d.log"  
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -134,17 +135,18 @@ rule concat_echos:
 
 rule create_complex_images:
     input:
-        mag="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d.nii",
-        phase="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-phase_echos4d.nii"
+        mag="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d.nii",
+        phase="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-phase_echos4d.nii"
     output:
-        mag_clipped=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d_clippedtophase.nii"),
-        out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d.nii")
+        mag_clipped=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d_clippedtophase.nii"),
+        out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d.nii")
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=1500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d.log" 
+       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d.log" 
     shell: #first clip mag so that it has the same number of volumes as phase, then calculate complex image
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -159,16 +161,17 @@ rule create_complex_images:
 
 rule rician_bias_corr:
     input:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d.nii"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d.nii"
     output:
-        denoised=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d_riciancorr.nii"),
-        noisemap="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_echos4d_riciannoisemap.nii"
+        denoised=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d_riciancorr.nii"),
+        noisemap=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_echos4d_riciannoisemap.nii")
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=2500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_echos4d_riciannoisemap.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_echos4d_riciannoisemap.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -178,15 +181,16 @@ rule rician_bias_corr:
 
 rule calculate_mag_from_complex:
     input:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d_riciancorr.nii"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d_riciancorr.nii"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d_riciancorr.nii")
-    resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d_riciancorr.nii.gz"
+    resources:
+        mem_mb=1500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d_riciancorr.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-mag_echos4d_riciancorr.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -196,15 +200,16 @@ rule calculate_mag_from_complex:
 
 rule calculate_phase_from_complex:
     input:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d_riciancorr.nii"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-complex_echos4d_riciancorr.nii"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-phase_echos4d_riciancorr.nii")
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-phase_echos4d_riciancorr.nii.gz"
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=1500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-phase_echos4d_riciancorr.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-phase_echos4d_riciancorr.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -220,16 +225,17 @@ rule make_n_echos_equal:
         mtw_in=mtwmag_preproc,
         pdw_in=pdwmag_preproc
     output:
-        t1w_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d_clipped.nii"),
-        mt0_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_clipped.nii"),
-        mtw_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_clipped.nii"),
-        pdw_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_clipped.nii")
-    resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        t1w_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d_clipped.nii"),
+        mt0_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_clipped.nii"),
+        mtw_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_clipped.nii"),
+        pdw_out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_clipped.nii")
+    resources:
+        mem_mb=1000
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_make_n_echos_equal.log" 
+       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_make_n_echos_equal.log" 
     shell: #first find smallest number of echos, then clip the other images to this number of echos
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -258,18 +264,19 @@ rule make_n_echos_equal:
 
 rule concat_contrast_mag:
     input:
-        t1w="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d_clipped.nii",
-        mt0="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_clipped.nii",
-        mtw="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_clipped.nii",
-        pdw="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_clipped.nii"
+        t1w="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d_clipped.nii",
+        mt0="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_clipped.nii",
+        mtw="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_clipped.nii",
+        pdw="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_clipped.nii"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d.nii")
-    resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d.nii")
+    resources:
+        mem_mb=2000
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -279,17 +286,17 @@ rule concat_contrast_mag:
 
 rule denoise_contrast_mag:
     input:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d.nii"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d.nii"
     output:
-        out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d_denoise.nii"),
-        noisemap="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_noisemap.nii"
+        out=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d_denoise.nii"),
+        noisemap=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_noisemap.nii")
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=3000
     threads: 8
     conda:
         "../envs/tMPPCA.yaml"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_noisemap.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_noisemap.log"
     shell:
         """ 
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -305,18 +312,19 @@ nibabel.save(nibabel.Nifti1Image(sigma, data.affine), "{output.noisemap}")'
 
 rule split_contrast_mag:
     input:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d_denoise.nii"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_part-mag_echoscontrast5d_denoise.nii"
     output:
-        t1w=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d_denoise.nii"),
-        mt0=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_denoise.nii"),
-        mtw=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_denoise.nii"),
-        pdw=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_denoise.nii")
+        t1w=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_echos4d_denoise.nii"),
+        mt0=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_denoise.nii"),
+        mtw=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_echos4d_denoise.nii"),
+        pdw=temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_echos4d_denoise.nii")
     resources:
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=2000
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_split_contrast_mag.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_split_contrast_mag.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -329,34 +337,54 @@ rule split_contrast_mag:
 
 rule sos:
     input:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_echos4d_denoise.nii"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_echos4d_denoise.nii"
     output:
-       "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz"
+       temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz")
     resources: 
         mem_mb=500
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         python workflow/scripts/sos_images.py {input} {output}
         """
 
+rule qMT_nan_to_0:
+    input:
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz",
+    output:
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_nan.nii.gz")
+    conda:
+        "../envs/fslmaths.yaml"
+    resources: 
+        mem_mb=500
+    threads: 1
+    log:
+       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_nan.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FSLOUTPUTTYPE='NIFTI_GZ'
+        fslmaths {input} -nan {output}
+        """
+    
 
 rule synthstrip_qMT:
     input:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_nan.nii.gz"
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz")
     container:
         "docker://freesurfer/synthstrip:1.8-gpu"
     threads: 4
     resources: 
         mem_mb=9000
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.log"
     shell: #try GPU first, then run CPU if GPU doesn't work
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -370,16 +398,17 @@ rule synthstrip_qMT:
 
 rule apply_brainmask_qMT:
     input:
-        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz",
-        brain_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
+        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz",
+        brain_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain.nii.gz")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain.nii.gz")
     conda:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -393,6 +422,7 @@ rule install_sct:
         ".snakemake/scripts/install_sct.done"
     resources: 
         mem_mb=2000
+    threads: 1
     log:
         "logs/install_sct_log.txt"
     shell: #Check if sct is already installed. If not, install version 7.2 
@@ -422,16 +452,17 @@ rule install_sct:
 
 rule spineseg_qMT:
     input:
-       img="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz",
+       img="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz",
        install_sct_done=".snakemake/scripts/install_sct.done"
     output: #these are the same image, the temp image is deleted after the rule is finished
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_seg.nii.gz"),
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_spine_mask.nii.gz"
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_seg.nii.gz"),
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_spine_mask.nii.gz"),
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_seg.json"),
     threads: 4
     resources: 
         mem_mb=9000
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_spine_mask.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_spine_mask.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -451,21 +482,26 @@ rule spineseg_qMT:
 
 rule brain_and_spine_mask_qMT:
     input:
-       spine_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_spine_mask.nii.gz",
-       brain_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
+       spine_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_spine_mask.nii.gz",
+       brain_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz"
     output:
-        brain_spine_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_spine_mask.nii.gz"  
+        spine_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_spine_mask.nii.gz",  
+        brain_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_brain_mask.nii.gz",  
+        brain_spine_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_brain_spine_mask.nii.gz"  
     conda:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_spine_mask.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_brain_spine_mask.log"
     shell: #combine brain and spine masks, and fill holes
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
         fslmaths {input.brain_mask} -add {input.spine_mask} -fillh26 -dilD -dilD -ero -ero -bin {output.brain_spine_mask}
+        cp {input.spine_mask} {output.spine_mask}
+        cp {input.brain_mask} {output.brain_mask}
         """
 
 
@@ -473,17 +509,17 @@ rule brain_and_spine_mask_qMT:
 
 rule DenoiseImage_qMT:
     input:
-        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain.nii.gz",
-        mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
+        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain.nii.gz",
+        mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised.nii.gz")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised.nii.gz")
     conda:
         "../envs/qMT.yaml"
     resources: 
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -502,17 +538,17 @@ rule DenoiseImage_qMT:
 
 rule N4BiasFieldCorrection_qMT:
     input:
-        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised.nii.gz",
-        mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
+        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised.nii.gz",
+        mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised_n4.nii.gz")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised_n4.nii.gz")
     conda:
         "../envs/qMT.yaml"
     resources: 
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised_n4.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised_n4.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -530,21 +566,21 @@ rule N4BiasFieldCorrection_qMT:
 
 rule register_qMT_to_t1w_ants:
     input:
-        ref = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_denoised_n4.nii.gz",
-        moving = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised_n4.nii.gz",
-        ref_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz",
-        moving_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
+        ref = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_denoised_n4.nii.gz",
+        moving = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_denoised_n4.nii.gz",
+        ref_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz",
+        moving_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_brain_mask.nii.gz"
     params:
-        outprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_reg2{seq}t1w{qMT_params}_"
+        outprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_reg2{seq}t1w{qMT_params}_"
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_reg2{seq}t1w{qMT_params}_0GenericAffine.mat"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_reg2{seq}t1w{qMT_params}_0GenericAffine.mat"
     conda:
         "../envs/qMT.yaml"
     resources: 
         mem_mb=1500
     threads: 4
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_reg2{seq}t1w{qMT_params}.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_reg2{seq}t1w{qMT_params}.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -567,18 +603,18 @@ rule register_qMT_to_t1w_ants:
 
 rule apply_reg_qMT_to_t1w_ants:
     input:
-        moving = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz",
-        ref = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos.nii.gz",
-        reg = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_reg2{seq}t1w{qMT_params}_0GenericAffine.mat"
+        moving = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos.nii.gz",
+        ref = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos.nii.gz",
+        reg = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_reg2{seq}t1w{qMT_params}_0GenericAffine.mat"
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_reg2{seq}t1w{qMT_params}.nii.gz"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_reg2{seq}t1w{qMT_params}.nii.gz"
     resources: 
         mem_mb=500
     threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
-       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_reg2{seq}t1w{qMT_params}.log" 
+       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{contrast}{qMT_params}_mt-{mt}_part-{part}_sos_reg2{seq}t1w{qMT_params}.log" 
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -601,17 +637,17 @@ rule apply_reg_qMT_to_t1w_ants:
 
 rule mtr:
     input:
-        mt_off = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz",
-        mt_on = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz"
+        mt_off = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz",
+        mt_on = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz"
     resources: #limit memory by input size
-        mem_mb=lambda wc, input: 2.5 * input.size_mb
+        mem_mb=500
     threads: 1
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.nii.gz"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.nii.gz"
     conda:
         "../envs/qMT.yaml"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -619,32 +655,33 @@ rule mtr:
         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
 
         ImageMath 3 {output} MTR {input.mt_off} {input.mt_on}
+        ImageMath 3 {output} Finite {output}
         """
 
 
 rule fit_JSPqMT_CLI:
     input:
-        mt_off = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz",
-        mt_on = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz",
-        pdw = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz",
-        t1w = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos.nii.gz",
+        mt_off = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz",
+        mt_on = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mtw{qMT_params}_mt-on_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz",
+        pdw = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}pdw{qMT_params}_mt-off_part-mag_sos_reg2{seq}t1w{qMT_params}.nii.gz",
+        t1w = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos.nii.gz",
         b1map = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_smooth_norm.nii.gz",
-        mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_spine_mask.nii.gz"
+        mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_brain_spine_mask.nii.gz"  
     params:
         mt_params = get_qMT_params,
         t1flip = get_t1flip,
         pdflip = get_pdflip
     output:
-        mpfmap = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MPFmap.nii.gz",
-        t1map = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map.nii.gz",
-        r1map = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map.nii.gz"
+        mpfmap = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MPFmap.nii.gz",
+        t1map = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map.nii.gz",
+        r1map = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map.nii.gz"
     threads: 4
     resources:
         mem_mb=4000
     conda:
         "../envs/qMT.yaml"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_maps.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_maps.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -667,18 +704,19 @@ rule fit_JSPqMT_CLI:
 
 #rules for registering to MP2RAGE with ANTS
 
-rule apply_brainmask_T1map:
+rule apply_brainmask_R1map:
     input:
-        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map.nii.gz",
-        brain_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz"
+        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map.nii.gz",
+        brain_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_brain_mask.nii.gz"  
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain.nii.gz")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain.nii.gz")
     conda:
         "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
+    threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -687,19 +725,19 @@ rule apply_brainmask_T1map:
         """
 
 
-rule DenoiseImage_T1map:
+rule DenoiseImage_R1map:
     input:
-        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain.nii.gz",
-        mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz"
+        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain.nii.gz",
+        mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_brain_mask.nii.gz"  
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised.nii.gz")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised.nii.gz")
     conda:
         "../envs/qMT.yaml"
     resources: 
         mem_mb=500
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -716,19 +754,19 @@ rule DenoiseImage_T1map:
         """
 
 
-rule N4BiasFieldCorrection_T1map:
+rule N4BiasFieldCorrection_R1map:
     input:
-        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised.nii.gz",
-        mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz"
+        input_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised.nii.gz",
+        mask_image = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_brain_mask.nii.gz"  
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.nii.gz"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
     conda:
         "../envs/qMT.yaml"
     resources: 
         mem_mb=500
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -743,11 +781,12 @@ rule N4BiasFieldCorrection_T1map:
         -o {output}
         """
 
+
 rule aggregate_qMT_by_field_strength:
     input:
         aggregate_qMT
     output:
-        "data/derivatives/{field_strength}/qMT/qMT.done"
+        temp("data/derivatives/{field_strength}/qMT/qMT.done")
     log:
         "logs/{field_strength}/qMT/qMT.log"
     shell:

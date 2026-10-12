@@ -5,6 +5,7 @@ logs/
 *__*/
 .*
 !.gitignore
+!.tests
 3T/
 7T/
 .snakemake/
@@ -21,3 +22,5 @@ crash*
 *.svg
 *.html
 *.nii*
+*.mgz
+reports/

@@ -12,7 +12,7 @@ wildcard_constraints:
 bidspath = Path("data/rawdata/bids")
 
 def get_mt0_phase(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}mt0*{wildcards.qMT_params}*_echo-*_flip-*_mt-off_part-phase_MPM.nii.gz'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}mt0*{wildcards.qMT_params}_echo-*_flip-*_mt-off_part-phase_MPM.nii.gz'))[0]
 
 def qsm_nii_list(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -135,6 +135,9 @@ rule copy_raw_qsm:
         get_mt0_phase
     output:
         "data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_echo-1_part-phase_MEGRE.json"
+    resources:
+        mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     log:
         "logs/{field_strength}/QSM/sub-{subject}/ses-{session}/copy_raw_qsm_acq-{seq}mt0{qMT_params}.log"
     run: #python code, not shell
@@ -143,10 +146,9 @@ rule copy_raw_qsm:
         qsm_folder = Path(str(output)).parent
         qsm_folder.mkdir(exist_ok=True, parents=True)
 
-        phase_list = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}mt0*{wildcards.qMT_params}*_echo-*_flip-*_mt-off_part-phase_MPM.nii.gz'))
-        num_phase = len(phase_list)
-        mag_list_clipped = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}mt0*{wildcards.qMT_params}*_echo-*_flip-*_mt-off_part-mag_MPM.nii.gz'))[num_phase:]
-        raw_list = phase_list + mag_list_clipped
+        phase_list = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}mt0*{wildcards.qMT_params}_echo-*_flip-*_mt-off_part-phase_MPM.nii.gz'))
+        mag_list = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.seq}mt0*{wildcards.qMT_params}_echo-*_flip-*_mt-off_part-mag_MPM.nii.gz'))
+        raw_list = phase_list + mag_list
         i=0
         for img in phase_list:
             i += 1
@@ -157,7 +159,7 @@ rule copy_raw_qsm:
             qsm_json = qsm.with_suffix("").with_suffix(".json")
             shutil.copy(raw_json, qsm_json)
         i=0
-        for img in mag_list_clipped:
+        for img in mag_list:
             i += 1
             raw = Path(img)
             qsm_name = "sub-" + wildcards.subject + "_ses-" + wildcards.session + "_acq-" + wildcards.seq + "mt0" + wildcards.qMT_params + "_echo-" + str(i) + "_part-mag_MEGRE.nii.gz"
@@ -169,8 +171,8 @@ rule copy_raw_qsm:
 
 rule copy_denoised_qsm:
     input:
-        phase = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-phase_echos4d_riciancorr.nii",
-        mag = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii"
+        phase = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-phase_echos4d_riciancorr.nii.gz",
+        mag = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mt-off_part-mag_echos4d_riciancorr.nii.gz"
     params:
         anatdir="data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/",
         subject="sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}"
@@ -178,6 +180,7 @@ rule copy_denoised_qsm:
         "data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_echo-1_part-phase_MEGRE.nii.gz"
     resources: #limit memory by input size
         mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:
@@ -187,10 +190,10 @@ rule copy_denoised_qsm:
         vols="$(mrinfo -size {input.phase} | awk '{{print $4}}')"
         for vol in $(seq 1 $vols); do
             i="$((${{vol}}-1))"
-            mrconvert {input.phase} -coord 3 $i -axes 0,1,2 {params.anatdir}/tmp_phase.nii.gz -force
-            mv {params.anatdir}/tmp_phase.nii.gz {params.anatdir}/{params.subject}_echo-${{vol}}_part-phase_MEGRE.nii.gz
-            mrconvert {input.mag} -coord 3 $i -axes 0,1,2 {params.anatdir}/tmp_mag.nii.gz -force
-            mv {params.anatdir}/tmp_mag.nii.gz {params.anatdir}/{params.subject}_echo-${{vol}}_part-mag_MEGRE.nii.gz
+            mrconvert {input.phase} -coord 3 $i -axes 0,1,2 {params.anatdir}/{params.subject}_tmp_phase.nii.gz -force
+            mv {params.anatdir}/{params.subject}_tmp_phase.nii.gz {params.anatdir}/{params.subject}_echo-${{vol}}_part-phase_MEGRE.nii.gz
+            mrconvert {input.mag} -coord 3 $i -axes 0,1,2 {params.anatdir}/{params.subject}_tmp_mag.nii.gz -force
+            mv {params.anatdir}/{params.subject}_tmp_mag.nii.gz {params.anatdir}/{params.subject}_echo-${{vol}}_part-mag_MEGRE.nii.gz
         done
         """
 
@@ -202,6 +205,7 @@ rule copy_raw_t1w_json_qsm:
         "data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w.json"
     resources: #limit memory by input size
         mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     log:
         "logs/{field_strength}/QSM/sub-{subject}/ses-{session}/copy_raw_t1w_json_qsm_acq-{mp2rage_params}.log"
     run:
@@ -217,6 +221,7 @@ rule copy_uniden_qsm:
         "data/derivatives/{field_strength}/QSM/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w.nii.gz"
     resources: #limit memory by input size
         mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     log:
        "logs/{field_strength}/QSM/sub-{subject}/ses-{session}/copy_uniden_qsm_acq-{mp2rage_params}.log" 
     shell:
@@ -236,6 +241,7 @@ rule copy_mask_qsm:
         "data/derivatives/{field_strength}/QSM/derivatives/brain_spine_mask/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{seq}mt0{qMT_params}_mask.nii.gz"
     resources: #limit memory by input size
         mem_mb=lambda wc, input: 2.5 * input.size_mb
+    threads: 1
     conda:
         "../envs/qMT.yaml"
     log:

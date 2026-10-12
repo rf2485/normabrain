@@ -64,7 +64,8 @@ def add_csa_data_to_meta(bidspath: str):
                 jsondata["TurboFactor"] = float(csa_data["sFastImaging.lTurboFactor"])
 
                 #parameters for 7T terra protocols
-                if jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\ihMT_crmbm" or jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p0":
+                if jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\ihMT_crmbm" or \
+                    jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p0":
                     if ContrastType == 1:
                         jsondata['ContrastType'] = 'Frequency Alternated'
                     elif ContrastType == 2:
@@ -79,7 +80,10 @@ def add_csa_data_to_meta(bidspath: str):
                     jsondata['TotalPrepDuration_us'] = float(csa_data['sWipMemBlock.alFree[10]'])
                     jsondata['TukeyShape'] = 0.2
                 #parameters for 3T vida protocols
-                elif jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v3MC" or jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4" or jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p1":
+                elif jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v3MC" or \
+                        jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4" or \
+                        jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p1" or \
+                        jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p2":
                     if ContrastType == 0:
                         jsondata['ContrastType'] = 'Frequency Alternated'
                     elif ContrastType == 1:
@@ -90,13 +94,16 @@ def add_csa_data_to_meta(bidspath: str):
                         jsondata['ContrastType'] = "BandPass (no single)"
 
                 #DummyEchoes for version 3 protocols
-                if jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\ihMT_crmbm" or jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v3MC":
+                if jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\ihMT_crmbm" or \
+                        jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v3MC":
                     jsondata["DummyEchoes"] = 0
                 #DummyEchoes for version 4 protocol at 7T
                 elif jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p0":
                     jsondata["DummyEchoes"] = int(csa_data['sWipMemBlock.alFree[19]'])
                 #DummyEchoes for version 4 protocol at 3T
-                elif jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4" or jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p1":
+                elif jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4" or \
+                        jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p1" or \
+                        jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p2":
                     jsondata["DummyEchoes"] = float(csa_data["sWipMemBlock.alFree[32]"])
 
                 #Parameters for version 3 protocol at 3T
@@ -110,8 +117,10 @@ def add_csa_data_to_meta(bidspath: str):
                     jsondata['BurstRepetitionTime_us'] = float(csa_data['sWipMemBlock.alFree[5]'])
                     jsondata['TotalPrepDuration_us'] = float(csa_data['sWipMemBlock.alFree[7]'])
                     jsondata['TukeyShape'] = float(csa_data['sWipMemBlock.adFree[1]'])
-                #Parameters for version 4 and 4.1 protocols at 3T
-                elif jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4" or jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p1":
+                #Parameters for version 4 protocols at 3T
+                elif jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4" or \
+                        jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p1" or \
+                        jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p2":
                     jsondata['PulseDuration_us'] = float(csa_data['sWipMemBlock.alFree[20]'])
                     jsondata['PulseRepetitionTime_us'] = float(csa_data['sWipMemBlock.alFree[21]'])
                     jsondata['FrequencyOffset_hz'] = float(csa_data['sWipMemBlock.alFree[22]'])
@@ -125,6 +134,9 @@ def add_csa_data_to_meta(bidspath: str):
                 #Parameters for version 4.1 protocol at 3T
                 if jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p1":
                     jsondata["EchoSpacing_ms"] = float(csa_data['sWipMemBlock.alFree[34]']) / 1000
+                #Parameters for version 4.2 protocol at 3T
+                if jsondata["PulseSequenceDetails"] == "%CustomerSeq%\\crmbm_ihMT_tfl_v4p2":
+                    jsondata["EchoSpacing_ms"] = float(csa_data['sWipMemBlock.alFree[33]']) / 1000
                     
                 #dump new json file to json sidecar
                 with jsonfile.open('w') as jf:
