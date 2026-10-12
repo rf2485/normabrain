@@ -152,7 +152,8 @@ rule create_uncorr_T1map:
     input:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map.json"
     params:
-        qT1="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qT1_msUnit.nii.gz"
+        qT1="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qT1_msUnit.nii.gz",
+        b1="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/b1_processed_relativeUnit_perThousand.nii.gz",
     output:
         temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map.nii.gz")
     threads:
@@ -168,7 +169,8 @@ rule create_uncorr_T1map:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
         /opt/MP2Proc/bin/main {input}
-        cp {params.qT1} {output}
+        mv {params.qT1} {output}
+        rm {params.b1}
         """
 
 
