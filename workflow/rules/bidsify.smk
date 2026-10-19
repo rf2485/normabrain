@@ -1,6 +1,7 @@
 #for creating data/rawdata folder structure necessary for the rest of the pipeline
 
 import os
+from pathlib import Path
 
 def get_dicoms_folders(wildcards):
     checkpoint_output = checkpoints.symlink_dicoms_by_field_strength.get(**wildcards).output[0]
@@ -22,6 +23,25 @@ def aggregate_qmt_renames(wildcards):
         "data/rawdata/bids/{field_strength}/code/bidscoin/qmt_acquisitions_renamed.done",
         field_strength=next(os.walk(dicoms_folder))[1],
     )
+
+def get_asl_contexts(field_strength):
+    bids_root = Path(
+        checkpoints.bidscoiner.get(field_strength=field_strength)
+        .output[0]
+    ).parent
+    return [
+        path.with_name(path.name.replace("_asl.json", "_aslcontext.tsv"))
+        for path in bids_root.rglob("*_asl.json")
+        if "_rec-" not in path.name
+    ]
+
+def aggregate_asl_contexts(wildcards):
+    dicoms_folder = checkpoints.symlink_dicoms_by_field_strength.get(**wildcards).output[0]
+    return [
+        context
+        for field_strength in next(os.walk(dicoms_folder))[1]
+        for context in get_asl_contexts(field_strength)
+    ]
 
 
 checkpoint symlink_dicoms_by_field_strength:
@@ -110,9 +130,51 @@ checkpoint add_csa_data_to_meta:
         """
 
 
+rule generate_aslcontext:
+    input:
+        json="{prefix}_asl.json",
+        nifti="{prefix}_asl.nii.gz"
+    output:
+        context="{prefix}_aslcontext.tsv"
+    params:
+        pattern=lambda wildcards: config.get("asl_context_pattern", ""),
+        m0_indexes=lambda wildcards: config.get("asl_m0_indexes", "")
+    conda:
+        "../envs/bidscoin.yaml"
+    threads: 1
+    shell:
+        """
+        args=()
+        if [ -n "{params.pattern}" ]; then
+            args+=(--pattern "{params.pattern}")
+        fi
+        if [ -n "{params.m0_indexes}" ]; then
+            args+=(--m0-indexes "{params.m0_indexes}")
+        fi
+        python workflow/scripts/generate_aslcontext.py \
+            "{input.json}" --nifti "{input.nifti}" \
+            --output "{output.context}" "${{args[@]}}"
+        """
+
+
+checkpoint gather_aslcontext:
+    input:
+        lambda wildcards: get_asl_contexts(wildcards.field_strength)
+    output:
+        "data/rawdata/bids/{field_strength}/code/bidscoin/aslcontext.done"
+    shell:
+        """
+        touch {output}
+        """
+
+
 rule gather_add_csa_data_to_meta:
     input:
-        "data/rawdata/qmt_acquisitions_renamed.done"
+        "data/rawdata/qmt_acquisitions_renamed.done",
+        aslcontext=lambda wildcards: expand(
+            "data/rawdata/bids/{field_strength}/code/bidscoin/aslcontext.done",
+            field_strength=next(os.walk("data/rawdata/bids"))[1],
+        )
     output:
         "data/rawdata/bidsify.done"
     threads: 1
@@ -150,7 +212,8 @@ rule rename_qmt_acquisitions_by_field_strength:
 
 rule rename_qmt_acquisitions:
     input:
-        aggregate_qmt_renames
+        qmt_renames=aggregate_qmt_renames,
+        asl_contexts=aggregate_asl_contexts
     output:
         "data/rawdata/qmt_acquisitions_renamed.done"
     threads: 1

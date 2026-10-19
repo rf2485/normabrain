@@ -86,6 +86,24 @@ class RenameQmtAcquisitionsTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 planned_renames(root)
 
+    def test_allows_existing_destination_that_is_also_a_source(self):
+        names = [
+            "sub-01_ses-1_acq-vibeMTt1w3ecosag1isoc9"
+            "_echo-1_flip-33_mt-off_part-mag_MPM.json",
+            "sub-01_ses-1_acq-vibeMTmtw3ecosag1isoc9"
+            "_echo-1_flip-14_mt-on_part-mag_MPM.json",
+            "sub-01_ses-1_acq-vibeMTpdw6ecosag1isoc9"
+            "_echo-1_flip-6_mt-off_part-mag_MPM.json",
+        ]
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            for name in names:
+                (root / name).touch()
+
+            renames = planned_renames(root)
+
+            self.assertEqual(len(renames), len(names))
+
 
 if __name__ == "__main__":
     unittest.main()

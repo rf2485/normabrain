@@ -33,7 +33,7 @@ Options:
   plugins:                          # List of plugins with plugin-specific key-value pairs (that can be used by the plugin)
     dcm2niix2bids:                  # See dcm2niix -h and https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage#General_Usage for more info
       command: dcm2niix             # Command to run dcm2niix, e.g. "module add dcm2niix/1.0.20180622; dcm2niix" or "PATH=/opt/dcm2niix/bin:$PATH; dcm2niix" or /opt/dcm2niix/bin/dcm2niix or 'C:\"Program Files"\dcm2niix\dcm2niix.exe' (use quotes to deal with whitespaces in the path)
-      args: -b y -z y -i n -l n     # Argument string that is passed to dcm2niix. Tip: SPM users may want to use '-z n' (which produces unzipped NIfTI's, see dcm2niix -h for more information)
+      args: -b y -z y -i n -l n     # Convert derived images so they can be mapped to BIDS entities
       meta: [.json, .tsv, .tsv.gz]  # The file extensions of the equally named metadata source files that are copied over to the BIDS sidecar files
       fallback: y                   # Appends unhandled dcm2niix suffixes to the `acq` label if 'y' (recommended, else the suffix data is discarded)
     events2bids:
@@ -105,9 +105,9 @@ DICOM:
       MagnetizationTransfer:
     bids: &anat_dicoment_nonparametric  # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>    # This will be expanded by the bidsmapper (so the user can edit it in the bidseditor)
+      acq: <ProtocolName>    # This will be expanded by the bidsmapper (so the user can edit it in the bidseditor)
       ce:
-      rec: <VolumetricProperties>
+      rec: <ProtocolName:(?i).*(DLSR|DL).*>
       run: <<>>                   # This will be updated dynamically during bidscoiner runtime (as it depends on the already existing files)
       echo:
       part: ['', mag, phase, real, imag, 0]   # This BIDS value list will be shown as a dropdown menu in the bidseditor with the first (empty) item selected (as indicated by the last item, i.e. 0)
@@ -121,9 +121,27 @@ DICOM:
       task:
       acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>
       chunk:
+      suffix: T1map
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*DLSR.*T1.?Images.*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_dicoment_parametric
+      rec: DLSR
+      suffix: T1map
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*DL_.*T1.?Images.*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_dicoment_parametric
+      rec: DL
       suffix: T1map
   - attributes:
       <<: *anat_dicomattr
@@ -183,9 +201,9 @@ DICOM:
       EffectiveEchoTime:
     bids: &anat_dicoment_vfamt          # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>
       echo: 
       flip: <FlipAngle>
@@ -351,6 +369,24 @@ DICOM:
   - attributes:
       <<: *anat_dicomattr
       ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*DLSR.*UNI-DEN.*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_dicoment_parametric
+      rec: DLSRUNIDEN
+      suffix: T1w
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*DL_.*UNI-DEN.*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_dicoment_parametric
+      rec: DLUNIDEN
+      suffix: T1w
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
       SeriesDescription: (?i).*(den|DEN).*
       MRAcquisitionType: 3D
     bids:
@@ -360,7 +396,25 @@ DICOM:
   - attributes:
       <<: *anat_dicomattr
       ProtocolName: (?i).*(MP2R|mp2r).*
-      SeriesDescription: (?i).*(uni|UNI).*
+      SeriesDescription: (?i).*DLSR.*UNI_Images.*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_dicoment_parametric
+      rec: DLSR
+      suffix: UNIT1
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*DL_.*UNI_Images.*
+      MRAcquisitionType: 3D
+    bids:
+      <<: *anat_dicoment_parametric
+      rec: DL
+      suffix: UNIT1
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i)(?!(?:.*DLSR|.*DL_)).*(uni|UNI).*
       MRAcquisitionType: 3D
     bids:
       <<: *anat_dicoment_parametric
@@ -404,9 +458,9 @@ DICOM:
   - attributes: *anat_dicomattr
     bids: &anat_dicoment_defacemask     # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>
       mod:
       chunk:
@@ -416,9 +470,9 @@ DICOM:
       ProtocolName: (?i).*(ME|me).?(SE|se).*
     bids: &anat_dicoment_multiecho      # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>
       echo: <EchoNumbers>
       part: ['', mag, phase, real, imag, 0]
@@ -435,9 +489,9 @@ DICOM:
       ProtocolName: (?i).*(VFA|vfa).*
     bids: &anat_dicoment_multiflip      # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       echo: <EchoNumbers>
       run: <<>>
       flip:
@@ -449,14 +503,94 @@ DICOM:
       ProtocolName: (?i).*(IR|ir).?(T1|t1).* 
     bids: &anat_dicoment_multiinv       # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>
       inv:
       part: ['', mag, phase, real, imag, 0]
       chunk:
       suffix: IRT1
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*DLSR.*INV1.*
+      MRAcquisitionType: 3D
+    bids:
+      task:
+      acq: <ProtocolName>
+      ce:
+      rec: DLSR
+      run: <<>>
+      echo:
+      flip:
+      inv: 1
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MP2RAGE
+    meta:
+      RepetitionTimeExcitation: <RepetitionTime>
+      RepetitionTimePreparation: <RepetitionTime>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*DL_.*INV1.*
+      MRAcquisitionType: 3D
+    bids:
+      task:
+      acq: <ProtocolName>
+      ce:
+      rec: DL
+      run: <<>>
+      echo:
+      flip:
+      inv: 1
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MP2RAGE
+    meta:
+      RepetitionTimeExcitation: <RepetitionTime>
+      RepetitionTimePreparation: <RepetitionTime>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*DLSR.*INV2.*
+      MRAcquisitionType: 3D
+    bids:
+      task:
+      acq: <ProtocolName>
+      ce:
+      rec: DLSR
+      run: <<>>
+      echo:
+      flip:
+      inv: 2
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MP2RAGE
+    meta:
+      RepetitionTimeExcitation: <RepetitionTime>
+      RepetitionTimePreparation: <RepetitionTime>
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*(MP2R|mp2r).*
+      SeriesDescription: (?i).*DL_.*INV2.*
+      MRAcquisitionType: 3D
+    bids:
+      task:
+      acq: <ProtocolName>
+      ce:
+      rec: DL
+      run: <<>>
+      echo:
+      flip:
+      inv: 2
+      part: ['', mag, phase, real, imag, 0]
+      chunk:
+      suffix: MP2RAGE
+    meta:
+      RepetitionTimeExcitation: <RepetitionTime>
+      RepetitionTimePreparation: <RepetitionTime>
   - attributes:
       <<: *anat_dicomattr
       ProtocolName: (?i).*(MP2R|mp2r).*
@@ -466,7 +600,7 @@ DICOM:
       task:
       acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>
       echo:
       flip:
@@ -505,9 +639,9 @@ DICOM:
       ProtocolName: (?i).*(MTR|mtr).*
     bids: &anat_dicoment_mtr            # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>
       mt:
       part: ['', mag, phase, real, imag, 0]
@@ -523,9 +657,9 @@ DICOM:
       Columns:
       SliceThickness:
     bids: &ct_dicoment_nonparametric
-      acq: <SeriesDescription>          # This will be expanded by the bidsmapper (so the user can edit it in the bidseditor)
+      acq: <ProtocolName>          # This will be expanded by the bidsmapper (so the user can edit it in the bidseditor)
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>                         # This will be updated dynamically during bidscoiner runtime (as it depends on the already existing files)
       chunk:
       suffix: ct
@@ -554,7 +688,7 @@ DICOM:
       acq:
       ce:
       dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>
       echo:                             # Or use <EchoNumbers>
       part: ['', mag, phase, real, imag, 0]
@@ -593,7 +727,7 @@ DICOM:
       acq:
       ce:
       dir:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       recording:
       run: <<>>
       chunk:
@@ -648,25 +782,37 @@ DICOM:
       EffectiveEchoTime:
       RepetitionTime:
       PhaseEncodingDirection:
+      ArterialSpinLabelingType:
+      PostLabelingDelay:
+      BackgroundSuppression:
+      M0Type:
+      TotalAcquiredPairs:
+      ASLContext:
+      ASLCrusherFlag:
+      ASLPulseTrainDuration:
+      AcquisitionVoxelSize:
+      B0FieldSource:
+      B0FieldIdentifier:
     bids: &perf_dicoment_group1         # See: schema/rules/files/raw/perf.yaml
-      acq: <SeriesDescription>
-      rec:
+      acq: <ProtocolName>
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
       run: <<>>
       echo:
       part: ['', mag, phase, real, imag, 0]
       suffix: asl
     meta: &perf_meta
-      ArterialSpinLabelingType: "CASL / PCASL / PASL"
-      # PostLabelingDelay:
-      BackgroundSuppression: 
-      M0Type: "Separate / Included / Estimate / Absent"
+      ArterialSpinLabelingType: <ArterialSpinLabelingType>
+      PostLabelingDelay: <PostLabelingDelay>
+      BackgroundSuppression: <BackgroundSuppression>
+      M0Type: <M0Type>
       RepetitionTimePreparation: <RepetitionTime>
       VascularCrushing: <ASLCrusherFlag>
       LabelingDuration: <ASLPulseTrainDuration>
-      AcquisitionVoxelSize:
-      B0FieldSource:
-      B0FieldIdentifier:
+      AcquisitionVoxelSize: <AcquisitionVoxelSize>
+      B0FieldSource: <B0FieldSource>
+      B0FieldIdentifier: <B0FieldIdentifier>
+      TotalAcquiredPairs: <TotalAcquiredPairs>
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*pcasl_tgse.*
@@ -677,11 +823,6 @@ DICOM:
       dir: AP
     meta: 
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      # PostLabelingDelay: 1296
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 9
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*pcasl_tgse.*
@@ -692,11 +833,6 @@ DICOM:
       dir: PA
     meta: 
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      # PostLabelingDelay: 1296
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 9
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*pcasl_tgse.*
@@ -707,11 +843,6 @@ DICOM:
       rec: subtraction
     meta:
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      # PostLabelingDelay: 1296
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 9
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*pcasl_tgse.*
@@ -722,11 +853,6 @@ DICOM:
       rec: rcbf
     meta:
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      # PostLabelingDelay: 1296
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 9
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*(pcasl).*(singleTI).*
@@ -736,10 +862,6 @@ DICOM:
       rec: subtraction
     meta: 
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 10
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*(pcasl).*(singleTI).*
@@ -749,20 +871,12 @@ DICOM:
       rec: rcbf
     meta: 
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 10
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*(pcasl).*(singleTI).*
     bids: *perf_dicoment_group1
     meta: 
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 10
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*(pcasl).*(multiti).*
@@ -772,10 +886,6 @@ DICOM:
       rec: bat
     meta: 
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 16
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*(pcasl).*(multiti).*
@@ -785,10 +895,6 @@ DICOM:
       rec: subtraction
     meta: 
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 16
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*(pcasl).*(multiti).*
@@ -798,20 +904,12 @@ DICOM:
       rec: rcbf
     meta: 
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 16
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*(pcasl).*(multiti).*
     bids: *perf_dicoment_group1
     meta: 
       <<: *perf_meta
-      ArterialSpinLabelingType: PCASL
-      BackgroundSuppression: 'true'
-      M0Type: Included
-      TotalAcquiredPairs: 16
   - attributes:
       <<: *perf_dicomattr
       ProtocolName: (?i).*(ASL|asl|Perfusion|perfusion).*
@@ -848,7 +946,7 @@ DICOM:
     meta: *perf_meta
   - attributes: *perf_dicomattr
     bids: &perf_dicoment_group2         # See: schema/rules/files/raw/perf.yaml
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       rec: <SeriesDescription>
       dir:
       run: <<>>
@@ -857,14 +955,14 @@ DICOM:
       VolumeType: <ASLContext>
   - attributes: *perf_dicomattr
     bids: &perf_dicoment_group3         # See: schema/rules/files/raw/perf.yaml
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       rec: <SeriesDescription>
       run: <<>>
       suffix: asllabeling
     meta: *perf_meta
 #  - attributes: *perf_dicomattr
 #    bids: &perf_dicoment_physio         # See: schema/rules/files/raw/perf.yaml
-#      acq: <SeriesDescription>
+#      acq: <ProtocolName>
 #      rec:
 #      task: <SeriesDescription>
 #      recording:
@@ -893,8 +991,8 @@ DICOM:
       RepetitionTime:
       PhaseEncodingDirection:
     bids: &dwi_dicoment_DWI             # See: schema/rules/files/raw/dwi.yaml
-      acq: <SeriesDescription>               # More consistent between SBREF and PHYSIO files
-      rec:
+      acq: <ProtocolName>               # More consistent between SBREF and PHYSIO files
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
       run: <<>>
       part: ['', mag, phase, real, imag, 0]
@@ -907,8 +1005,8 @@ DICOM:
       <<: *dwi_dicomattr
       SeriesDescription: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dti|DW.?MRI|dw.?mri).*(SBREF|sbref).*
     bids: &dwi_dicoment_sbref           # See: schema/rules/files/raw/dwi.yaml
-      acq: <SeriesDescription>
-      rec:
+      acq: <ProtocolName>
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
       run: <<>>
       part: ['', mag, phase, real, imag, 0]
@@ -920,7 +1018,7 @@ DICOM:
       ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*
       ImageType: .*'PHYSIO'.*
     bids: &dwi_dicoment_physio          # See: schema/rules/files/raw/dwi.yaml
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       dir:
       run: <<>>
       part: ['', mag, phase, real, imag, 0]
@@ -938,6 +1036,50 @@ DICOM:
     bids:
       <<: *dwi_dicoment_DWI
       rec: TRACE
+    meta: *dwi_meta
+  - attributes:
+      <<: *dwi_dicomattr
+      ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*_PA_.*
+      SeriesDescription: (?i).*Pha.*
+      ImageType: .*DIFFUSION.*
+    bids:
+      <<: *dwi_dicoment_DWI
+      acq: epse2
+      dir: PA
+      part: phase
+    meta: *dwi_meta
+  - attributes:
+      <<: *dwi_dicomattr
+      ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*_AP_.*
+      SeriesDescription: (?i).*Pha.*
+      ImageType: .*DIFFUSION.*
+    bids:
+      <<: *dwi_dicoment_DWI
+      acq: epse2
+      dir: AP
+      part: phase
+    meta: *dwi_meta
+  - attributes:
+      <<: *dwi_dicomattr
+      ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*_PA_.*
+      SeriesDescription: (?i)(?!.*Pha).*
+      ImageType: .*DIFFUSION.*
+    bids:
+      <<: *dwi_dicoment_DWI
+      acq: epse2
+      dir: PA
+      part: mag
+    meta: *dwi_meta
+  - attributes:
+      <<: *dwi_dicomattr
+      ProtocolName: (?i).*(DWI|dwi|diffusion|HARDI|hardi|DTI|dti|dMRI|dmri|DW.?MRI|dw.?mri).*_AP_.*
+      SeriesDescription: (?i)(?!.*Pha).*
+      ImageType: .*DIFFUSION.*
+    bids:
+      <<: *dwi_dicoment_DWI
+      acq: epse2
+      dir: AP
+      part: mag
     meta: *dwi_meta
   - attributes:                         
       <<: *dwi_dicomattr
@@ -986,7 +1128,7 @@ DICOM:
       RepetitionTime:
       PhaseEncodingDirection:
     bids: &fmap_dicoment_fieldmaps      # See: schema/rules/files/raw/fmap.yaml
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       run: <<>>
       chunk:
       suffix: magnitude1
@@ -1057,7 +1199,7 @@ DICOM:
       ProtocolName: (?i).*(inverted|pepolar|_inv).*
       ScanningSequence: EP
     bids: &fmap_dicoment_PEPolar        # See: schema/rules/files/raw/fmap.yaml
-      acq: <SeriesDescription>          # NB: <SeriesDescription> is consistent between SBREF and PHYSIO files but causes name clashes
+      acq: <ProtocolName>          # NB: <SeriesDescription> is consistent between SBREF and PHYSIO files but causes name clashes
       ce:
       dir: <PhaseEncodingDirection>     # PhaseEncodingDirection is not an existing DICOM tag but parsed from other fields by BIDScoin
       run: <<>>
@@ -1080,9 +1222,9 @@ DICOM:
     meta: *fmap_meta
   - attributes: *fmap_dicomattr
     bids: &fmap_dicoment_TB1DAM         # See: schema/rules/files/raw/fmap.yaml
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       flip:
       inv:
       part: ['', mag, phase, real, imag, 0]
@@ -1093,9 +1235,9 @@ DICOM:
       B0FieldIdentifier:
   - attributes: *fmap_dicomattr
     bids: &fmap_dicoment_TB1EPI         # See: schema/rules/files/raw/fmap.yaml
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       flip:
       echo:
       inv:
@@ -1108,9 +1250,9 @@ DICOM:
       <<: *fmap_dicomattr
       ProtocolName: (?i).*(afi|AFI).*
     bids: &fmap_dicoment_RFFieldMaps    # See: schema/rules/files/raw/fmap.yaml
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       flip:
       echo:
       inv:
@@ -1161,9 +1303,9 @@ DICOM:
     meta: *fmap_meta_B0Field
   - attributes: *fmap_dicomattr
     bids: &fmap_dicoment_TB1SRGE        # See: schema/rules/files/raw/fmap.yaml
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       flip:
       echo:
       inv:
@@ -1177,9 +1319,9 @@ DICOM:
       ProtocolName: (?i).*b1.?map.*
       ImageType: .*FLIP ANGLE MAP.*
     bids: &fmap_dicoment_parametric     # See: schema/rules/files/raw/fmap.yaml
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       run: <<>>
       chunk:
       suffix: TB1map
@@ -1277,7 +1419,7 @@ DICOM:
     bids: &extra_data_bids_dicom
       acq: <ProtocolName>
       inv:
-      rec:
+      rec: <filepath:(?i).*/[^/]*(ND)[^/]*/>
       ce:
       task:
       echo: <EchoNumbers>
@@ -1342,15 +1484,6 @@ DICOM:
     bids:
       <<: *leaveout_bids_dicom
       rec: REPORT
-  - attributes:
-      <<: *leaveout_attributes_dicom
-      ImageType: .*'DERIVED'.*
-      ProtocolName: (?i)((?!MP2RAGE|mp2r|asl|ASL).)*     # Make an exception for DERIVED 3D MP2RAGE and ASL images
-    bids:
-      <<: *leaveout_bids_dicom
-      rec: DERIVED
-
-
 Presentation:
 # --------------------------------------------------------------------------------------
 # Presentation heuristics (NeuroBS logfiles that are mapped to BIDS-compliant tsv files)
@@ -2774,7 +2907,7 @@ Nibabel:
     attributes: *nibattr
     bids: &anat_nibent_mtr              # See: schema/rules/files/raw/anat.yaml
       task:
-      acq: <SeriesDescription>
+      acq: <ProtocolName>
       ce:
       rec:
       run: <<>>
@@ -3134,6 +3267,13 @@ Nibabel:
       suffix: unknown
 
   exclude:    # ----------------------- Data that will be left out -------------
+  - properties:
+      filename: (?i).*dwia(?:\.nii)?(?:\.gz)?$
+    attributes: *nibattr
+    bids:
+      acq: <descrip>
+      rec:
+      suffix: dwi
   - attributes: *nibattr
     bids:
       acq: <ProtocolName>

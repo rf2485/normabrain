@@ -5,6 +5,19 @@ from bidscoin import bcoin, bids, lsdirs
 from pathlib import Path
 from csa_header_scripts.return_csa_header_parse_by_my_self import return_csa
 
+
+def _normalize_boolean_metadata(metadata: dict, key: str) -> None:
+    value = metadata.get(key)
+    if isinstance(value, bool):
+        return
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {'true', 'yes'}:
+            metadata[key] = True
+        elif normalized in {'false', 'no'}:
+            metadata[key] = False
+
+
 def add_csa_data_to_meta(bidspath: str):    
     #define search patterns for different sequence types
     perf_pattern = 'perf/*'
@@ -163,14 +176,8 @@ def add_csa_data_to_meta(bidspath: str):
                 if type(mrprotocol) is dict:
                     csa_data = mrprotocol
                 #convert string boolean values to actual booleans
-                if jsondata['BackgroundSuppression'] == 'true' or jsondata['BackgroundSuppression'] == 'YES':
-                    jsondata['BackgroundSuppression'] = True
-                elif jsondata['BackgroundSuppression'] == 'false' or jsondata['BackgroundSuppression'] == 'NO':
-                    jsondata['BackgroundSuppression'] = False
-                if jsondata['VascularCrushing'] == 'true' or jsondata['VascularCrushing'] == 'YES':
-                    jsondata['VascularCrushing'] = True
-                elif jsondata['VascularCrushing'] == 'false' or jsondata['VascularCrushing'] == 'NO':
-                    jsondata['VascularCrushing'] = False
+                _normalize_boolean_metadata(jsondata, 'BackgroundSuppression')
+                _normalize_boolean_metadata(jsondata, 'VascularCrushing')
                 #dump new json file to json sidecar
                 with jsonfile.open('w') as jf:
                     json.dump(jsondata, jf, indent=4)

@@ -80,6 +80,7 @@ def planned_renames(bids_root: Path) -> list[tuple[Path, Path]]:
 
     renames: list[tuple[Path, Path]] = []
     destinations: dict[Path, Path] = {}
+    source_paths = {path for path, _, _ in candidates}
 
     for path, normalized, physical_flip in candidates:
         group = str(normalized.with_name(
@@ -98,9 +99,7 @@ def planned_renames(bids_root: Path) -> list[tuple[Path, Path]]:
                 f"{previous} and {path}"
             )
         destinations[destination] = path
-        if destination.exists() and destination not in {
-            source for source, _ in renames
-        }:
+        if destination.exists() and destination not in source_paths:
             raise FileExistsError(
                 f"Refusing to overwrite existing file {destination} "
                 f"while renaming {path}"
