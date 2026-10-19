@@ -21,6 +21,12 @@ def normalized_name(path: Path) -> Path | None:
     """Return the normalized path, or None when the file is not a qMT MPM file."""
     match = QMT_ACQUISITION.fullmatch(path.name)
     if match is None:
+        if (
+            re.search(r"_flip-\d+(?:\.\d+)?_", path.name)
+            and "_MPM." in path.name
+            and path.name.endswith((".json", ".nii.gz"))
+        ):
+            return path
         return None
 
     parameters = re.sub(r"[^A-Za-z0-9]+", "", match["parameters"])
@@ -32,16 +38,57 @@ def normalized_name(path: Path) -> Path | None:
     )
 
 
+def flip_angle(path: Path) -> float | None:
+    """Return the physical flip angle encoded in a qMT filename."""
+    match = re.search(r"_flip-(?P<flip>\d+(?:\.\d+)?)_", path.name)
+    return None if match is None else float(match["flip"])
+
+
+def with_flip_label(path: Path, label: str) -> Path:
+    """Replace a physical qMT flip angle in a normalized filename."""
+    return path.with_name(
+        re.sub(r"_flip-\d+(?:\.\d+)?_", f"_{label}_", path.name)
+    )
+
+
 def planned_renames(bids_root: Path) -> list[tuple[Path, Path]]:
     """Build and validate the complete qMT rename plan."""
-    renames: list[tuple[Path, Path]] = []
-    destinations: dict[Path, Path] = {}
-
+    candidates: list[tuple[Path, Path, float]] = []
     for path in sorted(bids_root.rglob("*")):
         if not path.is_file():
             continue
         destination = normalized_name(path)
-        if destination is None or destination == path:
+        physical_flip = flip_angle(path)
+        if destination is None or physical_flip is None:
+            continue
+        candidates.append((path, destination, physical_flip))
+
+    flip_groups: dict[str, set[float]] = {}
+    for path, destination, physical_flip in candidates:
+        group = str(destination.with_name(
+            re.sub(r"_echo-.*$", "", destination.name)
+        ))
+        flip_groups.setdefault(group, set()).add(physical_flip)
+
+    labels = {
+        group: {
+            value: f"flip-{index}"
+            for index, value in enumerate(sorted(values, reverse=True), start=1)
+        }
+        for group, values in flip_groups.items()
+    }
+
+    renames: list[tuple[Path, Path]] = []
+    destinations: dict[Path, Path] = {}
+
+    for path, normalized, physical_flip in candidates:
+        group = str(normalized.with_name(
+            re.sub(r"_echo-.*$", "", normalized.name)
+        ))
+        destination = with_flip_label(
+            normalized, labels[group][physical_flip]
+        )
+        if destination == path:
             continue
 
         previous = destinations.get(destination)

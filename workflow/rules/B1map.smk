@@ -22,6 +22,14 @@ def get_target_flip(wildcards):
         target_fa = 900
     return target_fa
 
+def qmt_t1w_sos_path(wildcards, suffix):
+    return (
+        f"data/derivatives/{wildcards.field_strength}/qMT/sub-{wildcards.subject}/"
+        f"ses-{wildcards.session}/acq-{wildcards.qMT_params}/preproc/"
+        f"sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.qMT_params}_"
+        f"{get_t1flip(wildcards)}_mt-off_part-mag_sos{suffix}"
+    )
+
 def get_b1anat2mp2rage_reg(wildcards):
     #get b1anat2mp2rage registration if b1anat exists, otherwise return a blank string (applyAntsTransforms will then reslice instead of register)
     try:
@@ -35,7 +43,7 @@ def get_b1anat2qMT_reg(wildcards):
     #get b1anat2qMT registration if b1anat exists, otherwise return a blank string (applyAntsTransforms will then reslice instead of register)
     try:
         b1anat = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/fmap/sub-{wildcards.subject}_ses-{wildcards.session}_acq-anat*_TB1*.nii.gz'))[-1]
-        b1anat2qMT_reg = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{seq}t1w{qMT_params}_0GenericAffine.mat"
+        b1anat2qMT_reg = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{qMT_params}_t1w_0GenericAffine.mat"
     except:
        b1anat2qMT_reg = []
     return b1anat2qMT_reg
@@ -59,7 +67,7 @@ rule synthstrip_b1anat:
     container:
         "docker://freesurfer/synthstrip:1.8-gpu"
     threads: 4
-    resources: 
+    resources:
         mem_mb=9000
     log:
         "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-anat_brain_mask.log"
@@ -82,7 +90,7 @@ rule apply_brainmask_b1anat:
     conda:
         "../envs/fslmaths.yaml"
     threads: 1
-    resources: 
+    resources:
         mem_mb=500
     log:
         "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-anat_brain.log"
@@ -102,7 +110,7 @@ rule DenoiseImage_b1anat:
         temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-anat_brain_denoised.nii.gz")
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=500
     threads: 1
     log:
@@ -131,7 +139,7 @@ rule N4BiasFieldCorrection_b1anat:
         "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-anat_brain_denoised_n4.nii.gz"
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=500
     threads: 1
     log:
@@ -163,7 +171,7 @@ rule register_b1anat_to_mp2rage:
         outprefix="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_b1_reg2{mp2rage_params}_"
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=700
     threads: 4
     log:
@@ -197,7 +205,7 @@ rule apply_reg_b1_to_mp2rage:
         temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.nii.gz")
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=500
     threads: 1
     log:
@@ -224,28 +232,32 @@ rule apply_reg_b1_to_mp2rage:
             --verbose 1 \
             -i {input.moving} \
             -r {input.ref} \
-            -o {output} 
+            -o {output}
         fi
         """
 
 
-rule register_b1anat_to_qMT_t1w_ants: 
+rule register_b1anat_to_qMT_t1w_ants:
     input:
-        ref = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_denoised_n4.nii.gz",
+        ref = lambda wildcards: qmt_t1w_sos_path(
+            wildcards, "_brain_denoised_n4.nii.gz"
+        ),
         moving = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-anat_brain_denoised_n4.nii.gz",
-        ref_mask ="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz",
+        ref_mask = lambda wildcards: qmt_t1w_sos_path(
+            wildcards, "_brain_mask.nii.gz"
+        ),
         moving_mask = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-anat_brain_mask.nii.gz"
     output:
-        "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{seq}t1w{qMT_params}_0GenericAffine.mat"
+        "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{qMT_params}_t1w_0GenericAffine.mat"
     params:
-        outprefix="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{seq}t1w{qMT_params}_"
+        outprefix="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{qMT_params}_t1w_"
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=1000
     threads: 4
     log:
-       "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{seq}t1w{qMT_params}.log" 
+       "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{qMT_params}_t1w.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -269,17 +281,17 @@ rule register_b1anat_to_qMT_t1w_ants:
 rule apply_reg_b1map_to_qMT_t1w_ants:
     input:
         moving = get_last_b1map_run,
-        ref = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos.nii.gz",
+        ref = lambda wildcards: qmt_t1w_sos_path(wildcards, ".nii.gz"),
         reg = get_b1anat2qMT_reg
     output:
-        temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_ants.nii.gz")
+        temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_ants.nii.gz")
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=500
     threads: 1
     log:
-       "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_ants.log" 
+       "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_ants.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -302,7 +314,7 @@ rule apply_reg_b1map_to_qMT_t1w_ants:
             --verbose 1 \
             -i {input.moving} \
             -r {input.ref} \
-            -o {output} 
+            -o {output}
         fi
         """
 
@@ -319,7 +331,7 @@ rule register_b1anat_to_ihmt:
         outprefix="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_b1_reg2{ihmt_params}_"
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=700
     threads: 4
     log:
@@ -353,7 +365,7 @@ rule apply_reg_b1_to_ihmt:
         temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_acq-famp_reg2{ihmt_params}_ants.nii.gz")
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=500
     threads: 1
     log:
@@ -380,7 +392,7 @@ rule apply_reg_b1_to_ihmt:
             --verbose 1 \
             -i {input.moving} \
             -r {input.ref} \
-            -o {output} 
+            -o {output}
         fi
         """
 
@@ -393,14 +405,14 @@ rule copy_b1map_json_after_regtoMP2RAGE:
         b1map_reg2MP2RAGE = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.nii.gz"
     output:
         temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.json")
-    resources: 
+    resources:
         mem_mb=300
     threads: 1
     log:
-       out="logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_copy_b1map_json_after_reg2{mp2rage_params}.log" 
+       out="logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_copy_b1map_json_after_reg2{mp2rage_params}.log"
     run:
         logging.basicConfig(level=logging.INFO, filename=log.out, filemode="w")
-        
+
         b1map_raw_json = Path(input.b1map_raw).with_suffix("").with_suffix(".json")
         b1map_reg2MP2RAGE_json = Path(input.b1map_reg2MP2RAGE).with_suffix("").with_suffix(".json")
         shutil.copy(b1map_raw_json, b1map_reg2MP2RAGE_json)
@@ -408,55 +420,55 @@ rule copy_b1map_json_after_regtoMP2RAGE:
 
 rule smooth_B1_qMT:
     input:
-       "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_ants.nii.gz" 
+       "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_ants.nii.gz"
     output:
-        temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_smooth.nii.gz")
+        temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth.nii.gz")
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=500
     threads: 1
     log:
-        "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_smooth.log"
+        "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-        
+
         SmoothImage 3 {input[0]} 3x1x1 {output}
         """
 
 
 rule normalize_B1_to_target_flip_qMT: #not masking because we are interested in the spinal cord
     input:
-        "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_smooth.nii.gz"
+        "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth.nii.gz"
     params:
         target_flip = get_target_flip
     output:
-        "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_smooth_norm.nii.gz"
+        "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth_norm.nii.gz"
     conda:
         "../envs/fslmaths.yaml"
-    resources: 
+    resources:
         mem_mb=500
     threads: 1
     log:
-        "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{seq}t1w{qMT_params}_smooth_norm.log"
+        "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth_norm.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input} -div {params.target_flip} {output} -odt float 
+        fslmaths {input} -div {params.target_flip} {output} -odt float
         """
 
 rule smooth_B1_ihmt:
     input:
-       "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_acq-famp_reg2{ihmt_params}_ants.nii.gz" 
+       "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_acq-famp_reg2{ihmt_params}_ants.nii.gz"
     output:
         temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_acq-famp_reg2{ihmt_params}_smooth.nii.gz")
     conda:
         "../envs/qMT.yaml"
-    resources: 
+    resources:
         mem_mb=500
     threads: 1
     log:
@@ -466,7 +478,7 @@ rule smooth_B1_ihmt:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-        
+
         SmoothImage 3 {input[0]} 3x1x1 {output}
         """
 
@@ -481,7 +493,7 @@ rule normalize_B1_to_target_flip_ihmt:
         "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_acq-famp_reg2{ihmt_params}_smooth_norm.nii.gz"
     conda:
         "../envs/fslmaths.yaml"
-    resources: 
+    resources:
         mem_mb=500
     threads: 1
     log:
@@ -490,5 +502,5 @@ rule normalize_B1_to_target_flip_ihmt:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.img} -mul {input.mask} -div {params.target_flip} {output} -odt float 
+        fslmaths {input.img} -mul {input.mask} -div {params.target_flip} {output} -odt float
         """

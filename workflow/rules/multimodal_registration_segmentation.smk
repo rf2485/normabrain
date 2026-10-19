@@ -6,10 +6,10 @@ from bids import BIDSLayout
 from collections import Counter
 from pathlib import Path
 
+qmt_contrasts = ("mt0", "mtw", "pdw", "t1w")
 
 wildcard_constraints:
-    contrast = '|'.join([re.escape(x) for x in config["qmt_contrasts"].split()]),
-    seq = config["qmt_sequence"],
+    contrast = '|'.join(qmt_contrasts),
     part = 'mag|phase',
     # qMT_params = "^[a-zA-Z0-9]*$",
     # segmentation = config["segmentations"].split()
@@ -43,13 +43,11 @@ def qMT_to_freesurfer(wildcards):
             mpm_acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
             mp2rage_first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)[0]
             for mpm in mpm_acqlist:
-                mpm = mpm.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
-                for contrast in config["qmt_contrasts"].split():
+                mpm = mpm.replace("6eco", "").replace("3eco", "").replace("mag", "").replace("pha", "").replace("DL", "")
+                for contrast in qmt_contrasts:
                     mpm = mpm.replace(contrast, "")
                 apply_reg_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + mpm + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_applyreg2FS" + mp2rage_first_acq + ".done")
-    counts = Counter(apply_reg_list)
-    apply_reg_list = [reg for reg, count in counts.items() if count > 3]
-    return apply_reg_list
+    return sorted(set(apply_reg_list))
 
 def ihmt_to_freesurfer(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -102,7 +100,7 @@ def ihmt_reg2first_acq_freesurfer(wildcards):
 def qMT_reg2first_acq_freesurfer(wildcards):
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
+    return expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
 
 def dwi_reg2first_acq_freesurfer(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -146,13 +144,11 @@ def qMT_statslist(wildcards):
         for session in sessionlist:
             acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
             for acq in acqlist:
-                acq = acq.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
-                for contrast in config["qmt_contrasts"].split():
+                acq = acq.replace("6eco", "").replace("3eco", "").replace("mag", "").replace("pha", "").replace("DL", "")
+                for contrast in qmt_contrasts:
                     acq = acq.replace(contrast, "")
                 statslist.append("data/derivatives/" + wildcards.field_strength + "/qMT/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
-    counts = Counter(statslist)
-    statslist = [stat for stat, count in counts.items() if count > 3]
-    return sorted(statslist)
+    return sorted(set(statslist))
 
 def dwi_statslist(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -193,7 +189,7 @@ def freesurfer_subjectlist_qMT(wildcards):
             acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
             for acq in acqlist:
                 acq = acq.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
-                for contrast in config["qmt_contrasts"].split():
+                for contrast in qmt_contrasts:
                     acq = acq.replace(contrast, "")
                 fs_subjectlist.append("sub-" + subject + "_ses-" + session + "_acq-" + acq)
     counts = Counter(fs_subjectlist)
@@ -243,7 +239,7 @@ def mp2rage_to_qMT(wildcards):
             mpm_acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
             for mpm in mpm_acqlist:
                 mpm = mpm.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
-                for contrast in config["qmt_contrasts"].split():
+                for contrast in qmt_contrasts:
                     mpm = mpm.replace(contrast, "")
                 apply_reg_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + mp2rage_first_acq + "/reg2qMT/sub-" + subject + "_ses-" + session + "_acq-" + mp2rage_first_acq + "_applyreg2" + mpm + ".done")
     counts = Counter(apply_reg_list)
@@ -292,9 +288,9 @@ rule register_ihmt_to_freesurfer_bbregister:
     shell:
         """
         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
-        
+
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-        
+
         bbregister --s {params.subject} --mov {input.ihmt} --reg {output} --t1 --init-rr
         mv {params.outbase}.log {log}
         """
@@ -320,7 +316,7 @@ rule apply_reg_ihmt_to_freesurfer_bbregister:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        
+
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
         MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "DO" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
@@ -360,13 +356,13 @@ rule apply_aparc_aseg_to_ihmt_bbregister:
         refprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}"
     output:
         "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_aparc+aseg.nii.gz"
-    resources: 
+    resources:
         mem_mb=500
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     threads: 1
     log:
-       "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_aparc+aseg.log" 
+       "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_aparc+aseg.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -381,7 +377,7 @@ rule apply_aparc_aseg_to_ihmt_bbregister:
                 ref=$ref_init
             fi
         done
-        
+
         #apply inverse reg so that seg is in ihmt space, to avoid interpolation of ihmt
         mri_vol2vol \
         --inv --nearest --no-save-reg \
@@ -440,10 +436,14 @@ rule apply_warp_mni_atlases_to_ihmt:
         mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
-        mri_mask {output.wm90percent_lobes} {output.wm_mask} {output.wm90percent_lobes}
+        masked_wm90percent_lobes="{output.wm90percent_lobes}.masked.nii.gz"
+        mri_mask {output.wm90percent_lobes} {output.wm_mask} "$masked_wm90percent_lobes"
+        mv "$masked_wm90percent_lobes" {output.wm90percent_lobes}
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
-        mri_mask {output.wm_lobes} {output.wm_mask} {output.wm_lobes}
+        masked_wm_lobes="{output.wm_lobes}.masked.nii.gz"
+        mri_mask {output.wm_lobes} {output.wm_mask} "$masked_wm_lobes"
+        mv "$masked_wm_lobes" {output.wm_lobes}
         """
 
 
@@ -476,14 +476,14 @@ rule ihmt_roi_stats:
         done
 
         touch {output}
-        
+
         """
 
 
 rule ihmt_roi_stats_agg_segs:
     input:
-        stats=expand("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.done", 
-        segmentation=config["segmentations"].split(), allow_missing=True),    
+        stats=expand("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.done",
+        segmentation=config["segmentations"].split(), allow_missing=True),
     params:
         stats_temp="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp",
     output:
@@ -545,290 +545,29 @@ rule aggregate_multimodal_ihmt_mp2rage:
         expand("data/derivatives/{field_strength}/ihmt/ihmt_to_freesurfer.done", field_strength=field_strength_list)
 
 
-# rule register_qMT_to_MP2RAGE_ants:
-#     input:
-#         ref = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr_brain_denoised_n4.nii.gz",
-#         moving = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map_brain_denoised_n4.nii.gz",
-#         ref_mask = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz",
-#         moving_mask = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/preproc/sub-{subject}_ses-{session}_acq-{seq}t1w{qMT_params}_mt-off_part-mag_sos_brain_mask.nii.gz"
-#     params:
-#         outprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2{mp2rage_params}_"
-#     output:
-#         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2{mp2rage_params}_0GenericAffine.mat"
-#     conda:
-#         "../envs/qMT.yaml"
-#     resources: 
-#         mem_mb=1500
-#     threads: 4
-#     log:
-#        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2{mp2rage_params}.log" 
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-#         antsRegistration \
-#         --random-seed 1 \
-#         --dimensionality 3 \
-#         --verbose 1 \
-#         --convergence [ 1000x500x250x100, 1e-7, 100 ] \
-#         --shrink-factors 8x4x2x1 \
-#         --smoothing-sigmas 4x2x1x0vox \
-#         --transform Rigid[0.1] \
-#         --metric MI[ {input.ref}, {input.moving}, 1, 32 ] \
-#         -o {params.outprefix} \
-#         -x [ {input.ref_mask}, {input.moving_mask} ]
-#         """
-
-
-# rule apply_reg_qMT_to_MP2RAGE_ants:
-#     input:
-#         ref = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map.nii.gz",
-#         reg = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2{mp2rage_params}_0GenericAffine.mat"
-#     params:
-#         sessiondir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/",
-#         regto="reg2{mp2rage_params}",
-#         qMTprefix="sub-{subject}_ses-{session}_acq-{seq}{qMT_params}"
-#     output:
-#         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_applyreg2{mp2rage_params}.done"
-#     resources: 
-#         mem_mb=500
-#     threads: 1
-#     conda:
-#         "../envs/qMT.yaml"
-#     log:
-#       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_applyreg2{mp2rage_params}.log"  
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-#         qMTmaps=("MPFmap" "MTRmap" "R1map" "T1map")
-#         mkdir -p {params.sessiondir}/reg2MP2RAGE
-#         for map in "${{qMTmaps[@]}}"; do
-#             moving="{params.sessiondir}/{params.qMTprefix}_"$map".nii.gz"
-#             out="{params.sessiondir}/reg2MP2RAGE/{params.qMTprefix}_"$map"_{params.regto}.nii.gz"
-#             if [ -f $moving ]; then
-#                 antsApplyTransforms \
-#                 --dimensionality 3 \
-#                 --interpolation Linear \
-#                 --verbose 1 \
-#                 -i $moving \
-#                 -r {input.ref} \
-#                 -t {input.reg} \
-#                 -o $out
-#             fi
-#         done
-#         touch {output}
-#         """
-
-
-# rule gather_qMT_to_MP2RAGE_ants:
-#     input:
-#         qMT_to_mp2rage,
-#     output:
-#         "data/derivatives/{field_strength}/qMT/qMT_to_MP2RAGE.done"
-#     log:
-#         "logs/{field_strength}/qMT/qMT_to_MP2RAGE.log"
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-#         touch {output}
-#         """
-
-
-# rule apply_reg_seg_to_qMT_ants:
-#     input:
-#         seg = resliced_segmentation_first_acq_mp2rage,
-#         reg = qMT_reg2first_acq_mp2rage,
-#         ref = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map.nii.gz"
-#     output:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}/mri/aparc+aseg_reg2qMT.nii.gz"
-#     resources: 
-#         mem_mb=500
-#     threads: 1
-#     conda:
-#         "../envs/qMT.yaml"
-#     log:
-#         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}/aparc+aseg_reg2qMT.log"
-#     shell:
-#         """ 
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-#         #apply inverse reg so that seg is in qMT space, to avoid interpolation of qMT
-#         antsApplyTransforms \
-#         --dimensionality 3 \
-#         --interpolation NearestNeighbor \
-#         --verbose 1 \
-#         -i {input.seg} \
-#         -r {input.ref} \
-#         -t [ {input.reg}, 1 ] \
-#         -o {output}
-#         """
-  
-
-# rule qMT_stats:
-#     input:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}/mri/aparc+aseg_reg2qMT.nii.gz",
-#         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.nii.gz"
-#     params:
-#         qMTprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}",
-#         statsprefix="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}/stats/qMT"
-#     output:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}/stats/qMT_stats.done"
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     resources:
-#         mem_mb=500
-#     threads: 1
-#     log:
-#        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}/qMT_stats.log" 
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-
-#         qMTmaps=("MPFmap" "MTRmap" "R1map" "T1map")
-        
-#         for map in "${{qMTmaps[@]}}"; do
-#             qMT="{params.qMTprefix}_"$map".nii.gz"
-#             stats="{params.statsprefix}_${{map}}.stats"
-#             if [ -f $qMT ]; then
-#                 mri_segstats --seg {input[0]} --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --i $qMT --sum $stats --excludeid 0
-#             fi
-#         done
-
-#         touch {output}
-#         """
-
-
-# rule qMT_tsv:
-#     input:
-#         qMT_statslist,
-#     output:
-#         "data/derivatives/{field_strength}/freesurfer/qMT_stats.done"
-#     params:
-#         subjectlist=freesurfer_subjectlist_qMT,
-#         subjects_dir="data/derivatives/{field_strength}/freesurfer/"
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     resources:
-#         mem_mb=500
-#     threads: 1
-#     log:
-#       "logs/{field_strength}/freesurfer/qMT_stats_tsv.log"  
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
-        
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-
-#         qMTmaps=("MPFmap" "MTRmap" "R1map" "T1map")
-        
-#         if ! [ -n {params.subjectlist} ]; then
-#             for map in "${{qMTmaps[@]}}"; do
-#                 asegstats2table --subjects {params.subjectlist} --statsfile qMT_${{map}}.stats -t $SUBJECTS_DIR/qMT_${{map}}_stats.tsv --meas mean --common-segs --no-segno 0 --skip || \
-#                 echo "no subjects have this map!"
-#             done
-#         fi
-#         touch {output}
-#         """
-
-
-# rule apply_reg_MP2RAGE_to_qMT_ants:
-#     input:
-#         ref="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_T1map.nii.gz",
-#         reg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2{mp2rage_params}_0GenericAffine.mat"
-#     params:
-#         mp2rage_acqdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/",
-#         regto="reg2{seq}{qMT_params}",
-#         subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}"
-#     output:
-#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/reg2qMT/sub-{subject}_ses-{session}_acq-{mp2rage_params}_applyreg2{seq}{qMT_params}.done"
-#     resources: 
-#         mem_mb=500
-#     threads: 1
-#     conda:
-#         "../envs/qMT.yaml"
-#     log:
-#         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/reg2qMT/sub-{subject}_ses-{session}_acq-{mp2rage_params}_applyreg2{seq}{qMT_params}.log"  
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
-
-#         MP2RAGEmaps=("R1map_b1corr" "T1map_b1corr" "T1w_UNIDEN_b1corr" "T1w_UNI_b1corr" "T1w_UNIDEN")
-#         mkdir -p {params.mp2rage_acqdir}/reg2qMT
-#         for map in "${{MP2RAGEmaps[@]}}"; do
-#             moving="{params.mp2rage_acqdir}/{params.subject}_"$map".nii.gz"
-#             out="{params.mp2rage_acqdir}/reg2qMT/{params.subject}_"$map"_{params.regto}.nii.gz"
-
-#             #apply inverse of qMT to MP2RAGE registration
-#             antsApplyTransforms \
-#             --dimensionality 3 \
-#             --interpolation Linear \
-#             --verbose 1 \
-#             -i $moving \
-#             -r {input.ref} \
-#             -t [ {input.reg}, 1 ] \
-#             -o $out
-#         done
-#         touch {output}
-#         """
-
-
-# rule gather_MP2RAGE_to_qMT_ants:
-#     input:
-#         mp2rage_to_qMT,
-#     output:
-#         "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_qMT.done"
-#     log:
-#         "logs/{field_strength}/MP2RAGE/MP2RAGE_to_qMT.log"  
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         touch {output}
-#         """
-
-
-# rule aggregate_multimodal_qMT_mp2rage:
-#     input:
-#         expand("data/derivatives/{field_strength}/freesurfer/qMT_stats.done", field_strength=field_strength_list),
-#         expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_qMT.done", field_strength=field_strength_list),
-#         expand("data/derivatives/{field_strength}/qMT/qMT_to_MP2RAGE.done", field_strength=field_strength_list)
-
 rule register_qMT_to_freesurfer_bbregister:
     input:
-        qMT="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz",
+        qMT="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{qMT_params}_R1map_brain_denoised_n4.nii.gz",
         orig_mgz="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz"
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta"
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}.lta"
     params:
         subjects_dir="data/derivatives/{field_strength}/freesurfer/",
         subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}",
-        outbase="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}"
+        outbase="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}"
     resources:
         mem_mb=1500
     threads: 1
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}.log"
     shell:
         """
         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
-        
+
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-        
+
         bbregister --s {params.subject} --mov {input.qMT} --reg {output} --t1 --init-rr
         mv {params.outbase}.log {log}
         """
@@ -836,25 +575,25 @@ rule register_qMT_to_freesurfer_bbregister:
 
 rule apply_reg_qMT_to_freesurfer_bbregister:
     input:
-        reg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2FS{mp2rage_params}.lta",
+        reg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}.lta",
         target="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz",
-        qMT_maps_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
+        qMT_maps_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{qMT_params}_R1map_brain_denoised_n4.nii.gz"
     params:
-        acqdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/",
-        subject="sub-{subject}_ses-{session}_acq-{seq}{qMT_params}"
+        acqdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/",
+        subject="sub-{subject}_ses-{session}_acq-{qMT_params}"
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_applyreg2FS{mp2rage_params}.done")
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_applyreg2FS{mp2rage_params}.done")
     resources:
         mem_mb=1500
     threads: 1
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_applyreg2FS{mp2rage_params}.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_applyreg2FS{mp2rage_params}.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        
+
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
         qMTmaps=("MPFmap" "MTRmap" "R1map" "T1map")
@@ -889,24 +628,24 @@ rule apply_aparc_aseg_to_qMT_bbregister:
     input:
         seg = aparc_aseg_first_acq_freesurfer,
         reg = qMT_reg2first_acq_freesurfer,
-        ref="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz"
+        ref="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{qMT_params}_R1map_brain_denoised_n4.nii.gz"
     params:
-        refprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}"
+        refprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}"
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_aparc+aseg.nii.gz"
-    resources: 
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_aparc+aseg.nii.gz"
+    resources:
         mem_mb=500
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     threads: 1
     log:
-       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_aparc+aseg.log" 
+       "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_aparc+aseg.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-        
+
         #apply inverse reg so that seg is in ihmt space, to avoid interpolation of ihmt
         mri_vol2vol \
         --inv --nearest --no-save-reg \
@@ -920,14 +659,14 @@ rule warp_qMT_to_mni152:
         qMT2fs=qMT_reg2first_acq_freesurfer,
         fs2mni152=fs2mni152_first_acq
     output:
-        qMT2mni152="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2mni152_warp.nii.gz"
+        qMT2mni152="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2mni152_warp.nii.gz"
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
         mem_mb=700
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2mni152_warp.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2mni152_warp.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -942,21 +681,21 @@ rule warp_qMT_to_mni152:
 
 rule apply_warp_mni_atlases_to_qMT:
     input:
-        subj2mni152="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_reg2mni152_warp.nii.gz",
-        aparc_aseg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_aparc+aseg.nii.gz",
+        subj2mni152="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2mni152_warp.nii.gz",
+        aparc_aseg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_aparc+aseg.nii.gz",
         wm90percent_lobes="data/atlases/mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
     output:
-        wm_mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_wm_mask.nii.gz",
-        wm90percent_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
-        wm_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_mni_icbm152_wm_lobes.nii.gz",
+        wm_mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_wm_mask.nii.gz",
+        wm90percent_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_mni_icbm152_wm_lobes.nii.gz",
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
         mem_mb=700
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_apply_warp_mni_atlases_to_ihmt.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_apply_warp_mni_atlases_to_ihmt.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -965,29 +704,35 @@ rule apply_warp_mni_atlases_to_qMT:
         mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
-        mri_mask {output.wm90percent_lobes} {output.wm_mask} {output.wm90percent_lobes}
+        masked_wm90percent_lobes="{output.wm90percent_lobes}.masked.nii.gz"
+        mri_mask {output.wm90percent_lobes} {output.wm_mask} "$masked_wm90percent_lobes"
+        mv "$masked_wm90percent_lobes" {output.wm90percent_lobes}
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
-        mri_mask {output.wm_lobes} {output.wm_mask} {output.wm_lobes}
+        masked_wm_lobes="{output.wm_lobes}.masked.nii.gz"
+        mri_mask {output.wm_lobes} {output.wm_mask} "$masked_wm_lobes"
+        mv "$masked_wm_lobes" {output.wm_lobes}
         """
 
 
 rule qMT_roi_stats:
     input:
-        qMT_done="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_R1map_brain_denoised_n4.nii.gz",
-        mtr="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_MTRmap.nii.gz",
-        seg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_{segmentation}.nii.gz",
+        mpfmap="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_MPFmap.nii.gz",
+        t1map="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_T1map.nii.gz",
+        r1map="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_R1map.nii.gz",
+        mtr="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_MTRmap.nii.gz",
+        seg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_{segmentation}.nii.gz",
         lut="data/atlases/{segmentation}_lut.txt",
     params:
-        qMTprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}",
-        outdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/stats_temp",
+        qMTprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}",
+        outdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp",
     output:
-        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/stats_temp/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.done"),
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp/sub-{subject}_ses-{session}_acq-{qMT_params}_seg-{segmentation}_stats.done"),
     resources:
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_seg-{segmentation}_stats.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -997,30 +742,38 @@ rule qMT_roi_stats:
             qMT="{params.qMTprefix}_${{map}}.nii.gz"
             if [ -f $qMT ]; then
                 echo "${{map}} stats unfiltered"
-                python3 workflow/scripts/roi_stats.py "${{qMT}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.seq}{wildcards.qMT_params}" "${{map}}"
+                python3 workflow/scripts/roi_stats.py "${{qMT}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
                 echo "${{map}}" stats without outliers
-                python3 workflow/scripts/roi_stats.py -r "${{qMT}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.seq}{wildcards.qMT_params}" "${{map}}"
+                python3 workflow/scripts/roi_stats.py -r "${{qMT}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
             fi
         done
 
         touch {output}
-        
+
         """
 
 
 rule qMT_roi_stats_agg_segs:
     input:
-        stats=expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/stats_temp/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_seg-{segmentation}_stats.done", 
-        segmentation=config["segmentations"].split(), allow_missing=True),    
+        stats=lambda wildcards: expand(
+            "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/"
+            "acq-{qMT_params}/stats_temp/sub-{subject}_ses-{session}_"
+            "acq-{qMT_params}_seg-{segmentation}_stats.done",
+            field_strength=wildcards.field_strength,
+            subject=wildcards.subject,
+            session=wildcards.session,
+            qMT_params=wildcards.qMT_params,
+            segmentation=config["segmentations"].split(),
+        ),
     params:
-        stats_temp="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/stats_temp/",
+        stats_temp="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp/",
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{seq}{qMT_params}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_stats.pickle",
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_stats.pickle",
     resources:
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{seq}{qMT_params}_stats.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{qMT_params}_stats.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
         stats_list = sorted(Path(input.stats[0]).parent.glob("*_stats.pickle"))
@@ -1074,239 +827,6 @@ rule aggregate_multimodal_qMT_mp2rage:
         expand("data/derivatives/{field_strength}/qMT/qMT_to_freesurfer.done", field_strength=field_strength_list)
 
 
-# rule register_DWI_to_freesurfer_bbregister:
-#     input:
-#         meanb0="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0_brain.nii.gz",
-#         orig_mgz="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz"
-#     output:
-#         "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2FS{mp2rage_params}.lta"
-#     params:
-#         subjects_dir="data/derivatives/{field_strength}/freesurfer/",
-#         subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}",
-#         outbase="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2FS{mp2rage_params}"
-#     resources:
-#         mem_mb=1500
-#     threads: 1
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     log:
-#         "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2FS{mp2rage_params}.log"
-#     shell:
-#         """
-#         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
-        
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-        
-#         bbregister --s {params.subject} --mov {input.meanb0} --reg {output} --dti --init-fsl --9
-#         mv {params.outbase}.log {log}
-#         """
-
-
-# rule apply_reg_DWI_to_freesurfer_bbregister:
-#     input:
-#         reg="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2FS{mp2rage_params}.lta",
-#         target="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz",
-#         moving="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/dki/"
-#     output:
-#         "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_applyreg2FS{mp2rage_params}.done"
-#     params:
-#         acqdir="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/",
-#         regto="reg2FS{mp2rage_params}",
-#         dwiprefix="sub-{subject}_ses-{session}_acq-DWI{dwi_params}"
-#     resources:
-#         mem_mb=1500
-#     threads: 1
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     log:
-#        "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_applyreg2FS{mp2rage_params}.log" 
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-
-#         dkimaps=("ad" "ak" "color_fa" "fa" "kfa" "md" "mk" "mkt" "rd" "rk" "rtk")
-
-#         for map in "${{dkimaps[@]}}"; do
-#             moving="{params.acqdir}/dki/{params.dwiprefix}_"$map".nii.gz"
-#             out="{params.acqdir}/reg2MP2RAGE/dki/{params.dwiprefix}_"$map"_{params.regto}.nii.gz"
-#             if [ -f $moving ]; then
-#                 mri_vol2vol --mov $moving --targ {input.target} --o $out --reg {input.reg} --no-save-reg
-#             fi
-#         done
-#         touch {output}
-#         """
-
-
-# rule gather_DWI_to_freesurfer_bbregister:
-#     input:
-#         dwi_to_freesurfer,
-#     output:
-#         "data/derivatives/{field_strength}/dwi/DWI_to_FS.done"
-#     log:
-#         "logs/{field_strength}/dwi/DWI_to_FS.log"
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         touch {output}
-#         """
-
-
-# rule apply_reg_seg_to_dwi_bbregister:
-#     input:
-#         seg = resliced_segmentation_first_acq_mp2rage,
-#         reg = dwi_reg2first_acq_mp2rage,
-#         b0 = "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0_brain.nii.gz"
-#     output:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-DWI{dwi_params}/mri/aparc+aseg_reg2DWI.nii.gz"
-#     resources: 
-#         mem_mb=500
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     log:
-#         "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-DWI{dwi_params}/aparc+aseg_reg2DWI.log"
-#     shell:
-#         """ 
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-
-#         #apply inverse reg so that seg is in dwi space, to avoid interpolation of dwi
-#         mri_vol2vol --mov {input.b0} --targ {input.seg} --inv --interp nearest --o {output} --reg {input.reg} --no-save-reg
-#         """
-
-
-# rule dwi_stats:
-#     input:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-DWI{dwi_params}/mri/aparc+aseg_reg2DWI.nii.gz",
-#         "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/dki/"
-#     params:
-#         dkiprefix="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/dki/sub-{subject}_ses-{session}_acq-DWI{dwi_params}",
-#         statsprefix="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-DWI{dwi_params}/stats/dki"
-#     output:
-#         "data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-DWI{dwi_params}/stats/dwi_stats.done"
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     resources:
-#         mem_mb=500
-#     threads: 1
-#     log:
-#        "logs/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-DWI{dwi_params}/dwi_stats.log" 
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-
-#         dkimaps=("ad" "ak" "color_fa" "fa" "kfa" "md" "mk" "mkt" "rd" "rk" "rtk")
-        
-#         for map in "${{dkimaps[@]}}"; do
-#             qMT="{params.dkiprefix}_"$map".nii.gz"
-#             stats="{params.statsprefix}_${{map}}.stats"
-#             if [ -f $qMT ]; then
-#                 mri_segstats --seg {input[0]} --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --i $qMT --sum $stats --excludeid 0
-#             fi
-#         done
-
-#         touch {output}
-#         """
-
-
-# rule dwi_tsv:
-#     input:
-#         dwi_statslist,
-#     output:
-#         "data/derivatives/{field_strength}/freesurfer/dwi_stats.done"
-#     params:
-#         subjectlist=freesurfer_subjectlist_dwi,
-#         subjects_dir="data/derivatives/{field_strength}/freesurfer/"
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     resources:
-#         mem_mb=500
-#     threads: 1
-#     log:
-#       "logs/{field_strength}/freesurfer/dwi_stats_tsv.log"  
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
-        
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-
-#         dkimaps=("ad" "ak" "color_fa" "fa" "kfa" "md" "mk" "mkt" "rd" "rk" "rtk")
-        
-#         if ! [ -n {params.subjectlist} ]; then
-#             for map in "${{dkimaps[@]}}"; do
-#                 asegstats2table --subjects {params.subjectlist} --statsfile dki_${{map}}.stats -t $SUBJECTS_DIR/dki_${{map}}_stats.tsv --meas mean --common-segs --no-segno 0 --skip || \
-#                 echo "no subjects have this map!"
-#             done
-#         fi
-#         touch {output}
-#         """
-
-
-# rule apply_reg_MP2RAGE_to_dwi_bbregister:
-#     input:
-#         b0 = "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0_brain.nii.gz",
-#         target="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz",
-#         reg = "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2{mp2rage_params}.lta"
-#     params:
-#         mp2rage_acqdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/",
-#         regto="reg2DWI{dwi_params}",
-#         mp2rage_subject="sub-{subject}_ses-{session}_acq-{mp2rage_params}"
-#     output:
-#         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/reg2DWI/sub-{subject}_ses-{session}_acq-{mp2rage_params}_applyreg2DWI{dwi_params}.done"
-#     resources: 
-#         mem_mb=500
-#     threads: 1
-#     container:
-#         "docker://freesurfer/freesurfer:8.1.0"
-#     log:
-#         "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/reg2DWI/sub-{subject}_ses-{session}_acq-{mp2rage_params}_applyreg2DWI{dwi_params}.log"  
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        
-#         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-
-#         MP2RAGEmaps=("R1map_b1corr" "T1map_b1corr" "T1w_UNIDEN_b1corr" "T1w_UNI_b1corr" "T1w_UNIDEN")
-#         mkdir -p {params.mp2rage_acqdir}/reg2DWI
-#         for map in "${{MP2RAGEmaps[@]}}"; do
-#             target="{params.mp2rage_acqdir}/{params.mp2rage_subject}_"$map".nii.gz"
-#             out="{params.mp2rage_acqdir}/reg2DWI/{params.mp2rage_subject}_"$map"_{params.regto}.nii.gz"
-
-#             #apply inverse of qMT to MP2RAGE registration
-#             mri_vol2vol --mov {input.b0} --targ $target --inv --o $out --reg {input.reg} --no-save-reg
-#         done
-#         touch {output}
-#         """
-
-
-# rule gather_MP2RAGE_to_dwi_bbregister:
-#     input:
-#         mp2rage_to_dwi,
-#     output:
-#         "data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_DWI.done"
-#     log:
-#         "logs/{field_strength}/MP2RAGE/MP2RAGE_to_DWI.log"  
-#     shell:
-#         """
-#         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-#         touch {output}
-#         """
-
-# rule aggregate_multimodal_dwi_mp2rage:
-#     input:
-#         expand("data/derivatives/{field_strength}/freesurfer/dwi_stats.done", field_strength=field_strength_list),
-#         expand("data/derivatives/{field_strength}/MP2RAGE/MP2RAGE_to_DWI.done", field_strength=field_strength_list),
-#         expand("data/derivatives/{field_strength}/dwi/DWI_to_MP2RAGE.done", field_strength=field_strength_list)
-
-
 rule register_dwi_to_freesurfer_bbregister:
     input:
         meanb0="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0_brain.nii.gz",
@@ -1327,9 +847,9 @@ rule register_dwi_to_freesurfer_bbregister:
     shell:
         """
         export SUBJECTS_DIR=$HOME/{params.subjects_dir}
-        
+
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-        
+
         bbregister --s {params.subject} --mov {input.meanb0} --reg {output} --dti --init-rr
         mv {params.outbase}.log {log}
         """
@@ -1355,7 +875,7 @@ rule apply_reg_dwi_to_freesurfer_bbregister:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        
+
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
 
         dkimaps=("ad" "ak" "color_fa" "fa" "kfa" "md" "mk" "mkt" "rd" "rk" "rtk")
@@ -1395,19 +915,19 @@ rule apply_aparc_aseg_to_dwi_bbregister:
         refprefix="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}"
     output:
         "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/masks_segs/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_aparc+aseg.nii.gz"
-    resources: 
+    resources:
         mem_mb=500
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     threads: 1
     log:
-       "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_aparc+aseg.log" 
+       "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_aparc+aseg.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
         export FS_LICENSE=$HOME/.snakemake/scripts/.license
-        
+
         #apply inverse reg so that seg is in dwi space, to avoid interpolation of dwi
         mri_vol2vol \
         --inv --nearest --no-save-reg \
@@ -1466,10 +986,14 @@ rule apply_warp_mni_atlases_to_dwi:
         mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
-        mri_mask {output.wm90percent_lobes} {output.wm_mask} {output.wm90percent_lobes}
+        masked_wm90percent_lobes="{output.wm90percent_lobes}.masked.nii.gz"
+        mri_mask {output.wm90percent_lobes} {output.wm_mask} "$masked_wm90percent_lobes"
+        mv "$masked_wm90percent_lobes" {output.wm90percent_lobes}
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
-        mri_mask {output.wm_lobes} {output.wm_mask} {output.wm_lobes}
+        masked_wm_lobes="{output.wm_lobes}.masked.nii.gz"
+        mri_mask {output.wm_lobes} {output.wm_mask} "$masked_wm_lobes"
+        mv "$masked_wm_lobes" {output.wm_lobes}
         """
 
 
@@ -1502,14 +1026,14 @@ rule dwi_roi_stats:
         done
 
         touch {output}
-        
+
         """
 
 
 rule dwi_roi_stats_agg_segs:
     input:
-        stats=expand("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_{segmentation}_stats.done", 
-        segmentation=config["segmentations"].split(), allow_missing=True),    
+        stats=expand("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_{segmentation}_stats.done",
+        segmentation=config["segmentations"].split(), allow_missing=True),
     params:
         stats_temp="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp",
     output:

@@ -35,10 +35,40 @@ class RenameQmtAcquisitionsTest(unittest.TestCase):
                 {destination.name for _, destination in renames},
                 {
                     "sub-01_ses-1_acq-sag1isoc9"
-                    "_echo-1_flip-14_mt-on_part-mag_MPM.json",
+                    "_echo-1_flip-1_mt-on_part-mag_MPM.json",
                     "sub-01_ses-1_acq-sag1isoc9"
-                    "_echo-1_flip-14_mt-on_part-mag_MPM.nii.gz",
+                    "_echo-1_flip-1_mt-on_part-mag_MPM.nii.gz",
                 },
+            )
+
+    def test_orders_flip_labels_from_t1w_to_pdw(self):
+        names = [
+            "sub-01_ses-1_acq-vibeMTt1w3ecosag1isoc9"
+            "_echo-1_flip-33_mt-off_part-mag_MPM.json",
+            "sub-01_ses-1_acq-vibeMTmtw3ecosag1isoc9"
+            "_echo-1_flip-14_mt-on_part-mag_MPM.json",
+            "sub-01_ses-1_acq-vibeMTpdw6ecosag1isoc9"
+            "_echo-1_flip-6_mt-off_part-mag_MPM.json",
+        ]
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            for name in names:
+                (root / name).touch()
+
+            renames = planned_renames(root)
+            destinations = {destination.name for _, destination in renames}
+
+            self.assertIn(
+                "sub-01_ses-1_acq-sag1isoc9_echo-1_flip-1_mt-off_part-mag_MPM.json",
+                destinations,
+            )
+            self.assertIn(
+                "sub-01_ses-1_acq-sag1isoc9_echo-1_flip-2_mt-on_part-mag_MPM.json",
+                destinations,
+            )
+            self.assertIn(
+                "sub-01_ses-1_acq-sag1isoc9_echo-1_flip-3_mt-off_part-mag_MPM.json",
+                destinations,
             )
 
     def test_rejects_collisions(self):

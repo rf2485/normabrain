@@ -34,4 +34,20 @@ Users who wish to have more control over snakemake or output files can instead c
  
 The template bidsmap used to organize raw DICOMS into BIDS can be edited at ```config/bidsmap_normabrain_template.yaml```. The dictionary for saving paramters from the Siemens CSA header ("private header") to json metadata for each scan is in ```scripts/add_csa_data_to_meta.py```.
 
+After BIDScoin conversion, normalize qMT acquisition labels before qMT
+processing:
+
+```bash
+python3 workflow/scripts/rename_qmt_acquisitions.py data/rawdata/bids/3T --dry-run
+python3 workflow/scripts/rename_qmt_acquisitions.py data/rawdata/bids/3T
+```
+
+This removes the qMT sequence, contrast, and echo-count tokens from `acq`
+while preserving acquisition parameters such as `sag1isoc9ND`. It also
+renames the physical flip-angle entities to ordinal BIDS entities
+(`flip-1`, `flip-2`, ...), ordered from the T1-weighted flip angle to the
+PD-weighted flip angle. The physical values remain in the JSON `FlipAngle`
+metadata. The qMT, QSM, B1map, and registration rules use the ordinal labels
+for paths and the JSON values for contrast classification and model parameters.
+
 Calling snakemake without a target rule or file, or running run_workflow.bash with the --all flag, will run the whole pipeline on all subjects as defined by "rule all" in ```workflow/Snakefile```. If you wish to only run a single subject or sub-pipeline, place the name of the target file at the end of your snakemake command. For example, to generate freesurfer segmentation and mean ROI statistics for just the ihMT LoSar acquisition for subject 002 session 1 at 3T, run ```snakemake --resources mem_mb=9300 --sdm conda apptainer --cores 8 "data/derivatives/3T/freesurfer/sub-002_ses-1_acq-ihMTLoSar/stats/ihmt_stats.done"```. Snakemake will automatically also run the required MP2RAGE and B1map modules, along with the ihMT module, for this field strength/subject/session/acquistion to generate the segmentations. You may direct snakemake to target any rules or output files defined in the smk files in ```workflow/rules```.
