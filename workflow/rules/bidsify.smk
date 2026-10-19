@@ -16,6 +16,13 @@ def aggregate_add_csa(wildcards):
     dicoms_folder = checkpoints.symlink_dicoms_by_field_strength.get(**wildcards).output[0]
     return expand("data/rawdata/bids/{field_strength}/code/bidscoin/fixmeta.log", field_strength=next(os.walk(dicoms_folder))[1])
 
+def aggregate_qmt_renames(wildcards):
+    dicoms_folder = checkpoints.symlink_dicoms_by_field_strength.get(**wildcards).output[0]
+    return expand(
+        "data/rawdata/bids/{field_strength}/code/bidscoin/qmt_acquisitions_renamed.done",
+        field_strength=next(os.walk(dicoms_folder))[1],
+    )
+
 
 checkpoint symlink_dicoms_by_field_strength:
     input:
@@ -105,7 +112,7 @@ checkpoint add_csa_data_to_meta:
 
 rule gather_add_csa_data_to_meta:
     input:
-        aggregate_add_csa
+        "data/rawdata/qmt_acquisitions_renamed.done"
     output:
         "data/rawdata/bidsify.done"
     threads: 1
@@ -116,5 +123,42 @@ rule gather_add_csa_data_to_meta:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
+        touch {output}
+        """
+
+
+rule rename_qmt_acquisitions_by_field_strength:
+    input:
+        aggregate_add_csa
+    output:
+        "data/rawdata/bids/{field_strength}/code/bidscoin/qmt_acquisitions_renamed.done"
+    params:
+        bids_root="data/rawdata/bids/{field_strength}"
+    conda:
+        "../envs/bidscoin.yaml"
+    threads: 1
+    log:
+        "logs/{field_strength}/rename_qmt_acquisitions.log"
+    priority: 50
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        python workflow/scripts/rename_qmt_acquisitions.py {params.bids_root}
+        touch {output}
+        """
+
+
+rule rename_qmt_acquisitions:
+    input:
+        aggregate_qmt_renames
+    output:
+        "data/rawdata/qmt_acquisitions_renamed.done"
+    threads: 1
+    log:
+        "logs/rename_qmt_acquisitions.log"
+    priority: 50
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
         touch {output}
         """

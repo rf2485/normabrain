@@ -325,8 +325,8 @@ if [ "$reg_seg" = true ]; then #--reg_seg with no other flags functions the same
 fi
 
 if [ "$bids" = true ]; then
-    target_args+=(gather_add_csa_data_to_meta)
-    target_string+=" gather_add_csa_data_to_meta"
+    target_args+=(rename_qmt_acquisitions)
+    target_string+=" rename_qmt_acquisitions"
 fi
 
 if [ "$mp2rage" = true ]; then
@@ -399,12 +399,12 @@ fi
 
 #always run bids first
 echo "Running bidsify module first, as the rest of the pipeline depends on this."
-echo "Running snakemake command: snakemake ${config_string} ${first_pass_string} gather_add_csa_data_to_meta"
+echo "Running snakemake command: snakemake ${config_string} ${first_pass_string} rename_qmt_acquisitions"
 if [ "$dag_mode" = true ]; then
     echo "saving DAG to bids_dag.svg, not running the pipeline"
-    snakemake "${config_args[@]}" "${first_pass_args[@]}" --dag dot gather_add_csa_data_to_meta | sed -n '/digraph/,/}/p' | dot -Tsvg > bids_dag.svg
+    snakemake "${config_args[@]}" "${first_pass_args[@]}" --dag dot rename_qmt_acquisitions | sed -n '/digraph/,/}/p' | dot -Tsvg > bids_dag.svg
 else
-    snakemake "${config_args[@]}" "${first_pass_args[@]}" gather_add_csa_data_to_meta
+    snakemake "${config_args[@]}" "${first_pass_args[@]}" rename_qmt_acquisitions
 fi
 
 if [ "$reg_seg" = true ] || [ "$mp2rage" = true ] || [ "$ihmt" = true ] || [ "$qmt" = true ] || [ "$qsm" = true ] || [ "$dwi" = true ] || [ "$all" = true ]; then
