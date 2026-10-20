@@ -9,10 +9,69 @@
 import argparse
 import os
 import glob
+import struct
 import dicognito.anonymizer
 import numpy as np
 import pydicom
 import SimpleITK as sitk
+
+
+def _fake_mr_phoenix_protocol():
+    """Return the ASCCONV values used by the CSA metadata tests."""
+    values = {
+        "sFastImaging.lTurboFactor": "2",
+        "sKSpace.lPartitions": "2",
+        "alTR[0]": "2000",
+        "alTI[0]": "700",
+        "alTI[1]": "1200",
+        "adFlipAngleDegree[0]": "5",
+        "adFlipAngleDegree[1]": "10",
+        "sWipMemBlock.adFree[0]": "1",
+        "sWipMemBlock.adFree[1]": "0.2",
+        "sWipMemBlock.adFree[2]": "1",
+        "sWipMemBlock.adFree[5]": "10",
+    }
+    values.update(
+        {
+            f"sWipMemBlock.alFree[{index}]": "1"
+            for index in range(35)
+        }
+    )
+    values["sWipMemBlock.alFree[2]"] = "0"
+    return (
+        "### ASCCONV BEGIN ###\n"
+        + "\n".join(f"{key} = {value}" for key, value in values.items())
+        + "\n### ASCCONV END ###\n"
+    ).encode("ascii")
+
+
+def _csa2_item(value):
+    """Encode one CSA2 item, including its four-byte padding."""
+    padding = (-len(value)) % 4
+    return struct.pack("<4i", 0, len(value), 0, 0) + value + (b"\x00" * padding)
+
+
+def _fake_csa_series_header():
+    """Build a minimal Siemens CSA2 Series Header for test DICOMs."""
+    name = b"MrPhoenixProtocol\x00".ljust(64, b"\x00")
+    protocol = _fake_mr_phoenix_protocol()
+    tag = name + struct.pack("<i4s3i", 1, b"LO\x00\x00", 0, 1, 0)
+    return b"SV10" + struct.pack("<3i", 0, 1, 77) + tag + _csa2_item(protocol)
+
+
+def _add_fake_csa_header(ds):
+    """Add a fake CSA Series Header unless the source already has one."""
+    csa_tags = (
+        (0x0029, 0x1020),
+        (0x0029, 0x1120),
+        (0x0029, 0x1220),
+        (0x0029, 0x1010),
+    )
+    if any(tag in ds for tag in csa_tags):
+        return
+
+    ds.add_new((0x0029, 0x0010), "LO", "SIEMENS CSA HEADER")
+    ds.add_new((0x0029, 0x1020), "OB", _fake_csa_series_header())
 
 
 
@@ -168,6 +227,7 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             anonymizer.anonymize(ds)
             for tag, elem in saved_tags.items():
                 ds[tag] = elem
+            _add_fake_csa_header(ds)
             
             ds.save_as(os.path.join(output_dir, r["basename"]))
 
@@ -193,6 +253,7 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             anonymizer.anonymize(ds)
             for tag, elem in saved_tags.items():
                 ds[tag] = elem
+            _add_fake_csa_header(ds)
                 
             ds.save_as(os.path.join(output_dir, r["basename"]))
             print(f"  ↳ Preserved and anonymized: {r['basename']}")
@@ -206,6 +267,7 @@ if __name__ == '__main__':
         Scans a directory of DICOM files, determines if they are 2D or Multi-frame (3D/4D),
         and isolates the spatial midpoint slice across all dynamic contrasts.
         These single slices are then anonymized and saved to a new directory for use in unit tests.
+        A minimal fake Siemens CSA Series Header is added when the source lacks one.
         """)
     parser.add_argument("input_dir", type=str, help="Path to directory including original DICOMS from the scanner.")
     parser.add_argument("output_dir", type=str, help="Path to output directory for anonymized single slice DICOMS.")

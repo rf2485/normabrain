@@ -24,6 +24,17 @@ def aggregate_qmt_renames(wildcards):
         field_strength=next(os.walk(dicoms_folder))[1],
     )
 
+
+def qmt_files_for_rename(wildcards):
+    bids_root = Path("data/rawdata/bids") / wildcards.field_strength
+    return sorted(
+        [
+            *bids_root.rglob("*_MPM.json"),
+            *bids_root.rglob("*_MPM.nii.gz"),
+        ]
+    )
+
+
 def get_asl_contexts(field_strength):
     bids_root = Path(
         checkpoints.bidscoiner.get(field_strength=field_strength)
@@ -188,7 +199,8 @@ rule gather_add_csa_data_to_meta:
 
 rule rename_qmt_acquisitions_by_field_strength:
     input:
-        aggregate_add_csa
+        aggregate_add_csa,
+        qmt_files=qmt_files_for_rename
     output:
         "data/rawdata/bids/{field_strength}/code/bidscoin/qmt_acquisitions_renamed.done"
     params:
