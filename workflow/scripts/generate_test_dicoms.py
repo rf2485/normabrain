@@ -13,7 +13,7 @@ import struct
 import dicognito.anonymizer
 import numpy as np
 import pydicom
-import SimpleITK as sitk
+from pydicom.uid import generate_uid
 
 
 def _fake_mr_phoenix_protocol():
@@ -117,6 +117,24 @@ def _spatial_frame_index(ds, pixel_array):
     return int(np.argsort(positions_along_slice_normal)[len(positions) // 2])
 
 
+def _update_image_position(ds, row_start, column_start, orientation=None, spacing=None):
+    """Move an image origin to match a row/column crop."""
+    orientation = orientation or getattr(ds, "ImageOrientationPatient", None)
+    position = getattr(ds, "ImagePositionPatient", None)
+    spacing = spacing or getattr(ds, "PixelSpacing", None)
+    if not orientation or len(orientation) < 6 or not position or not spacing or len(spacing) < 2:
+        return
+
+    row_direction = np.asarray(orientation[:3], dtype=float)
+    column_direction = np.asarray(orientation[3:6], dtype=float)
+    image_position = np.asarray(position, dtype=float)
+    ds.ImagePositionPatient = (
+        image_position
+        + row_start * float(spacing[0]) * row_direction
+        + column_start * float(spacing[1]) * column_direction
+    ).tolist()
+
+
 def _crop_to_nonzero_bbox(ds, pixels):
     """Crop rows and columns around all nonzero pixels without changing frames."""
     spatial_pixels = pixels if pixels.ndim == 2 else pixels.reshape((-1,) + pixels.shape[-2:])
@@ -134,17 +152,20 @@ def _crop_to_nonzero_bbox(ds, pixels):
         row_spacing = float(old_pixel_spacing[0])
         column_spacing = float(old_pixel_spacing[1])
         ds.PixelSpacing = [row_spacing, column_spacing]
-        if "ImagePositionPatient" in ds:
-            orientation = getattr(ds, "ImageOrientationPatient", None)
-            if orientation and len(orientation) >= 6:
-                row_direction = np.asarray(orientation[:3], dtype=float)
-                column_direction = np.asarray(orientation[3:6], dtype=float)
-                position = np.asarray(ds.ImagePositionPatient, dtype=float)
-                ds.ImagePositionPatient = (
-                    position
-                    + row_start * row_spacing * row_direction
-                    + column_start * column_spacing * column_direction
-                ).tolist()
+        _update_image_position(ds, row_start, column_start)
+
+        frame_groups = getattr(ds, "PerFrameFunctionalGroupsSequence", None)
+        if frame_groups:
+            for frame_group in frame_groups:
+                plane_position = getattr(frame_group, "PlanePositionSequence", None)
+                if plane_position:
+                    _update_image_position(
+                        plane_position[0],
+                        row_start,
+                        column_start,
+                        orientation=getattr(ds, "ImageOrientationPatient", None),
+                        spacing=old_pixel_spacing,
+                    )
 
     ds.Rows = pixels.shape[-2]
     ds.Columns = pixels.shape[-1]
@@ -163,9 +184,47 @@ def _keep_single_frame(ds, pixels, frame_id):
     return pixels
 
 
+def _normalize_test_metadata(ds, study_uid, series_uid, frame_of_reference_uid):
+    """Make anonymized output a coherent, valid test DICOM dataset."""
+    ds.PatientName = "Test^Subject"
+    ds.PatientID = "test"
+    ds.PatientBirthDate = ""
+    ds.PatientSex = "O"
+
+    for keyword in (
+        "AccessionNumber",
+        "InstitutionName",
+        "InstitutionAddress",
+        "ReferringPhysicianName",
+        "StudyID",
+    ):
+        if keyword in ds:
+            ds.data_element(keyword).value = ""
+
+    for keyword in ("StudyDate", "SeriesDate", "AcquisitionDate", "ContentDate"):
+        if keyword in ds:
+            ds.data_element(keyword).value = "20000101"
+    for keyword in ("StudyTime", "SeriesTime", "AcquisitionTime", "ContentTime"):
+        if keyword in ds:
+            ds.data_element(keyword).value = "120000"
+
+    ds.StudyInstanceUID = study_uid
+    ds.SeriesInstanceUID = series_uid
+    ds.SOPInstanceUID = generate_uid()
+    if "FrameOfReferenceUID" in ds:
+        ds.FrameOfReferenceUID = frame_of_reference_uid
+
+    if not hasattr(ds, "file_meta"):
+        ds.file_meta = pydicom.dataset.FileMetaDataset()
+    ds.file_meta.MediaStorageSOPClassUID = ds.SOPClassUID
+    ds.file_meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
+    if "TransferSyntaxUID" not in ds.file_meta:
+        ds.file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
+
+
 def robust_directory_slice_extractor(input_dir: str, output_dir: str):
     """
-    Scans a directory, isolates a midpoint row cross-section by masking adjacent rows,
+    Scans a directory, isolates a central band by masking adjacent rows,
     anonymizes metadata and writes the output using the source DICOM transfer
     syntax.
     """
@@ -201,6 +260,9 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
 
     os.makedirs(output_dir, exist_ok=True)
     is_multiframe_series = any(r["frames"] > 1 for r in raw_records)
+    study_uid = generate_uid()
+    series_uid = generate_uid()
+    frame_of_reference_uid = generate_uid()
 
     # =========================================================================
     # ROUTE 1: Multi-Frame Volumes (3D Stacks or 4D Volumes)
@@ -211,7 +273,6 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
         for r in raw_records:
             ds = pydicom.dcmread(r["filename"])
             pixels = ds.pixel_array.copy()
-            total_rows = ds.Rows
             target_frame_idx = _spatial_frame_index(ds, pixels)
 
             if target_frame_idx is None:
@@ -228,6 +289,7 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             for tag, elem in saved_tags.items():
                 ds[tag] = elem
             _add_fake_csa_header(ds)
+            _normalize_test_metadata(ds, study_uid, series_uid, frame_of_reference_uid)
             
             ds.save_as(os.path.join(output_dir, r["basename"]))
 
@@ -241,10 +303,10 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             ds = pydicom.dcmread(r["filename"])
             pixels = ds.pixel_array.copy()
             total_rows = ds.Rows
-            target_row_idx = total_rows // 4
-            
+            band_height = max(8, total_rows // 8)
+            target_row_idx = max(0, (total_rows - band_height) // 2)
             pixels[:target_row_idx, :] = 0
-            pixels[target_row_idx+1:, :] = 0
+            pixels[target_row_idx + band_height:, :] = 0
             
             pixels = _crop_to_nonzero_bbox(ds, pixels)
             ds.PixelData = pixels.tobytes()
@@ -254,6 +316,7 @@ def robust_directory_slice_extractor(input_dir: str, output_dir: str):
             for tag, elem in saved_tags.items():
                 ds[tag] = elem
             _add_fake_csa_header(ds)
+            _normalize_test_metadata(ds, study_uid, series_uid, frame_of_reference_uid)
                 
             ds.save_as(os.path.join(output_dir, r["basename"]))
             print(f"  ↳ Preserved and anonymized: {r['basename']}")
@@ -265,7 +328,9 @@ if __name__ == '__main__':
         description=
         """
         Scans a directory of DICOM files, determines if they are 2D or Multi-frame (3D/4D),
-        and isolates the spatial midpoint slice across all dynamic contrasts.
+        and isolates the spatial midpoint slice across all dynamic contrasts. 2D
+        series retain a small central band rather than a single pixel row so
+        that downstream image-processing commands receive usable test images.
         These single slices are then anonymized and saved to a new directory for use in unit tests.
         A minimal fake Siemens CSA Series Header is added when the source lacks one.
         """)
