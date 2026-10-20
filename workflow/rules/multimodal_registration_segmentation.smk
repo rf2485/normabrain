@@ -11,7 +11,7 @@ qmt_contrasts = ("mt0", "mtw", "pdw", "t1w")
 bidspath = Path("data/rawdata/bids")
 try:
     field_strength_list = next(os.walk(bidspath))[1]
-except OSError:
+except (OSError, StopIteration):
     field_strength_list = []
 layout_dict = {
     field_strength: BIDSLayout(bidspath / field_strength, validate=False)

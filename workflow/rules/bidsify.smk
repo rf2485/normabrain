@@ -171,10 +171,7 @@ checkpoint gather_aslcontext:
 rule gather_add_csa_data_to_meta:
     input:
         "data/rawdata/qmt_acquisitions_renamed.done",
-        aslcontext=lambda wildcards: expand(
-            "data/rawdata/bids/{field_strength}/code/bidscoin/aslcontext.done",
-            field_strength=next(os.walk("data/rawdata/bids"))[1],
-        )
+        aslcontext=aggregate_asl_contexts
     output:
         "data/rawdata/bidsify.done"
     threads: 1

@@ -268,6 +268,30 @@ DICOM:
     bids: *anat_dicoment_nonparametric
   - attributes:
       <<: *anat_dicomattr
+      ProtocolName: (?i).*t2.?semc.*
+      SeriesDescription: (?i).*SIM.?TE.*
+    bids:
+      <<: *anat_dicoment_nonparametric
+      rec: SIMTE
+      suffix: T2w
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*t2.?semc.*
+      SeriesDescription: (?i).*(M0|DENSITY.?MAP).*
+    bids:
+      <<: *anat_dicoment_parametric
+      rec:
+      suffix: M0map
+  - attributes:
+      <<: *anat_dicomattr
+      ProtocolName: (?i).*t2.?semc.*
+      SeriesDescription: (?i).*(R2.?map|R2.?MAP).*
+    bids:
+      <<: *anat_dicoment_parametric
+      rec:
+      suffix: R2map
+  - attributes:
+      <<: *anat_dicomattr
       ProtocolName: (?i).*(T2w|t2w|t2_semc|quantorage|qrage).*
       # SequenceVariant: "['SK', 'SP']"
     bids:
@@ -802,8 +826,6 @@ DICOM:
       part: ['', mag, phase, real, imag, 0]
       suffix: asl
     meta: &perf_meta
-      ArterialSpinLabelingType: <ArterialSpinLabelingType>
-      PostLabelingDelay: <PostLabelingDelay>
       BackgroundSuppression: <BackgroundSuppression>
       M0Type: <M0Type>
       RepetitionTimePreparation: <RepetitionTime>
