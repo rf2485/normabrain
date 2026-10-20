@@ -41,22 +41,26 @@ def get_unit1_json(wildcards):
     return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*UNIT1.json'))[0]
 
 def antsdnbrain_first_acq_mp2rage(wildcards):
+    "Return antsdnbrain.mgz from FreeSurfer for the first MP2RAGE acquisition."
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz', mp2rage_params=first_acq, allow_missing=True)
 
 def aparc_aseg_first_acq_freesurfer(wildcards):
+    "Return aparc+aseg.mgz from FreeSurfer for the first MP2RAGE acquisiton."
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz', mp2rage_params=first_acq, allow_missing=True)
 
 def fs2mni152_first_acq(wildcards):
+    "Return warp from FreeSurfer to MNI for the first MP2RAGE acquisition."
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz', 
     mp2rage_params=first_acq, session=wildcards.session, subject=wildcards.subject, field_strength=wildcards.field_strength)
 
 def mp2rage_roi_statslist(wildcards):
+    "Return list of expected MP2RAGE stats files given raw BIDS files."
     layout=layout_dict[wildcards.field_strength]
     statslist = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -75,6 +79,7 @@ def mp2rage_roi_statslist(wildcards):
     return statslist
 
 def aggregate_mp2rage_coreg(wildcards):
+    "Return list of expected MP2RAGE files coregistered to the FreeSurfer space of the first acquisition, given the raw BIDS files."
     layout=layout_dict[wildcards.field_strength]
     coreglist = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -91,8 +96,6 @@ def aggregate_mp2rage_coreg(wildcards):
             for acq in acqlist:
                 coreglist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/coreg/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_{mp2rage_map}_coreg.nii.gz")
     return coreglist
-"data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_coreg.nii.gz"
-
 
 
 rule add_xml_data_to_meta_mp2rage:

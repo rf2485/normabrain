@@ -8,12 +8,13 @@ from pathlib import Path
 
 qmt_contrasts = ("mt0", "mtw", "pdw", "t1w")
 
+#get field strength list from BIDS folder
 bidspath = Path("data/rawdata/bids")
 try:
     field_strength_list = next(os.walk(bidspath))[1]
-except (OSError, StopIteration):
+except (OSError, StopIteration): #if there's no BIDS folder return empty list
     field_strength_list = []
-layout_dict = {
+layout_dict = { #run BIDSLayout once per field_strength and save to dictionary
     field_strength: BIDSLayout(bidspath / field_strength, validate=False)
     for field_strength in field_strength_list
 }
@@ -22,15 +23,10 @@ layout_dict = {
 wildcard_constraints:
     contrast = '|'.join(qmt_contrasts),
     part = 'mag|phase',
-    # qMT_params = "^[a-zA-Z0-9]*$",
-    # segmentation = config["segmentations"].split()
 
-def resliced_segmentation_first_acq_mp2rage(wildcards):
-    layout=layout_dict[wildcards.field_strength]
-    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_coreg_{segmentation}.nii.gz", mp2rage_params=first_acq, allow_missing=True)
 
 def qMT_to_freesurfer(wildcards):
+    """Return list of expected qMT registered to FreeSurfer done files, given raw BIDS images."""
     layout=layout_dict[wildcards.field_strength]
     apply_reg_list = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -55,6 +51,7 @@ def qMT_to_freesurfer(wildcards):
     return sorted(set(apply_reg_list))
 
 def ihmt_to_freesurfer(wildcards):
+    """Return list of expected ihMT registered to FreeSurfer done files, given raw BIDS images."""
     layout=layout_dict[wildcards.field_strength]
     apply_reg_list = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -76,6 +73,7 @@ def ihmt_to_freesurfer(wildcards):
     return apply_reg_list
 
 def dwi_to_freesurfer(wildcards):
+    """Return list of expected DWI registered to FreeSurfer done files, given raw BIDS images."""
     layout=layout_dict[wildcards.field_strength]
     apply_reg_list = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -98,21 +96,25 @@ def dwi_to_freesurfer(wildcards):
     return apply_reg_list
 
 def ihmt_reg2first_acq_freesurfer(wildcards):
+    """Return filepath for registration of ihMT to FreeSurfer space of the first MP2RAGE acquisiton."""
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
 
 def qMT_reg2first_acq_freesurfer(wildcards):
+    """Return filepath for registration of qMT to FreeSurfer space of the first MP2RAGE acquisiton"""
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
 
 def dwi_reg2first_acq_freesurfer(wildcards):
+    """Return filepath for registration of DWI to FreeSurfer space of the first MP2RAGE acquisition."""
     layout=layout_dict[wildcards.field_strength]
     first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
     return expand("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
 
 def ihmt_statslist(wildcards):
+    """Return list of expected ihMT stats files given raw BIDS files."""
     layout=layout_dict[wildcards.field_strength]
     statslist = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -133,6 +135,7 @@ def ihmt_statslist(wildcards):
     return sorted(statslist)
 
 def qMT_statslist(wildcards):
+    """Return list of expected qMT stats files given raw BIDS files."""
     layout=layout_dict[wildcards.field_strength]
     statslist = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -155,6 +158,7 @@ def qMT_statslist(wildcards):
     return sorted(set(statslist))
 
 def dwi_statslist(wildcards):
+    """Return list of expected DWI stats files given raw BIDS files."""
     layout=layout_dict[wildcards.field_strength]
     statslist = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -173,101 +177,6 @@ def dwi_statslist(wildcards):
             for acq in acqlist:
                 statslist.append("data/derivatives/" + wildcards.field_strength + "/dwi/sub-" + subject + "/ses-" + session + "/acq-DWI" + acq + "/sub-" + subject + "_ses-" + session + "_acq-DWI" + acq + "_stats.pickle")
     return sorted(statslist)
-
-
-def freesurfer_subjectlist_qMT(wildcards):
-    layout=layout_dict[wildcards.field_strength]
-    fs_subjectlist = []
-    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-    subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-    subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-    subjectlist_mpm = layout.get_subject(suffix="MPM")
-    subjectlist = list(set(subjectlist_mp2rage) & (set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mpm))
-    for subject in subjectlist:
-        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-        sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-        sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-        sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
-        sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
-        for session in sessionlist:
-            acqlist = get_mpm_acquisitions(
-                wildcards.field_strength, subject, session
-            )
-            for acq in acqlist:
-                fs_subjectlist.append("sub-" + subject + "_ses-" + session + "_acq-" + acq)
-    counts = Counter(fs_subjectlist)
-    fs_subjectlist = [sub for sub, count in counts.items() if count > 3]
-    fs_subjectarray = " ".join(fs_subjectlist)
-    return fs_subjectarray
-
-def freesurfer_subjectlist_dwi(wildcards):
-    layout=layout_dict[wildcards.field_strength]
-    fs_subjectlist = []
-    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-    subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-    subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-    subjectlist_dwi = layout.get_subject(suffix="dwi")
-    subjectlist = list(set(subjectlist_mp2rage) & (set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_dwi))
-    for subject in subjectlist:
-        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-        sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-        sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-        sessionlist_dwi = layout.get_session(suffix="dwi", subject=subject)
-        sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_dwi))
-        for session in sessionlist:
-            acqlist = layout.get_acquisition(suffix="dwi", subject=subject, session=session)
-            for acq in acqlist:
-                fs_subjectlist.append("sub-" + subject + "_ses-" + session + "_acq-DWI" + acq)
-    fs_subjectlist = list(set(fs_subjectlist))
-    fs_subjectarray = " ".join(fs_subjectlist)
-    return fs_subjectarray
-
-
-def mp2rage_to_qMT(wildcards):
-    layout=layout_dict[wildcards.field_strength]
-    apply_reg_list = []
-    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-    subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-    subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-    subjectlist_mpm = layout.get_subject(suffix="MPM")
-    subjectlist = list(set(subjectlist_mp2rage) & (set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mpm))
-    for subject in subjectlist:
-        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-        sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-        sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-        sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
-        sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
-        for session in sessionlist:
-            mp2rage_first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)[0]
-            mpm_acqlist = get_mpm_acquisitions(
-                wildcards.field_strength, subject, session
-            )
-            for mpm in mpm_acqlist:
-                apply_reg_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + mp2rage_first_acq + "/reg2qMT/sub-" + subject + "_ses-" + session + "_acq-" + mp2rage_first_acq + "_applyreg2" + mpm + ".done")
-    counts = Counter(apply_reg_list)
-    apply_reg_list = [reg for reg, count in counts.items() if count > 3]
-    return apply_reg_list
-
-def mp2rage_to_dwi(wildcards):
-    layout=layout_dict[wildcards.field_strength]
-    apply_reg_list = []
-    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
-    subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
-    subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
-    subjectlist_dwi = layout.get_subject(suffix="dwi")
-    subjectlist = list(set(subjectlist_mp2rage) & (set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_dwi))
-    for subject in subjectlist:
-        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
-        sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
-        sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
-        sessionlist_dwi = layout.get_session(suffix="dwi", subject=subject)
-        sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_dwi))
-        for session in sessionlist:
-            mp2rage_first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)[0]
-            dwi_acqlist = layout.get_acquisition(suffix="dwi", subject=subject, session=session)
-            for dwi in dwi_acqlist:
-                apply_reg_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + mp2rage_first_acq + "/reg2DWI/sub-" + subject + "_ses-" + session + "_acq-" + mp2rage_first_acq + "_applyreg2DWI" + dwi + ".done")
-    return apply_reg_list
 
 
 rule register_ihmt_to_freesurfer_bbregister:

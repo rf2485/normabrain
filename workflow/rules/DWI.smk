@@ -50,6 +50,7 @@ def get_dwi_AP_phase_mif(wildcards):
     return dwi_AP_phase
 
 def aggregate_dki(wildcards):
+    "Return list of expected DKI output folders given raw BIDS files."
     layout=layout_dict[wildcards.field_strength]
     dki_list = []
     subjectlist = layout.get_subject(suffix="dwi")

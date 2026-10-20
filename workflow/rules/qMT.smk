@@ -6,15 +6,23 @@ import os
 from pathlib import Path
 from bids import BIDSLayout
 
+#get field strength list from BIDS folder
 bidspath = Path("data/rawdata/bids")
 try:
     field_strength_list = next(os.walk(bidspath))[1]
-except (OSError, StopIteration):
+except (OSError, StopIteration): #if there's no BIDS folder return empty list
     field_strength_list = []
-layout_dict = {
+layout_dict = { #run BIDSLayout once per field_strength and save to dictionary
     field_strength: BIDSLayout(bidspath / field_strength, validate=False)
     for field_strength in field_strength_list
 }
+
+#constrain wildcards to avoid ambiguity
+wildcard_constraints:
+    flip_angle = r'flip-\d+',
+    # qMT_params = r'[^/]+', #match one or more characters that are not a forward slash
+    part = 'mag|phase'
+
 
 def get_mpm_acquisitions(field_strength, subject, session):
     """Return complete MPM acquisition labels, including BIDS entities."""
@@ -27,12 +35,31 @@ def get_mpm_acquisitions(field_strength, subject, session):
         for path in glob.glob(pattern)
     })
 
-wildcard_constraints:
-    flip_angle = r'flip-\d+',
-    qMT_params = r'[^/]+',
-    part = 'mag|phase'
+def get_off_flips(wildcards):
+    """Return real flip angles for mt-off MPM images from metadata."""
+    paths = sorted(glob.glob(
+        f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/'
+        f'ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_'
+        f'acq-{wildcards.qMT_params}_echo-1_flip-*_mt-off_part-mag_MPM.json'
+    ))
+    if not paths:
+        raise ValueError(
+            f"No MT-off qMT metadata found for acquisition '{wildcards.qMT_params}'"
+        )
+    with open(paths[0], "r") as metadata_file:
+        flips = {json.load(metadata_file)["FlipAngle"]}
+    for path in paths[1:]:
+        with open(path, "r") as metadata_file:
+            flips.add(json.load(metadata_file)["FlipAngle"])
+    if len(flips) < 2:
+        raise ValueError(
+            f"Expected distinct MT-off flip angles for acquisition "
+            f"'{wildcards.qMT_params}', found {sorted(flips)}"
+        )
+    return sorted(flips)
 
 def get_flip_values(wildcards):
+    """Return flip angles for mt-on and mt-off MPM files from metadata."""
     mtw_path = sorted(glob.glob(
         f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/'
         f'ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_'
@@ -48,6 +75,7 @@ def get_flip_values(wildcards):
     return sorted(values, reverse=True)
 
 def flip_value(wildcards, flip_angle):
+    """Return a flip angle value given a flip angle index like 'flip-1'"""
     if isinstance(flip_angle, str) and flip_angle.startswith("flip-"):
         index = int(flip_angle.removeprefix("flip-")) - 1
         values = get_flip_values(wildcards)
@@ -60,6 +88,7 @@ def flip_value(wildcards, flip_angle):
     return float(flip_angle)
 
 def flip_label(wildcards, flip_angle):
+    """Return flip angle index given a flip angle value."""
     value = float(flip_angle)
     values = get_flip_values(wildcards)
     try:
@@ -71,6 +100,7 @@ def flip_label(wildcards, flip_angle):
         ) from error
 
 def qmt_files(wildcards, flip_angle, part=None, mt=None):
+    """Return MPM file names given flip angle index like 'flip-1', part, and mt."""
     flip_angle = flip_value(wildcards, flip_angle)
     pattern = (
         f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/'
@@ -99,6 +129,7 @@ def qmt_files(wildcards, flip_angle, part=None, mt=None):
     return matches
 
 def get_echos(wildcards):
+    """Return all echos of a given flip angle like 'flip-1', part, and mt."""
     return qmt_files(
         wildcards,
         wildcards.flip_angle,
@@ -107,10 +138,12 @@ def get_echos(wildcards):
     )
 
 def get_qmt_json_path(wildcards, flip_angle, mt):
+    """Return json metadata file of a given flip angle like 'flip-1' and mt."""
     nifti_path = Path(qmt_files(wildcards, flip_angle, part="mag", mt=mt)[0])
     return nifti_path.with_suffix("").with_suffix(".json")
 
 def get_mtwflip(wildcards):
+    """Get flip angle index of MTw MPM image."""
     paths = sorted(glob.glob(
         f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/'
         f'ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_'
@@ -125,29 +158,8 @@ def get_mtwflip(wildcards):
     with open(json_path, "r") as metadata_file:
         return flip_label(wildcards, json.load(metadata_file)["FlipAngle"])
 
-def get_off_flips(wildcards):
-    paths = sorted(glob.glob(
-        f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/'
-        f'ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_'
-        f'acq-{wildcards.qMT_params}_echo-1_flip-*_mt-off_part-mag_MPM.json'
-    ))
-    if not paths:
-        raise ValueError(
-            f"No MT-off qMT metadata found for acquisition '{wildcards.qMT_params}'"
-        )
-    with open(paths[0], "r") as metadata_file:
-        flips = {json.load(metadata_file)["FlipAngle"]}
-    for path in paths[1:]:
-        with open(path, "r") as metadata_file:
-            flips.add(json.load(metadata_file)["FlipAngle"])
-    if len(flips) < 2:
-        raise ValueError(
-            f"Expected distinct MT-off flip angles for acquisition "
-            f"'{wildcards.qMT_params}', found {sorted(flips)}"
-        )
-    return sorted(flips)
-
 def get_qMT_params(wildcards):
+    """Return parameters from json of MTw MPM."""
     json_path = get_qmt_json_path(
         wildcards, flip_value(wildcards, get_mtwflip(wildcards)), "on"
     )
@@ -167,22 +179,24 @@ def get_qMT_params(wildcards):
         }
     return mt_params
 
-def get_qMT_json(wildcards):
-    return str(get_qmt_json_path(wildcards, get_mtwflip(wildcards), "on"))
-
 def get_t1flip(wildcards):
+    """Return flip angle index 'flip-1' which indicates T1w MPM."""
     return "flip-1"
 
 def get_pdflip(wildcards):
+    """Return flip angle index 'flip-#last' which indicates PDw MPM."""
     return f"flip-{len(get_flip_values(wildcards))}"
 
 def get_t1flip_value(wildcards):
+    """Return value of flip angle for T1w MPM."""
     return flip_value(wildcards, get_t1flip(wildcards))
 
 def get_pdflip_value(wildcards):
+    """Return value of flip angle for PDw MPM."""
     return flip_value(wildcards, get_pdflip(wildcards))
 
 def t1w_sos_preproc(wildcards, suffix):
+    """Return file string for image after SoS"""
     return (
         f"data/derivatives/{wildcards.field_strength}/qMT/sub-{wildcards.subject}/"
         f"ses-{wildcards.session}/acq-{wildcards.qMT_params}/preproc/"
@@ -191,6 +205,7 @@ def t1w_sos_preproc(wildcards, suffix):
     )
 
 def qmt_role_path(wildcards, role, suffix):
+    """Return file name for given role and suffix where role = 't1w', 'mt0', 'mtw' or 'pdw'."""
     flip = {
         "t1w": get_t1flip(wildcards),
         "mt0": get_mtwflip(wildcards),
@@ -206,6 +221,7 @@ def qmt_role_path(wildcards, role, suffix):
     )
 
 def denoised_contrast_path(wildcards):
+    """Return filename of denoised MPM image."""
     if wildcards.mt == "on":
         role = "mtw_mt-on"
     elif wildcards.flip_angle == get_mtwflip(wildcards):
@@ -227,7 +243,7 @@ def denoised_contrast_path(wildcards):
     )
 
 def t1wmag_preproc(wildcards):
-    #get preprocessed magnitude image depending on if phase is available
+    """Get preprocessed T1w magnitude image depending on if phase is available."""
     try:
         raw_phase = qmt_files(
             wildcards, get_t1flip(wildcards),
@@ -241,7 +257,7 @@ def t1wmag_preproc(wildcards):
     return mag_preproc
 
 def mt0mag_preproc(wildcards):
-    #get preprocessed magnitude image depending on if phase is available
+    """Get preprocessed MT0 magnitude image depending on if phase is available."""
     try:
         raw_phase = qmt_files(
             wildcards, get_mtwflip(wildcards),
@@ -255,7 +271,7 @@ def mt0mag_preproc(wildcards):
     return mag_preproc
 
 def mtwmag_preproc(wildcards):
-    #get preprocessed magnitude image depending on if phase is available
+    """Get preprocessed MTw magnitude image depending on if phase is available."""
     try:
         raw_phase = qmt_files(
             wildcards, get_mtwflip(wildcards),
@@ -269,7 +285,7 @@ def mtwmag_preproc(wildcards):
     return mag_preproc
 
 def pdwmag_preproc(wildcards):
-    #get preprocessed magnitude image depending on if phase is available
+    """Get preprocessed PDw magnitude image depending on if phase is available."""
     try:
         raw_phase = qmt_files(
             wildcards, get_pdflip(wildcards),
@@ -283,6 +299,7 @@ def pdwmag_preproc(wildcards):
     return mag_preproc
 
 def aggregate_qMT(wildcards):
+    """Return list of expected outputs given raw MPM images in BIDS."""
     layout=layout_dict[wildcards.field_strength]
     qMT_list = []
     R1map_list = []

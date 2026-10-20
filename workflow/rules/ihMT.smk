@@ -40,6 +40,7 @@ def get_ihmt_protocol_name(wildcards):
     return ihmt_protocol_name
 
 def aggregate_ihmt_maps(wildcards):
+    "Return list of ihMT B1corr brainmask done files, given raw BIDS files."
     layout=layout_dict[wildcards.field_strength]
     ihmt_map_list = []
     subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")

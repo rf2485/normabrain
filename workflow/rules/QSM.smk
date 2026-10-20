@@ -18,6 +18,7 @@ layout_dict = {
 }
 
 def get_mpm_acquisitions(field_strength, subject, session):
+    """Return list of MPM files for a given field_strength, subject, and session"""
     pattern = (
         f"data/rawdata/bids/{field_strength}/sub-{subject}/ses-{session}/anat/"
         f"sub-{subject}_ses-{session}_acq-*_echo-*_MPM.nii.gz"
@@ -28,6 +29,7 @@ def get_mpm_acquisitions(field_strength, subject, session):
     })
 
 def qmt_preproc_path(wildcards, flip_angle, mt, part, suffix):
+    "Return file name of preprocessed qMT image given a flip angle index like 'flip-1', mt, part, and suffix."
     return (
         f"data/derivatives/{wildcards.field_strength}/qMT/sub-{wildcards.subject}/"
         f"ses-{wildcards.session}/acq-{wildcards.qMT_params}/preproc/"
@@ -36,6 +38,7 @@ def qmt_preproc_path(wildcards, flip_angle, mt, part, suffix):
     )
 
 def qmt_mt0_preproc_path(wildcards, part, suffix):
+    "Return the preprocessed MT0 file name."
     return qmt_preproc_path(
         wildcards,
         get_mtwflip(wildcards),
@@ -45,6 +48,7 @@ def qmt_mt0_preproc_path(wildcards, part, suffix):
     )
 
 def qmt_t1w_preproc_path(wildcards, suffix):
+    "Return the preprocessed T1w file name."
     return qmt_preproc_path(
         wildcards,
         get_t1flip(wildcards),
@@ -54,6 +58,7 @@ def qmt_t1w_preproc_path(wildcards, suffix):
     )
 
 def get_mt0_phase(wildcards):
+    "Return the raw MT0 phase image."
     return qmt_files(
         wildcards,
         get_mtwflip(wildcards),
@@ -62,6 +67,7 @@ def get_mt0_phase(wildcards):
     )
 
 def qsm_nii_list(wildcards):
+    "Return the list of expected MEGRE.nii.gz files copied for QSMxT, given the raw BIDS files."
     layout=layout_dict[wildcards.field_strength]
     qsm_nii_list = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -85,6 +91,7 @@ def qsm_nii_list(wildcards):
     return qsm_nii_list
 
 def qsm_json_list(wildcards):
+    "Return the list of expected MEGRE.json files copied for QSMxT, given the raw BIDS files."
     layout=layout_dict[wildcards.field_strength]
     qsm_json_list = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -108,6 +115,7 @@ def qsm_json_list(wildcards):
     return qsm_json_list
 
 def qsm_mask_list(wildcards):
+    "Return the list of expected masks copied for QSMxT, given the raw BIDS files."
     layout=layout_dict[wildcards.field_strength]
     qsm_mask_list = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -131,9 +139,11 @@ def qsm_mask_list(wildcards):
     return qsm_mask_list
 
 def get_inv1(wildcards):
+    "Find the first inv-1 MP2RAGE acquisition."
     return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-*{wildcards.mp2rage_params}*_inv-1_MP2RAGE.nii.gz'))[0]
 
 def t1w_nii_list(wildcards):
+    "Return list of expected T1w.nii.gz files copied for QSMxT, given the raw BIDS files."
     layout=layout_dict[wildcards.field_strength]
     t1w_nii_list = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
@@ -154,6 +164,7 @@ def t1w_nii_list(wildcards):
     return t1w_nii_list
 
 def t1w_json_list(wildcards):
+    "Return the list of expected T1w.json files copied for QSMxT, given the raw BIDS files."
     layout=layout_dict[wildcards.field_strength]
     t1w_json_list = []
     subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
