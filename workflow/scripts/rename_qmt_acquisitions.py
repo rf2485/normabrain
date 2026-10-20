@@ -13,6 +13,7 @@ QMT_ACQUISITION = re.compile(
     r"(?P<contrast>mt0|mtw|pdw|t1w)"
     r"(?P<echoes>\d+eco)"
     r"(?P<parameters>[^_]+)"
+    r"(?P<rec>_rec-[^_]+)?"
     r"(?P<suffix>_echo-.*_MPM(?:\.json|\.nii\.gz))$"
 )
 
@@ -34,7 +35,7 @@ def normalized_name(path: Path) -> Path | None:
         raise ValueError(f"Could not derive acquisition parameters from {path}")
 
     return path.with_name(
-        f"{match['prefix']}{parameters}{match['suffix']}"
+        f"{match['prefix']}{parameters}{match['rec'] or ''}{match['suffix']}"
     )
 
 

@@ -41,6 +41,18 @@ class RenameQmtAcquisitionsTest(unittest.TestCase):
                 },
             )
 
+    def test_preserves_rec_entity_in_qmt_acquisition(self):
+        path = Path(
+            "sub-01_ses-1_acq-vibeMTmtw3ecosag1isoc9_rec-nd"
+            "_echo-1_flip-14_mt-on_part-mag_MPM.json"
+        )
+
+        self.assertEqual(
+            normalized_name(path).name,
+            "sub-01_ses-1_acq-sag1isoc9_rec-nd"
+            "_echo-1_flip-14_mt-on_part-mag_MPM.json",
+        )
+
     def test_orders_flip_labels_from_t1w_to_pdw(self):
         names = [
             "sub-01_ses-1_acq-vibeMTt1w3ecosag1isoc9"

@@ -1,12 +1,31 @@
 #requires BIDS data at data/rawdata/bids/{field_strength}
 #requires B1map.smk and qMT.smk
 import glob
+import os
 import shutil
 from pathlib import Path
 from bids import BIDSLayout
 import logging
 
 bidspath = Path("data/rawdata/bids")
+try:
+    field_strength_list = next(os.walk(bidspath))[1]
+except OSError:
+    field_strength_list = []
+layout_dict = {
+    field_strength: BIDSLayout(bidspath / field_strength, validate=False)
+    for field_strength in field_strength_list
+}
+
+def get_mpm_acquisitions(field_strength, subject, session):
+    pattern = (
+        f"data/rawdata/bids/{field_strength}/sub-{subject}/ses-{session}/anat/"
+        f"sub-{subject}_ses-{session}_acq-*_echo-*_MPM.nii.gz"
+    )
+    return sorted({
+        Path(path).name.split("_acq-", 1)[1].split("_echo-", 1)[0]
+        for path in glob.glob(pattern)
+    })
 
 def qmt_preproc_path(wildcards, flip_angle, mt, part, suffix):
     return (
@@ -57,7 +76,9 @@ def qsm_nii_list(wildcards):
         sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
         for session in sessionlist:
-            mpm_acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
+            mpm_acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for mpm in mpm_acqlist:
                 qsm_nii_list.append("data/derivatives/{field_strength}/QSM/sub-" + subject + "/ses-" + session + "/anat/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_mt0_echo-1_part-phase_MEGRE.nii.gz")
     qsm_nii_list = list(set(qsm_nii_list))
@@ -78,7 +99,9 @@ def qsm_json_list(wildcards):
         sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
         for session in sessionlist:
-            mpm_acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
+            mpm_acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for mpm in mpm_acqlist:
                 qsm_json_list.append("data/derivatives/{field_strength}/QSM/sub-" + subject + "/ses-" + session + "/anat/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_mt0_echo-1_part-phase_MEGRE.json")
     qsm_json_list = list(set(qsm_json_list))
@@ -99,7 +122,9 @@ def qsm_mask_list(wildcards):
         sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
         for session in sessionlist:
-            mpm_acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
+            mpm_acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for mpm in mpm_acqlist:
                 qsm_mask_list.append("data/derivatives/{field_strength}/QSM/derivatives/brain_spine_mask/sub-" + subject + "/ses-" + session + "/anat/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_mt0_mask.nii.gz")
     qsm_mask_list = list(set(qsm_mask_list))

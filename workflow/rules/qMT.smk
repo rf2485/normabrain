@@ -2,13 +2,35 @@
 #requires B1map.smk
 import json
 import glob
+import os
+from pathlib import Path
+from bids import BIDSLayout
+
+bidspath = Path("data/rawdata/bids")
+try:
+    field_strength_list = next(os.walk(bidspath))[1]
+except OSError:
+    field_strength_list = []
+layout_dict = {
+    field_strength: BIDSLayout(bidspath / field_strength, validate=False)
+    for field_strength in field_strength_list
+}
+
+def get_mpm_acquisitions(field_strength, subject, session):
+    """Return complete MPM acquisition labels, including BIDS entities."""
+    pattern = (
+        f"data/rawdata/bids/{field_strength}/sub-{subject}/ses-{session}/anat/"
+        f"sub-{subject}_ses-{session}_acq-*_echo-*_MPM.nii.gz"
+    )
+    return sorted({
+        Path(path).name.split("_acq-", 1)[1].split("_echo-", 1)[0]
+        for path in glob.glob(pattern)
+    })
 
 wildcard_constraints:
     flip_angle = r'flip-\d+',
     qMT_params = r'[^/]+',
     part = 'mag|phase'
-
-bidspath = Path("data/rawdata/bids")
 
 def get_flip_values(wildcards):
     mtw_path = sorted(glob.glob(
@@ -89,11 +111,17 @@ def get_qmt_json_path(wildcards, flip_angle, mt):
     return nifti_path.with_suffix("").with_suffix(".json")
 
 def get_mtwflip(wildcards):
-    json_path = sorted(glob.glob(
+    paths = sorted(glob.glob(
         f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/'
         f'ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_'
         f'acq-{wildcards.qMT_params}_echo-1_flip-*_mt-on_part-mag_MPM.json'
-    ))[0]
+    ))
+    if not paths:
+        raise ValueError(
+            f"No MT-on qMT metadata found for acquisition "
+            f"'{wildcards.qMT_params}'"
+        )
+    json_path = paths[0]
     with open(json_path, "r") as metadata_file:
         return flip_label(wildcards, json.load(metadata_file)["FlipAngle"])
 
@@ -273,7 +301,9 @@ def aggregate_qMT(wildcards):
             (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm)
         )
         for session in sessionlist:
-            mpm_acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
+            mpm_acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for mpm in mpm_acqlist:
                 R1map_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + mpm + "/preproc/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_R1map_brain_denoised_n4.nii.gz")
                 MTRmap_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + mpm + "/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_MTRmap.nii.gz")

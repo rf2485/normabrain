@@ -2,13 +2,19 @@
 import json
 import glob
 import shutil
+import os
 from pathlib import Path
+from bids import BIDSLayout
 
 bidspath = Path("data/rawdata/bids")
 try:
     field_strength_list=next(os.walk(bidspath))[1]
 except:
     field_strength_list=[]
+layout_dict = {
+    field_strength: BIDSLayout(bidspath / field_strength, validate=False)
+    for field_strength in field_strength_list
+}
 
 def get_raw_ihmt(wildcards):
     return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_*ihmt.nii.gz'))[0] #get first run

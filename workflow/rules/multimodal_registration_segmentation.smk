@@ -8,17 +8,22 @@ from pathlib import Path
 
 qmt_contrasts = ("mt0", "mtw", "pdw", "t1w")
 
+bidspath = Path("data/rawdata/bids")
+try:
+    field_strength_list = next(os.walk(bidspath))[1]
+except OSError:
+    field_strength_list = []
+layout_dict = {
+    field_strength: BIDSLayout(bidspath / field_strength, validate=False)
+    for field_strength in field_strength_list
+}
+
+
 wildcard_constraints:
     contrast = '|'.join(qmt_contrasts),
     part = 'mag|phase',
     # qMT_params = "^[a-zA-Z0-9]*$",
     # segmentation = config["segmentations"].split()
-
-bidspath = Path("data/rawdata/bids")
-try:
-    field_strength_list=next(os.walk(bidspath))[1]
-except:
-    field_strength_list=[]
 
 def resliced_segmentation_first_acq_mp2rage(wildcards):
     layout=layout_dict[wildcards.field_strength]
@@ -40,12 +45,12 @@ def qMT_to_freesurfer(wildcards):
         sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
         for session in sessionlist:
-            mpm_acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
+            mpm_acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             mp2rage_first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)[0]
             for mpm in mpm_acqlist:
-                mpm = mpm.replace("6eco", "").replace("3eco", "").replace("mag", "").replace("pha", "").replace("DL", "")
-                for contrast in qmt_contrasts:
-                    mpm = mpm.replace(contrast, "")
+
                 apply_reg_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + mpm + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_applyreg2FS" + mp2rage_first_acq + ".done")
     return sorted(set(apply_reg_list))
 
@@ -142,11 +147,10 @@ def qMT_statslist(wildcards):
         sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
         for session in sessionlist:
-            acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
+            acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for acq in acqlist:
-                acq = acq.replace("6eco", "").replace("3eco", "").replace("mag", "").replace("pha", "").replace("DL", "")
-                for contrast in qmt_contrasts:
-                    acq = acq.replace(contrast, "")
                 statslist.append("data/derivatives/" + wildcards.field_strength + "/qMT/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     return sorted(set(statslist))
 
@@ -186,11 +190,10 @@ def freesurfer_subjectlist_qMT(wildcards):
         sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
         for session in sessionlist:
-            acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
+            acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for acq in acqlist:
-                acq = acq.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
-                for contrast in qmt_contrasts:
-                    acq = acq.replace(contrast, "")
                 fs_subjectlist.append("sub-" + subject + "_ses-" + session + "_acq-" + acq)
     counts = Counter(fs_subjectlist)
     fs_subjectlist = [sub for sub, count in counts.items() if count > 3]
@@ -236,11 +239,10 @@ def mp2rage_to_qMT(wildcards):
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
         for session in sessionlist:
             mp2rage_first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)[0]
-            mpm_acqlist = layout.get_acquisition(suffix="MPM", subject=subject, session=session)
+            mpm_acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for mpm in mpm_acqlist:
-                mpm = mpm.replace("6eco", "").replace("3eco", "").replace("sag", "").replace("mag", "").replace("pha", "").replace("DL", "")
-                for contrast in qmt_contrasts:
-                    mpm = mpm.replace(contrast, "")
                 apply_reg_list.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + mp2rage_first_acq + "/reg2qMT/sub-" + subject + "_ses-" + session + "_acq-" + mp2rage_first_acq + "_applyreg2" + mpm + ".done")
     counts = Counter(apply_reg_list)
     apply_reg_list = [reg for reg, count in counts.items() if count > 3]

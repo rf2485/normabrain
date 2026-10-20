@@ -16,6 +16,10 @@ try:
     field_strength_list=next(os.walk(bidspath))[1]
 except:
     field_strength_list=[]
+layout_dict = {
+    field_strength: BIDSLayout(bidspath / field_strength, validate=False)
+    for field_strength in field_strength_list
+}
 
 
 def get_inv1(wildcards):
