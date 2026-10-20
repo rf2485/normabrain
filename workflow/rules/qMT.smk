@@ -298,6 +298,25 @@ def pdwmag_preproc(wildcards):
         mag_preproc = mag_preproc.replace("{flip_angle}", str(get_pdflip(wildcards)))
     return mag_preproc
 
+def get_b1anat2qMT_reg(wildcards):
+    #get b1anat2qMT registration if b1anat exists, otherwise return a blank string (applyAntsTransforms will then reslice instead of register)
+    try:
+        b1anat = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/fmap/sub-{wildcards.subject}_ses-{wildcards.session}_acq-anat*_TB1*.nii.gz'))[-1]
+        b1anat2qMT_reg = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{qMT_params}_t1w_0GenericAffine.mat"
+    except:
+       b1anat2qMT_reg = []
+    return b1anat2qMT_reg
+
+def get_target_flip(wildcards):
+    json_path = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/fmap/sub-{wildcards.subject}_ses-{wildcards.session}_acq-famp*_TB1*.json'))[-1] #select last run
+    with open(json_path, "r") as f:
+        b1map_meta = json.load(f)
+    try: #set default to 900 for now
+        target_fa = b1map_meta["target_fa_deg"] * 10
+    except:
+        target_fa = 900
+    return target_fa
+
 def aggregate_qMT(wildcards):
     """Return list of expected outputs given raw MPM images in BIDS."""
     layout=layout_dict[wildcards.field_strength]
@@ -853,6 +872,132 @@ rule apply_reg_qMT_to_t1w_ants:
         -r {input.ref} \
         -t {input.reg} \
         -o {output}
+        """
+
+#B1+ rules
+rule register_b1anat_to_qMT_t1w_ants:
+    input:
+        ref = lambda wildcards: t1w_sos_preproc(
+            wildcards, "_brain_denoised_n4.nii.gz"
+        ),
+        moving = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-anat_brain_denoised_n4.nii.gz",
+        ref_mask = lambda wildcards: t1w_sos_preproc(
+            wildcards, "_brain_mask.nii.gz"
+        ),
+        moving_mask = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-anat_brain_mask.nii.gz"
+    output:
+        "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{qMT_params}_t1w_0GenericAffine.mat"
+    params:
+        outprefix="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{qMT_params}_t1w_"
+    conda:
+        "../envs/qMT.yaml"
+    resources:
+        mem_mb=1000
+    threads: 4
+    log:
+       "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_b1_reg2{qMT_params}_t1w.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+
+        antsRegistration \
+        --random-seed 1 \
+        --dimensionality 3 \
+        --verbose 1 \
+        --convergence [ 1000x500x250x100, 1e-7, 100 ] \
+        --shrink-factors 8x4x2x1 \
+        --smoothing-sigmas 4x2x1x0vox \
+        --transform Rigid[0.1] \
+        --metric MI[ {input.ref}, {input.moving}, 1, 32 ] \
+        -o {params.outprefix} \
+        -x [ {input.ref_mask}, {input.moving_mask} ]
+        """
+
+
+rule apply_reg_b1map_to_qMT_t1w_ants:
+    input:
+        moving = get_last_b1map_run,
+        ref = lambda wildcards: t1w_sos_preproc(wildcards, ".nii.gz"),
+        reg = get_b1anat2qMT_reg
+    output:
+        temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_ants.nii.gz")
+    conda:
+        "../envs/qMT.yaml"
+    resources:
+        mem_mb=500
+    threads: 1
+    log:
+       "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_ants.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+
+        if [ {input.reg} ]; then
+            antsApplyTransforms \
+            --dimensionality 3 \
+            --interpolation Linear \
+            --verbose 1 \
+            -i {input.moving} \
+            -r {input.ref} \
+            -t {input.reg} \
+            -o {output}
+        else
+           antsApplyTransforms \
+            --dimensionality 3 \
+            --interpolation Linear \
+            --verbose 1 \
+            -i {input.moving} \
+            -r {input.ref} \
+            -o {output}
+        fi
+        """
+
+
+rule smooth_B1_qMT:
+    input:
+       "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_ants.nii.gz"
+    output:
+        temp("data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth.nii.gz")
+    conda:
+        "../envs/qMT.yaml"
+    resources:
+        mem_mb=500
+    threads: 1
+    log:
+        "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+
+        SmoothImage 3 {input[0]} 3x1x1 {output}
+        """
+
+
+rule normalize_B1_to_target_flip_qMT: #not masking because we are interested in the spinal cord
+    input:
+        "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth.nii.gz"
+    params:
+        target_flip = get_target_flip
+    output:
+        "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth_norm.nii.gz"
+    conda:
+        "../envs/fslmaths.yaml"
+    resources:
+        mem_mb=500
+    threads: 1
+    log:
+        "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2qMT/sub-{subject}_ses-{session}_acq-famp_reg2{qMT_params}_t1w_smooth_norm.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FSLOUTPUTTYPE='NIFTI_GZ'
+        fslmaths {input} -div {params.target_flip} {output} -odt float
         """
 
 
