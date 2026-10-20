@@ -485,7 +485,7 @@ rule recon_all:
         rm -rf $SUBJECTS_DIR/{params.subject}
 
         #run recon-all
-        recon-all -hires -parallel -3T -i {input} -all -s {params.subject}
+        recon-all -hires -parallel -openmp {threads} -3T -i {input} -all -s {params.subject}
 
         #convert aparc and orig to nii for easier QC
         mri_convert {output.aparc_mgz} {output.aparc_nii}

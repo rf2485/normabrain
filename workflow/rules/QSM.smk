@@ -305,7 +305,8 @@ rule copy_mask_qsm:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
+        export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
+        
         maskfilter {input.mask} erode {output} -force
         antsApplyTransforms -d 3 -v 1 -n NearestNeighbor -i {output} -r {input.ref} -t [ {input.reg}, 1 ] -o {output}
         """

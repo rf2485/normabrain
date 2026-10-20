@@ -325,7 +325,7 @@ rule concat_echos:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        mrcat {input.echos} {output}
+        mrcat {input.echos} {output} -nthreads {threads}
         """
 
 
@@ -350,8 +350,8 @@ rule create_complex_images:
         phasesize="$(mrinfo -size {input.phase} | awk '{{print $4}}')"
         magsize="$(mrinfo -size {input.mag} | awk '{{print $4}}')"
         magstart="$((${{magsize}}-${{phasesize}}))"
-        mrconvert {input.mag} {output.mag_clipped} -coord 3 ${{magstart}}:end
-        mrcalc {output.mag_clipped} {input.phase} pi 4096 -div -mult -polar {output.out}
+        mrconvert {input.mag} {output.mag_clipped} -coord 3 ${{magstart}}:end -nthreads {threads}
+        mrcalc {output.mag_clipped} {input.phase} pi 4096 -div -mult -polar {output.out} -nthreads {threads}
         """
 
 
@@ -371,7 +371,7 @@ rule rician_bias_corr:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        dwidenoise {input} {output.denoised} -noise {output.noisemap}
+        dwidenoise {input} {output.denoised} -noise {output.noisemap} -nthreads {threads}
         """
 
 
@@ -451,10 +451,10 @@ rule make_n_echos_equal:
         end_idx="$((${{min_echos}}-1))"
 
         #clip images to smallest number of echos
-        mrconvert {input.t1w_in} {output.t1w_out} -coord 3 0:${{end_idx}}
-        mrconvert {input.mt0_in} {output.mt0_out} -coord 3 0:${{end_idx}}
-        mrconvert {input.mtw_in} {output.mtw_out} -coord 3 0:${{end_idx}}
-        mrconvert {input.pdw_in} {output.pdw_out} -coord 3 0:${{end_idx}}
+        mrconvert {input.t1w_in} {output.t1w_out} -coord 3 0:${{end_idx}} -nthreads {threads}
+        mrconvert {input.mt0_in} {output.mt0_out} -coord 3 0:${{end_idx}} -nthreads {threads}
+        mrconvert {input.mtw_in} {output.mtw_out} -coord 3 0:${{end_idx}} -nthreads {threads}
+        mrconvert {input.pdw_in} {output.pdw_out} -coord 3 0:${{end_idx}} -nthreads {threads}
         """
 
 
