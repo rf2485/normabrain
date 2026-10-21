@@ -1,9 +1,11 @@
 import argparse
 import json
 import yaml
+import numpy as np
 from ihmt import Tukey, Sequence, Signal, System, Simulator, Corrector, Duration, Frequency, Angle
 from pathlib import Path
 from nibabel import load, Nifti1Image
+import nibabel as nib
 
 
 def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: str, mask_nifti: str, field_strength: str, map_type: str):
@@ -118,7 +120,11 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
     #     value.setflags(write=False)
 
     for key, value in corData.items():
-       Nifti1Image(value, affine, header).to_filename(data_paths[key].with_stem(data_paths[key].stem.replace(".nii", "") + "_b1corr.nii"))
+        out_img = Nifti1Image(value, affine, header)
+        out_img.set_data_dtype(np.uint16)
+        out_path = data_paths[key].with_stem(data_paths[key].stem.replace(".nii", "") + "_b1corr.nii")
+        nib.save(out_img, out_path) #automatically rescales image
+        #Nifti1Image(value, affine, header).set_data_dtype(np.uint16).to_filename(data_paths[key].with_stem(data_paths[key].stem.replace(".nii", "") + "_b1corr.nii"))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

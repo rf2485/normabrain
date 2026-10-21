@@ -120,7 +120,7 @@ rule degibbs_ihmt:
         """
 
 
-rule moco_ihmt:
+rule moco_ihmt: 
     input:
         "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/preproc/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs.nii"
     output:
@@ -162,6 +162,10 @@ rule moco_ihmt:
         else
             .snakemake/scripts/ihMT_MoCo.sh -i {input} -o {output}
         fi
+
+        #rescale output
+        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 
@@ -187,28 +191,28 @@ rule split_contrast_ihmt:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        mrconvert {input} {output.mt0} -coord 3 0 -axes 0,1,2 -force
+        mrconvert {input} {output.mt0} -coord 3 0 -axes 0,1,2 -datatype uint16 -nthreads {threads} -force
 
         if [ "{params.ihmt_contrast_type}" == "Frequency Alternated and Cosine Modulated" ]
         then
-            mrconvert {input} {params.mts} -coord 3 1:3:end -force
-            mrconvert {input} {params.mtd_freqalt} -coord 3 2:3:end -force
-            mrconvert {input} {params.mtd_cosmod} -coord 3 3:3:end -force
+            mrconvert {input} {params.mts} -coord 3 1:3:end -datatype uint16 -nthreads {threads} -force
+            mrconvert {input} {params.mtd_freqalt} -coord 3 2:3:end -datatype uint16 -nthreads {threads} -force
+            mrconvert {input} {params.mtd_cosmod} -coord 3 3:3:end -datatype uint16 -nthreads {threads} -force
         
         elif [ "{params.ihmt_contrast_type}" == "Frequency Alternated" ]
         then
-            mrconvert {input} {params.mts} -coord 3 1:2:end -force
-            mrconvert {input} {params.mtd_freqalt} -coord 3 2:2:end -force
+            mrconvert {input} {params.mts} -coord 3 1:2:end -datatype uint16 -nthreads {threads} -force
+            mrconvert {input} {params.mtd_freqalt} -coord 3 2:2:end -datatype uint16 -nthreads {threads} -force
 
         elif [ "{params.ihmt_contrast_type}" == "Cosine Modulated" ]
         then
-            mrconvert {input} {params.mts} -coord 3 1:2:end -force
-            mrconvert {input} {params.mtd_cosmod} -coord 3 2:2:end -force
+            mrconvert {input} {params.mts} -coord 3 1:2:end -datatype uint16 -nthreads {threads} -force
+            mrconvert {input} {params.mtd_cosmod} -coord 3 2:2:end -datatype uint16 -nthreads {threads} -force
 
         elif [ "{params.ihmt_contrast_type}" == "BandPass (no single)" ]
         then
-            mrconvert {input} {params.mtd_freqalt} -coord 3 1:2:end -force
-            mrconvert {input} {params.mtd_cosmod} -coord 3 2:2:end -force
+            mrconvert {input} {params.mtd_freqalt} -coord 3 1:2:end -datatype uint16 -nthreads {threads} -force
+            mrconvert {input} {params.mtd_cosmod} -coord 3 2:2:end -datatype uint16 -nthreads {threads} -force
         fi
         """
         
@@ -289,6 +293,9 @@ rule calculate_ihmt_maps:
         then
             mrcalc 0 {params.mts_sum} {params.mtd_freqalt_sum} -subtract -max {params.ihMTmap_freqalt} -force
             mrcalc 1 0 {params.ihMTmap_freqalt} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.ihMTR_freqalt} -force
+            #rescale non-temporary map
+            scale=$(mrstats {params.ihMTR_freqalt} -output max | awk '{{print 65535 / $1}}')
+            mrconvert {params.ihMTR_freqalt} {params.ihMTR_freqalt} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
             cp {params.ihMTmap_freqalt} {output.MTmap}
         fi
 
@@ -296,7 +303,13 @@ rule calculate_ihmt_maps:
         then
             mrcalc 0 {params.mts_sum} {params.mtd_cosmod_sum} -subtract -max {params.ihMTmap_cosmod} -force
             mrcalc 1 0 {params.ihMTmap_cosmod} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.ihMTR_cosmod} -force
+            #rescale non-temporary map
+            scale=$(mrstats {params.ihMTR_cosmod} -output max | awk '{{print 65535 / $1}}')
+            mrconvert {params.ihMTR_cosmod} {params.ihMTR_cosmod} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
             mrcalc 1 0 {params.ihMTmap_cosmod} {params.mtd_cosmod_avg} 0 -max -div nan 0 -replace -max -min {params.DO} -force
+            #rescale non-temporary map
+            scale=$(mrstats {params.DO} -output max | awk '{{print 65535 / $1}}')
+            mrconvert {params.DO} {params.DO} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
             cp {params.ihMTmap_cosmod} {output.MTmap}
         fi
 
@@ -304,7 +317,14 @@ rule calculate_ihmt_maps:
         then
             mrcalc 0 {params.mtd_freqalt_sum} {params.mtd_cosmod_sum} -subtract -max {params.BP} -force
             mrcalc 1 0 {params.BP} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.BPR} -force
+            #rescale non-temporary map
+            scale=$(mrstats {params.BPR} -output max | awk '{{print 65535 / $1}}')
+            mrconvert {params.BPR} {params.BPR} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         fi
+
+        #rescale output MTmap 
+        scale=$(mrstats {output.MTmap} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output.MTmap} {output.MTmap} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 
@@ -409,6 +429,9 @@ rule N4BiasFieldCorrection_ihmt:
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 

@@ -64,7 +64,7 @@ def aggregate_dki(wildcards):
     return dki_list
 
 
-rule concat_dwi_runs:
+rule concat_dwi_runs: #DESIGNER and fsleddy won't respect scaling, sorry images are big
     input:
         dwi_PA_mag=get_dwi_PA_mag_nii,
         dwi_AP_mag=get_dwi_AP_mag_nii,
@@ -153,7 +153,7 @@ rule concat_dwi_runs:
         """
 
 
-rule nyu_designer:
+rule nyu_designer: #rescaling preprocessed DWI images and noise maps may violate assumptions of the diffusion models
     input:
         dwi_PA_mag="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-PA_part-mag_dwi.mif",
         dwi_AP_mag="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_dir-AP_part-mag_dwi.mif",
@@ -229,7 +229,7 @@ rule nyu_designer:
         """
 
 
-rule convert_designer_mif_to_nii:
+rule convert_designer_mif_to_nii: 
     input:
         "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer.mif"
     output:
@@ -256,7 +256,7 @@ rule mean_b0:
         "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer.mif"
     output:
         b0=temp("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_b0.mif"),
-        meanb0="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0.nii.gz"
+        meanb0=temp("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0.nii.gz")
     container:
         "docker://nyudiffusionmri/designer2:v2.0.15"
     resources: 
@@ -314,7 +314,7 @@ rule apply_brainmask_meanb0:
         """
 
 
-rule dki_tensor_dipy:
+rule dki_tensor_dipy: #rescaling is done automatically by NiBabel in the script when saving images to uint
     input:
         img="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer.nii.gz",
         mask="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_designer_meanb0_brainmask.nii"

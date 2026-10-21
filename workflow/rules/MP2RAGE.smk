@@ -393,7 +393,7 @@ rule MPRAGEise:
         unit1_nifti = get_unit1
     output:
         outdir = temp(directory("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/MPRAGEise/")),
-        outimg = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_MPRAGEise.nii.gz"
+        outimg = temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_MPRAGEise.nii.gz")
     params:
         "sub-{subject}_ses-{session}_acq-{mp2rage_params}*_UNIT1_unbiased_clean.nii.gz"
     container:
@@ -488,7 +488,7 @@ rule recon_all:
         rm -rf $SUBJECTS_DIR/{params.subject}
 
         #run recon-all
-        recon-all -hires -parallel -openmp {threads} -3T -i {input} -all -s {params.subject}
+        recon-all -hires -parallel -3T -i {input} -all -s {params.subject}
 
         #convert aparc and orig to nii for easier QC
         mri_convert {output.aparc_mgz} {output.aparc_nii}

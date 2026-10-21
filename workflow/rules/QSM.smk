@@ -249,9 +249,9 @@ rule copy_denoised_qsm:
         vols="$(mrinfo -size {input.phase} | awk '{{print $4}}')"
         for vol in $(seq 1 $vols); do
             i="$((${{vol}}-1))"
-            mrconvert {input.phase} -coord 3 $i -axes 0,1,2 {params.anatdir}/{params.subject}_tmp_phase.nii.gz -force
+            mrconvert {input.phase} -coord 3 $i -axes 0,1,2 {params.anatdir}/{params.subject}_tmp_phase.nii.gz -force -nthreads {threads}
             mv {params.anatdir}/{params.subject}_tmp_phase.nii.gz {params.anatdir}/{params.subject}_echo-${{vol}}_part-phase_MEGRE.nii.gz
-            mrconvert {input.mag} -coord 3 $i -axes 0,1,2 {params.anatdir}/{params.subject}_tmp_mag.nii.gz -force
+            mrconvert {input.mag} -coord 3 $i -axes 0,1,2 {params.anatdir}/{params.subject}_tmp_mag.nii.gz -force -nthreads {threads}
             mv {params.anatdir}/{params.subject}_tmp_mag.nii.gz {params.anatdir}/{params.subject}_echo-${{vol}}_part-mag_MEGRE.nii.gz
         done
         """
@@ -318,7 +318,7 @@ rule copy_mask_qsm:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}
         
-        maskfilter {input.mask} erode {output} -force
+        maskfilter {input.mask} erode {output} -force -nthreads {threads}
         antsApplyTransforms -d 3 -v 1 -n NearestNeighbor -i {output} -r {input.ref} -t [ {input.reg}, 1 ] -o {output}
         """
 

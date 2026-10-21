@@ -7,6 +7,7 @@ from dipy.reconst.weights_method import simple_cutoff, weights_method_wls_m_est
 
 import argparse
 import numpy as np
+import nibabel as nib
 from pathlib import Path
 
 def dki_tensor(preproc_nii: str, mask_nii: str, outprefix: str):
@@ -41,10 +42,16 @@ def dki_tensor(preproc_nii: str, mask_nii: str, outprefix: str):
     func_maps = ['mk', 'rk', 'ak', 'mkt', 'rtk'] #attributes return a function, which returns an array
     for m in array_maps:
         print("   saving " + m + "...")
-        save_nifti(outprefix + m + ".nii.gz", getattr(dkifit, m), affine)
+        out_img = nib.Nifti1Image(getattr(dkifit, m), affine)
+        out_img.set_data_dtype(np.uint16) 
+        nib.save(out_img, outprefix + m + ".nii.gz") #automatically scales image
+        # save_nifti(outprefix + m + ".nii.gz", getattr(dkifit, m), affine) #does not automatically scale image
     for m in func_maps: #use () after getattr to call function to generate array
         print("   saving " + m + "...")
-        save_nifti(outprefix + m + ".nii.gz", getattr(dkifit, m)(), affine)
+        out_img = nib.Nifti1Image(getattr(dkifit, m)(), affine)
+        out_img.set_data_dtype(np.uint16) 
+        nib.save(out_img, outprefix + m + ".nii.gz") #automatically scales image
+        # save_nifti(outprefix + m + ".nii.gz", getattr(dkifit, m)(), affine) #does not automatically scale image
     print("done!")
 
 if __name__ == '__main__':

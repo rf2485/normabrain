@@ -139,6 +139,10 @@ rule N4BiasFieldCorrection_b1anat:
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        #rescale output to save space
+        scale=$(mrstats {output} -output max | awk '{print $1 / 65535}')
+        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -force -nthreads {threads}
         """
 
 
@@ -356,7 +360,7 @@ rule normalize_B1_to_target_flip_ihmt:
     threads: 1
     log:
         "logs/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2IHMT/sub-{subject}_ses-{session}_acq-famp_reg2{ihmt_params}_smooth_norm.log"
-    shell:
+    shell: #used by custom script, so don't rescale
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
