@@ -13,6 +13,7 @@ opt_*
 install_sct_log.txt
 *pulp*
 snakemake*/
+smk_cmd*
 *tree.txt
 *tmp*
 *.svg

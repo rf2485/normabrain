@@ -24,7 +24,6 @@ def aggregate_qmt_renames(wildcards):
         field_strength=next(os.walk(dicoms_folder))[1],
     )
 
-
 def qmt_files_for_rename(wildcards):
     bids_root = Path("data/rawdata/bids") / wildcards.field_strength
     return sorted(
@@ -33,7 +32,6 @@ def qmt_files_for_rename(wildcards):
             *bids_root.rglob("*_MPM.nii.gz"),
         ]
     )
-
 
 def get_asl_contexts(field_strength):
     bids_root = Path(
@@ -141,6 +139,28 @@ checkpoint add_csa_data_to_meta:
         """
 
 
+rule rename_qmt_acquisitions_by_field_strength:
+    input:
+        add_csa_done="data/rawdata/bids/{field_strength}/code/bidscoin/fixmeta.log",
+        qmt_files=qmt_files_for_rename
+    output:
+        "data/rawdata/bids/{field_strength}/code/bidscoin/qmt_acquisitions_renamed.done"
+    params:
+        bids_root="data/rawdata/bids/{field_strength}"
+    conda:
+        "../envs/bidscoin.yaml"
+    threads: 1
+    log:
+        "logs/{field_strength}/rename_qmt_acquisitions.log"
+    priority: 50
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        python workflow/scripts/rename_qmt_acquisitions.py {params.bids_root}
+        touch {output}
+        """
+
+
 rule generate_aslcontext:
     input:
         json="{prefix}_asl.json",
@@ -168,7 +188,7 @@ rule generate_aslcontext:
         """
 
 
-checkpoint gather_aslcontext:
+rule gather_aslcontext:
     input:
         lambda wildcards: get_asl_contexts(wildcards.field_strength)
     output:
@@ -179,55 +199,16 @@ checkpoint gather_aslcontext:
         """
 
 
-rule gather_add_csa_data_to_meta:
+rule bidsify_done:
     input:
-        "data/rawdata/qmt_acquisitions_renamed.done",
-        aslcontext=aggregate_asl_contexts
+        add_csa_done=aggregate_add_csa,
+        qmt_renames=aggregate_qmt_renames,
+        asl_contexts=aggregate_asl_contexts
     output:
         "data/rawdata/bidsify.done"
     threads: 1
     log:
-        "logs/bidsify.log"
-    priority: 50
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-
-        touch {output}
-        """
-
-
-rule rename_qmt_acquisitions_by_field_strength:
-    input:
-        aggregate_add_csa,
-        qmt_files=qmt_files_for_rename
-    output:
-        "data/rawdata/bids/{field_strength}/code/bidscoin/qmt_acquisitions_renamed.done"
-    params:
-        bids_root="data/rawdata/bids/{field_strength}"
-    conda:
-        "../envs/bidscoin.yaml"
-    threads: 1
-    log:
-        "logs/{field_strength}/rename_qmt_acquisitions.log"
-    priority: 50
-    shell:
-        """
-        exec > >(tee {log}) 2>&1 #save output to log AND print to console
-        python workflow/scripts/rename_qmt_acquisitions.py {params.bids_root}
-        touch {output}
-        """
-
-
-rule rename_qmt_acquisitions:
-    input:
-        qmt_renames=aggregate_qmt_renames,
-        asl_contexts=aggregate_asl_contexts
-    output:
-        "data/rawdata/qmt_acquisitions_renamed.done"
-    threads: 1
-    log:
-        "logs/rename_qmt_acquisitions.log"
+        "logs/bidsify_done.log"
     priority: 50
     shell:
         """
