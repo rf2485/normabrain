@@ -46,7 +46,7 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
     affine, header = None, None
 
     for key, val in param_paths.items():
-        param_maps[key] = load(val).get_fdata()
+        param_maps[key] = load(val).dataoobj.get_unscaled()
 
     param_maps['mask'] = param_maps['mask'].astype(bool)
     param_maps['relative_transmitB1'] = param_maps['relative_transmitB1'] * ihmt_meta["TxRefAmp"] / b1map_meta["TxRefAmp"]
@@ -59,9 +59,9 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
             tmp = load(val)
             affine = tmp.affine
             header = tmp.header
-            data_maps[key] = norm * tmp.get_fdata()
+            data_maps[key] = norm * tmp.dataoobj.get_unscaled()
         else:
-            data_maps[key] = norm * load(val).get_fdata()
+            data_maps[key] = norm * load(val).dataoobj.get_unscaled()
 
     #parameters need to be converted to seconds and degrees
     pulse = Tukey(

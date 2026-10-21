@@ -277,6 +277,9 @@ rule N4BiasFieldCorrection_T1map_mp2rage: #create input for module B1map rule re
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 #then process MP2RAGE images
