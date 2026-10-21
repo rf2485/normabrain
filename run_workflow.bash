@@ -400,6 +400,7 @@ fi
 #always run bids first
 echo "Running bidsify module first, as the rest of the pipeline depends on this."
 echo "Running snakemake command: snakemake ${config_string} ${first_pass_string} rename_qmt_acquisitions"
+echo "snakemake ${config_string} ${first_pass_string} rename_qmt_acquisitions" > smk_cmd_bids.txt
 if [ "$dag_mode" = true ]; then
     echo "saving DAG to bids_dag.svg, not running the pipeline"
     snakemake "${config_args[@]}" "${first_pass_args[@]}" --dag dot rename_qmt_acquisitions | sed -n '/digraph/,/}/p' | dot -Tsvg > bids_dag.svg
@@ -409,6 +410,7 @@ fi
 
 if [ "$reg_seg" = true ] || [ "$mp2rage" = true ] || [ "$ihmt" = true ] || [ "$qmt" = true ] || [ "$qsm" = true ] || [ "$dwi" = true ] || [ "$all" = true ]; then
     echo "Running snakemake command: snakemake ${config_string} ${main_string} ${target_string}"
+    echo "snakemake ${config_string} ${main_string} ${target_string}" > smk_cmd.txt
     if [ "$dag_mode" = true ]; then
         echo "saving DAG to pipeline_dag.svg, not running the pipeline"
         snakemake "${config_args[@]}" "${main_args[@]}" --dag dot "${target_args[@]}" | sed -n '/digraph/,/}/p' | dot -Tsvg > pipeline_dag.svg
