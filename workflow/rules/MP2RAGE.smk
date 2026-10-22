@@ -208,7 +208,7 @@ rule apply_brainmask_T1map_mp2rage:
         input_image = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map.nii.gz",
         brain_mask = "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain_mask.nii.gz"
     output:
-        "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain.nii.gz"
+        temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/preproc/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_brain.nii.gz")
     conda:
         "../envs/fslmaths.yaml"
     resources: 
@@ -219,7 +219,7 @@ rule apply_brainmask_T1map_mp2rage:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.input_image} -mas {input.brain_mask} -odt "input" {output}
+        fslmaths {input.input_image} -mas {input.brain_mask} {output}
         """
 
 
@@ -249,6 +249,8 @@ rule DenoiseImage_T1map_mp2rage:
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        mrcalc 0.01 {output} -max {output} -force -nthreads {threads}
         """
 
 
@@ -277,9 +279,7 @@ rule N4BiasFieldCorrection_T1map_mp2rage: #create input for module B1map rule re
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
-
-        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+        mrconvert {output} {output} -scaling 0.0,0.1 -datatype uint16 -force -nthreads {threads}
         """
 
 #then process MP2RAGE images
@@ -322,11 +322,11 @@ rule run_mp2proc:
         b1map_json = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.json"
     output:
         b1="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_smooth_norm.nii.gz",
-        t1map=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr.nii.gz"),
-        r1map=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_R1map_b1corr.nii.gz"),
-        uniden_corr=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr.nii.gz"),
-        uniden_uncorr=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz"),
-        uni_corr=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNI_b1corr.nii.gz")
+        t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr.nii.gz",
+        r1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_R1map_b1corr.nii.gz",
+        uniden_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr.nii.gz",
+        uniden_uncorr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
+        uni_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNI_b1corr.nii.gz"
     params:
         b1="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/b1_processed_relativeUnit_perThousand.nii.gz",
         t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qT1_msUnit.nii.gz",
@@ -371,7 +371,8 @@ rule apply_brainmask_mp2rage:
         uniden_uncorr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_brain.nii.gz",
         uni_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNI_b1corr_brain.nii.gz"
     conda:
-        "../envs/fslmaths.yaml"
+        "../envs/qMT.yaml"
+        # "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
     log:
@@ -380,11 +381,35 @@ rule apply_brainmask_mp2rage:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.t1map} -mas {input.brain_mask} -odt "input" {output.t1map}
-        fslmaths {input.r1map} -mas {input.brain_mask} -odt "input" {output.r1map}
-        fslmaths {input.uniden_corr} -mas {input.brain_mask} -odt "input" {output.uniden_corr}
-        fslmaths {input.uniden_uncorr} -mas {input.brain_mask} -odt "input" {output.uniden_uncorr}
-        fslmaths {input.uni_corr} -mas {input.brain_mask} -odt "input" {output.uni_corr}
+
+        mrcalc {input.t1map} {input.brain_mask} -mult - -force -nthreads {threads} | \
+            mrconvert - {output.t1map} \
+                -datatype $(mrinfo {input.t1map} -datatype) \
+                -scaling $(mrinfo {input.t1map} -offset),$(mrinfo {input.t1map} -multiplier) -force -nthreads {threads}
+        # fslmaths {input.t1map} -mas {input.brain_mask} {output.t1map}
+        
+        mrcalc {input.r1map} {input.brain_mask} -mult - -force -nthreads {threads} | \
+            mrconvert - {output.r1map} \
+                -datatype $(mrinfo {input.r1map} -datatype) \
+                -scaling $(mrinfo {input.r1map} -offset),$(mrinfo {input.r1map} -multiplier) -force -nthreads {threads}
+        # fslmaths {input.r1map} -mas {input.brain_mask} {output.r1map}
+        mrcalc {input.uniden_corr} {input.brain_mask} -mult - -force -nthreads {threads} | \
+            mrconvert - {output.uniden_corr} \
+                -datatype $(mrinfo {input.uniden_corr} -datatype) \
+                -scaling $(mrinfo {input.uniden_corr} -offset),$(mrinfo {input.uniden_corr} -multiplier) -force -nthreads {threads}
+        # fslmaths {input.uniden_corr} -mas {input.brain_mask} {output.uniden_corr}
+
+        mrcalc {input.uniden_uncorr} {input.brain_mask} -mult - -force -nthreads {threads} | \
+            mrconvert - {output.uniden_uncorr} \
+                -datatype $(mrinfo {input.uniden_uncorr} -datatype) \
+                -scaling $(mrinfo {input.uniden_uncorr} -offset),$(mrinfo {input.uniden_uncorr} -multiplier) -force -nthreads {threads}
+        # fslmaths {input.uniden_uncorr} -mas {input.brain_mask} {output.uniden_uncorr}
+
+        mrcalc {input.uni_corr} {input.brain_mask} -mult - -force -nthreads {threads} | \
+            mrconvert - {output.uni_corr} \
+                -datatype $(mrinfo {input.uni_corr} -datatype) \
+                -scaling $(mrinfo {input.uni_corr} -offset),$(mrinfo {input.uni_corr} -multiplier) -force -nthreads {threads}
+        # fslmaths {input.uni_corr} -mas {input.brain_mask} {output.uni_corr}
         """
 
 
