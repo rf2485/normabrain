@@ -815,7 +815,10 @@ rule mp2rage_roi_stats_agg_subjs:
         "logs/{field_strength}/MP2RAGE/MP2RAGE_stats_{field_strength}.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
-        df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        if input:
+            df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        else:
+            df_stats = pd.DataFrame()
         df_stats.to_pickle(str(output))
 
 
