@@ -426,7 +426,11 @@ rule calculate_mag_from_complex:
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
         mrcalc {input} -abs {output}
+
+        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 
@@ -446,6 +450,9 @@ rule calculate_phase_from_complex:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         mrcalc {input} -phase {output}
+
+        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 
@@ -735,7 +742,7 @@ rule brain_and_spine_mask_qMT:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.brain_mask} -add {input.spine_mask} -fillh26 -dilD -dilD -ero -ero -bin {output.brain_spine_mask}
+        fslmaths {input.brain_mask} -add {input.spine_mask} -fillh26 -dilD -dilD -ero -ero -bin -odt "input" {output.brain_spine_mask}
         cp {input.spine_mask} {output.spine_mask}
         cp {input.brain_mask} {output.brain_mask}
         """
@@ -872,6 +879,9 @@ rule apply_reg_qMT_to_t1w_ants:
         -r {input.ref} \
         -t {input.reg} \
         -o {output}
+
+        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 #B1+ rules
@@ -997,7 +1007,7 @@ rule normalize_B1_to_target_flip_qMT: #not masking because we are interested in 
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input} -div {params.target_flip} {output} -odt float
+        fslmaths {input} -div {params.target_flip} {output} -odt "input"
         """
 
 
@@ -1028,6 +1038,9 @@ rule mtr:
 
         ImageMath 3 {output} MTR {input.mt_off} {input.mt_on}
         ImageMath 3 {output} Finite {output}
+
+        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 
@@ -1080,6 +1093,13 @@ rule fit_JSPqMT_CLI:
         --mask {input.mask} \
         --nworkers {threads} \
         --cpp_opt --use_GBM
+
+        scale=$(mrstats {output.mpfmap} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output.mpfmap} {output.mpfmap} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+        scale=$(mrstats {output.t1map} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output.t1map} {output.t1map} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+        scale=$(mrstats {output.r1map} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output.r1map} {output.r1map} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 #rules for registering to MP2RAGE with ANTS
@@ -1101,7 +1121,7 @@ rule apply_brainmask_R1map:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.input_image} -mas {input.brain_mask} {output}
+        fslmaths {input.input_image} -mas {input.brain_mask} -odt "input" {output}
         """
 
 
@@ -1159,6 +1179,9 @@ rule N4BiasFieldCorrection_R1map:
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
+        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 

@@ -47,7 +47,7 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
     n_seg = nib.load(seg_filepath) # segmentation
     seg_name =  Path(ROI_lookuptable_filepath).with_suffix('').stem.replace("_lut", "")
 
-    a_map = n_map.get_fdata().astype(np.float32)
+    a_map = n_map.dataoobj.get_unscaled().astype(np.float32)
     a_seg = n_seg.get_fdata().astype(np.uint16)
 
     ROI_ids = ROI_dict(ROI_lookuptable_filepath)

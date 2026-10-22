@@ -370,7 +370,7 @@ rule apply_brainmask_MTmap:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
         
-        fslmaths {input.input_image} -mas {input.brain_mask} {output}
+        fslmaths {input.input_image} -mas {input.brain_mask} -odt "input" {output}
         """
 
 
@@ -515,7 +515,7 @@ rule apply_brainmask_ihmt:
         for map in "${{MTmaps[@]}}"; do
             ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
             if [ -f $ihmt ]; then
-                fslmaths $ihmt -mas {input.brain_mask} "{params.ihmtprefix}_${{map}}_brain.nii.gz"
+                fslmaths $ihmt -mas {input.brain_mask} -odt "input" "{params.ihmtprefix}_${{map}}_brain.nii.gz"
                 rm $ihmt
             fi
         done

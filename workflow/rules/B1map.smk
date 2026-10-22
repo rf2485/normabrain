@@ -81,7 +81,7 @@ rule apply_brainmask_b1anat:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.b1anat} -mas {input.brain_mask} {output}
+        fslmaths {input.b1anat} -mas {input.brain_mask} -odt "input" {output}
         """
 
 
@@ -364,5 +364,5 @@ rule normalize_B1_to_target_flip_ihmt:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.img} -mul {input.mask} -div {params.target_flip} {output} -odt float
+        fslmaths {input.img} -mul {input.mask} -div {params.target_flip} {output} -odt "input"
         """

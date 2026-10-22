@@ -219,7 +219,7 @@ rule apply_brainmask_T1map_mp2rage:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.input_image} -mas {input.brain_mask} {output}
+        fslmaths {input.input_image} -mas {input.brain_mask} -odt "input" {output}
         """
 
 
@@ -380,11 +380,11 @@ rule apply_brainmask_mp2rage:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.t1map} -mas {input.brain_mask} {output.t1map}
-        fslmaths {input.r1map} -mas {input.brain_mask} {output.r1map}
-        fslmaths {input.uniden_corr} -mas {input.brain_mask} {output.uniden_corr}
-        fslmaths {input.uniden_uncorr} -mas {input.brain_mask} {output.uniden_uncorr}
-        fslmaths {input.uni_corr} -mas {input.brain_mask} {output.uni_corr}
+        fslmaths {input.t1map} -mas {input.brain_mask} -odt "input" {output.t1map}
+        fslmaths {input.r1map} -mas {input.brain_mask} -odt "input" {output.r1map}
+        fslmaths {input.uniden_corr} -mas {input.brain_mask} -odt "input" {output.uniden_corr}
+        fslmaths {input.uniden_uncorr} -mas {input.brain_mask} -odt "input" {output.uniden_uncorr}
+        fslmaths {input.uni_corr} -mas {input.brain_mask} -odt "input" {output.uni_corr}
         """
 
 
