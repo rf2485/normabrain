@@ -64,7 +64,7 @@ def aggregate_dki(wildcards):
     return dki_list
 
 
-rule concat_dwi_runs: #DESIGNER and fsleddy won't respect scaling, sorry images are big
+rule concat_dwi_runs:
     input:
         dwi_PA_mag=get_dwi_PA_mag_nii,
         dwi_AP_mag=get_dwi_AP_mag_nii,

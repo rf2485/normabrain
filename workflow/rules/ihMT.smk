@@ -11,10 +11,10 @@ try:
     field_strength_list=next(os.walk(bidspath))[1]
 except:
     field_strength_list=[]
-layout_dict = {
-    field_strength: BIDSLayout(bidspath / field_strength, validate=False)
-    for field_strength in field_strength_list
-}
+
+layout_dict = {}
+for field_strength in field_strength_list:
+        layout_dict[field_strength] = BIDSLayout(Path("data/rawdata/bids") / field_strength, validate = False)
 
 def get_raw_ihmt(wildcards):
     return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_*ihmt.nii.gz'))[0] #get first run
@@ -163,9 +163,8 @@ rule moco_ihmt:
             .snakemake/scripts/ihMT_MoCo.sh -i {input} -o {output}
         fi
 
-        #rescale output
-        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+        #change datatype
+        mrconvert {output} -datatype uint16 -nthreads 4 -force {output}        
         """
 
 
@@ -191,28 +190,28 @@ rule split_contrast_ihmt:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
-        mrconvert {input} {output.mt0} -coord 3 0 -axes 0,1,2 -datatype uint16 -nthreads {threads} -force
+        mrconvert {input} {output.mt0} -coord 3 0 -axes 0,1,2 -nthreads {threads} -force
 
         if [ "{params.ihmt_contrast_type}" == "Frequency Alternated and Cosine Modulated" ]
         then
-            mrconvert {input} {params.mts} -coord 3 1:3:end -datatype uint16 -nthreads {threads} -force
-            mrconvert {input} {params.mtd_freqalt} -coord 3 2:3:end -datatype uint16 -nthreads {threads} -force
-            mrconvert {input} {params.mtd_cosmod} -coord 3 3:3:end -datatype uint16 -nthreads {threads} -force
+            mrconvert {input} {params.mts} -coord 3 1:3:end -nthreads {threads} -force
+            mrconvert {input} {params.mtd_freqalt} -coord 3 2:3:end -nthreads {threads} -force
+            mrconvert {input} {params.mtd_cosmod} -coord 3 3:3:end -nthreads {threads} -force
         
         elif [ "{params.ihmt_contrast_type}" == "Frequency Alternated" ]
         then
-            mrconvert {input} {params.mts} -coord 3 1:2:end -datatype uint16 -nthreads {threads} -force
-            mrconvert {input} {params.mtd_freqalt} -coord 3 2:2:end -datatype uint16 -nthreads {threads} -force
+            mrconvert {input} {params.mts} -coord 3 1:2:end -nthreads {threads} -force
+            mrconvert {input} {params.mtd_freqalt} -coord 3 2:2:end -nthreads {threads} -force
 
         elif [ "{params.ihmt_contrast_type}" == "Cosine Modulated" ]
         then
-            mrconvert {input} {params.mts} -coord 3 1:2:end -datatype uint16 -nthreads {threads} -force
-            mrconvert {input} {params.mtd_cosmod} -coord 3 2:2:end -datatype uint16 -nthreads {threads} -force
+            mrconvert {input} {params.mts} -coord 3 1:2:end -nthreads {threads} -force
+            mrconvert {input} {params.mtd_cosmod} -coord 3 2:2:end -nthreads {threads} -force
 
         elif [ "{params.ihmt_contrast_type}" == "BandPass (no single)" ]
         then
-            mrconvert {input} {params.mtd_freqalt} -coord 3 1:2:end -datatype uint16 -nthreads {threads} -force
-            mrconvert {input} {params.mtd_cosmod} -coord 3 2:2:end -datatype uint16 -nthreads {threads} -force
+            mrconvert {input} {params.mtd_freqalt} -coord 3 1:2:end -nthreads {threads} -force
+            mrconvert {input} {params.mtd_cosmod} -coord 3 2:2:end -nthreads {threads} -force
         fi
         """
         
@@ -235,21 +234,21 @@ rule calculate_ihmt_maps:
         mtd_cosmod_avg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_cosmod_avg.nii",
         mtd_freqalt_avg="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_freqalt_avg.nii",    
         #MTR depending on contrast type
-        MTRs="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTRs.nii.gz",
-        MTRd_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_MTRd.nii.gz",
-        MTRd_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_MTRd.nii.gz", 
+        MTRs="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_MTRs.nii",
+        MTRd_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_MTRd.nii",
+        MTRd_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_MTRd.nii", 
         #sum depending on contrast type
         mts_sum="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mts_sum.nii",
         mtd_cosmod_sum="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_cosmod_sum.nii",
         mtd_freqalt_sum="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_ihmt_denoise_degibbs_moco_mtd_freqalt_sum.nii",
         #ihMTmap depending on contrast type
-        ihMTmap_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTmap.nii.gz",
-        ihMTmap_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTmap.nii.gz",
+        ihMTmap_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTmap.nii",
+        ihMTmap_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTmap.nii",
         #ihMTR depending on contrast type
         ihMTR_cosmod="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_cosmod_ihMTR.nii.gz",
         ihMTR_freqalt="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_freqalt_ihMTR.nii.gz",
         #bandpass
-        BP="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_BP.nii.gz",  
+        BP="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sums_means/sub-{subject}_ses-{session}_acq-{ihmt_params}_BP.nii",  
         BPR="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_BPR.nii.gz",      
         #dipolar order
         DO="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_DO.nii.gz",
@@ -267,64 +266,60 @@ rule calculate_ihmt_maps:
         mkdir -p {output.sums_means_dir}
         if [ -f {params.mts} ]
         then
-            mrmath {params.mts} mean {params.mts_avg} -axis 3 -force
-            mrcalc 1 0 1 {params.mts_avg} {input.mt0} 0 -max -div nan 0 -replace -subtract -max -min {params.MTRs} -force
-            mrmath {params.mts} sum {params.mts_sum} -axis 3 -force
+            mrmath {params.mts} mean {params.mts_avg} -axis 3 -force -nthreads {threads}
+            mrcalc 1 0 1 {params.mts_avg} {input.mt0} 0 -max -div nan 0 -replace -subtract -max -min {params.MTRs} -force -nthreads {threads}
+            mrmath {params.mts} sum {params.mts_sum} -axis 3 -force -nthreads {threads}
             cp {params.MTRs} {output.MTmap}
+            mrconvert {output.MTmap} {output.MTmap} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
         fi
 
         if [ -f {params.mtd_freqalt} ]
         then
-            mrmath {params.mtd_freqalt} sum {params.mtd_freqalt_sum} -axis 3 -force
-            mrmath {params.mtd_freqalt} mean {params.mtd_freqalt_avg} -axis 3 -force
-            mrcalc 1 0 1 {params.mtd_freqalt_avg} {input.mt0} 0 -max -div nan 0 -replace -subtract -max -min {params.MTRd_freqalt} -force
+            mrmath {params.mtd_freqalt} sum {params.mtd_freqalt_sum} -axis 3 -force -nthreads {threads}
+            mrmath {params.mtd_freqalt} mean {params.mtd_freqalt_avg} -axis 3 -force -nthreads {threads}
+            mrcalc 1 0 1 {params.mtd_freqalt_avg} {input.mt0} 0 -max -div nan 0 -replace -subtract -max -min {params.MTRd_freqalt} -force -nthreads {threads}
             cp {params.MTRd_freqalt} {output.MTmap}
+            mrconvert {output.MTmap} {output.MTmap} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
         fi
 
         if [ -f {params.mtd_cosmod} ]
         then
-            mrmath {params.mtd_cosmod} sum {params.mtd_cosmod_sum} -axis 3 -force
-            mrmath {params.mtd_cosmod} mean {params.mtd_cosmod_avg} -axis 3 -force
-            mrcalc 1 0 1 {params.mtd_cosmod_avg} {input.mt0} 0 -max -div nan 0 -replace -subtract -max -min {params.MTRd_cosmod} -force
+            mrmath {params.mtd_cosmod} sum {params.mtd_cosmod_sum} -axis 3 -force -nthreads {threads}
+            mrmath {params.mtd_cosmod} mean {params.mtd_cosmod_avg} -axis 3 -force -nthreads {threads}
+            mrcalc 1 0 1 {params.mtd_cosmod_avg} {input.mt0} 0 -max -div nan 0 -replace -subtract -max -min {params.MTRd_cosmod} -force -nthreads {threads}
             cp {params.MTRd_cosmod} {output.MTmap}
+            mrconvert {output.MTmap} {output.MTmap} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
         fi
 
         if [ -f {params.mts} ] && [ -f {params.mtd_freqalt} ]
         then
-            mrcalc 0 {params.mts_sum} {params.mtd_freqalt_sum} -subtract -max {params.ihMTmap_freqalt} -force
-            mrcalc 1 0 {params.ihMTmap_freqalt} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.ihMTR_freqalt} -force
+            mrcalc 0 {params.mts_sum} {params.mtd_freqalt_sum} -subtract -max {params.ihMTmap_freqalt} -force -nthreads {threads}
+            mrcalc 1 0 {params.ihMTmap_freqalt} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.ihMTR_freqalt} -force -nthreads {threads}
             #rescale non-temporary map
-            scale=$(mrstats {params.ihMTR_freqalt} -output max | awk '{{print 65535 / $1}}')
-            mrconvert {params.ihMTR_freqalt} {params.ihMTR_freqalt} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+            mrconvert {params.ihMTR_freqalt} {params.ihMTR_freqalt} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}            
             cp {params.ihMTmap_freqalt} {output.MTmap}
+            mrconvert {output.MTmap} {output.MTmap} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
         fi
 
         if [ -f {params.mts} ] && [ -f {params.mtd_cosmod} ]
         then
-            mrcalc 0 {params.mts_sum} {params.mtd_cosmod_sum} -subtract -max {params.ihMTmap_cosmod} -force
-            mrcalc 1 0 {params.ihMTmap_cosmod} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.ihMTR_cosmod} -force
-            #rescale non-temporary map
-            scale=$(mrstats {params.ihMTR_cosmod} -output max | awk '{{print 65535 / $1}}')
-            mrconvert {params.ihMTR_cosmod} {params.ihMTR_cosmod} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
-            mrcalc 1 0 {params.ihMTmap_cosmod} {params.mtd_cosmod_avg} 0 -max -div nan 0 -replace -max -min {params.DO} -force
-            #rescale non-temporary map
-            scale=$(mrstats {params.DO} -output max | awk '{{print 65535 / $1}}')
-            mrconvert {params.DO} {params.DO} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+            mrcalc 0 {params.mts_sum} {params.mtd_cosmod_sum} -subtract -max {params.ihMTmap_cosmod} -force -nthreads {threads}
+            mrcalc 1 0 {params.ihMTmap_cosmod} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.ihMTR_cosmod} -force -nthreads {threads}
+            mrcalc 1 0 {params.ihMTmap_cosmod} {params.mtd_cosmod_avg} 0 -max -div nan 0 -replace -max -min {params.DO} -force -nthreads {threads}
+            #rescale non-temporary maps
+            mrconvert {params.ihMTR_cosmod} {params.ihMTR_cosmod} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}            
+            mrconvert {params.DO} {params.DO} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
             cp {params.ihMTmap_cosmod} {output.MTmap}
+            mrconvert {output.MTmap} {output.MTmap} -force -datatype uint16 -nthreads {threads}
         fi
 
         if [ -f {params.mtd_freqalt} ] && [ -f {params.mtd_cosmod} ]
         then
-            mrcalc 0 {params.mtd_freqalt_sum} {params.mtd_cosmod_sum} -subtract -max {params.BP} -force
-            mrcalc 1 0 {params.BP} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.BPR} -force
+            mrcalc 0 {params.mtd_freqalt_sum} {params.mtd_cosmod_sum} -subtract -max {params.BP} -force -nthreads {threads}
+            mrcalc 1 0 {params.BP} {input.mt0} 0 -max -div nan 0 -replace -max -min {params.BPR} -force -nthreads {threads}
             #rescale non-temporary map
-            scale=$(mrstats {params.BPR} -output max | awk '{{print 65535 / $1}}')
-            mrconvert {params.BPR} {params.BPR} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+            mrconvert {params.BPR} {params.BPR} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
         fi
-
-        #rescale output MTmap 
-        scale=$(mrstats {output.MTmap} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output.MTmap} {output.MTmap} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 
@@ -370,7 +365,7 @@ rule apply_brainmask_MTmap:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
         
-        fslmaths {input.input_image} -mas {input.brain_mask} -odt "input" {output}
+        fslmaths {input.input_image} -mas {input.brain_mask} {output}
         """
 
 
@@ -400,6 +395,8 @@ rule DenoiseImage_ihmt:
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        mrcalc 0.01 {output} -max {output} -force -nthreads {threads}            
         """
 
 
@@ -430,8 +427,7 @@ rule N4BiasFieldCorrection_ihmt:
         -x {input.mask_image} \
         -o {output}
 
-        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+        mrconvert {output} {output} -scaling 0.0,0.1 -datatype uint16 -force -nthreads {threads}            
         """
 
 
@@ -454,7 +450,7 @@ rule b1corr_ihmt:
         DO="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_DO.nii.gz",  
     conda:
         "../envs/ihMT.yaml"
-    resources: #limit memory by input size
+    resources:
         mem_mb=1000
     threads: 1
     log:
@@ -500,7 +496,8 @@ rule apply_brainmask_ihmt:
     output:
         "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done"
     conda:
-        "../envs/fslmaths.yaml"
+        "../envs/qMT.yaml"
+        # "../envs/fslmaths.yaml"
     resources: 
         mem_mb=500
     threads: 1
@@ -515,8 +512,10 @@ rule apply_brainmask_ihmt:
         for map in "${{MTmaps[@]}}"; do
             ihmt="{params.ihmtprefix}_${{map}}.nii.gz"
             if [ -f $ihmt ]; then
-                fslmaths $ihmt -mas {input.brain_mask} -odt "input" "{params.ihmtprefix}_${{map}}_brain.nii.gz"
-                rm $ihmt
+                mrcalc $ihmt {input.brain_mask} -mult - -force -nthreads {threads} | \
+                mrconvert - "{params.ihmtprefix}_${{map}}_brain.nii.gz" \
+                    -datatype $(mrinfo $ihmt -datatype) \
+                    -scaling $(mrinfo $ihmt -offset),$(mrinfo $ihmt -multiplier) -force -nthreads {threads}
             fi
         done
         touch {output}

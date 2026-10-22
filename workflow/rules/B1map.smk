@@ -81,7 +81,7 @@ rule apply_brainmask_b1anat:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.b1anat} -mas {input.brain_mask} -odt "input" {output}
+        fslmaths {input.b1anat} -mas {input.brain_mask} {output}
         """
 
 
@@ -111,6 +111,8 @@ rule DenoiseImage_b1anat:
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        mrcalc 0.01 {output} -max {output} -force -nthreads {threads}
         """
 
 
@@ -140,9 +142,7 @@ rule N4BiasFieldCorrection_b1anat:
         -x {input.mask_image} \
         -o {output}
 
-        #rescale output to save space
-        scale=$(mrstats {output} -output max | awk '{print $1 / 65535}')
-        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -force -nthreads {threads}
+        mrconvert {output} {output} -scaling 0.0,0.1 -datatype uint16 -force -nthreads {threads}            
         """
 
 
@@ -364,5 +364,5 @@ rule normalize_B1_to_target_flip_ihmt:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.img} -mul {input.mask} -div {params.target_flip} {output} -odt "input"
+        fslmaths {input.img} -mul {input.mask} -div {params.target_flip} {output} -odt float
         """

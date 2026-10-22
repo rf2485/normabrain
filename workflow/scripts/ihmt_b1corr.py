@@ -2,10 +2,10 @@ import argparse
 import json
 import yaml
 import numpy as np
+import nibabel as nib
 from ihmt import Tukey, Sequence, Signal, System, Simulator, Corrector, Duration, Frequency, Angle
 from pathlib import Path
 from nibabel import load, Nifti1Image
-import nibabel as nib
 
 
 def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: str, mask_nifti: str, field_strength: str, map_type: str):
@@ -46,7 +46,7 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
     affine, header = None, None
 
     for key, val in param_paths.items():
-        param_maps[key] = load(val).dataoobj.get_unscaled()
+        param_maps[key] = load(val).get_fdata()
 
     param_maps['mask'] = param_maps['mask'].astype(bool)
     param_maps['relative_transmitB1'] = param_maps['relative_transmitB1'] * ihmt_meta["TxRefAmp"] / b1map_meta["TxRefAmp"]
@@ -59,9 +59,9 @@ def ihmt_b1corr(ihmt_nifti: str, ihmt_json: str, b1map_nifti: str, b1map_json: s
             tmp = load(val)
             affine = tmp.affine
             header = tmp.header
-            data_maps[key] = norm * tmp.dataoobj.get_unscaled()
+            data_maps[key] = norm * tmp.get_fdata()
         else:
-            data_maps[key] = norm * load(val).dataoobj.get_unscaled()
+            data_maps[key] = norm * load(val).get_fdata()
 
     #parameters need to be converted to seconds and degrees
     pulse = Tukey(
