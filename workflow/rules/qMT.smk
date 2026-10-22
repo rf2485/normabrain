@@ -428,9 +428,6 @@ rule calculate_mag_from_complex:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
 
         mrcalc {input} -abs {output}
-
-        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 
@@ -450,9 +447,6 @@ rule calculate_phase_from_complex:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         mrcalc {input} -phase {output}
-
-        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 
@@ -669,17 +663,17 @@ rule install_sct:
         if ! command -v sct_deepseg; then
             #install for Mac or Linux, based on which OS is installed
             if [[ $(uname) == Darwin* ]]; then
-                wget https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/download/7.2/install_sct-7.2_macos.sh
+                wget https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/download/7.3/install_sct-7.3_macos.sh
             else
-                wget https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/download/7.2/install_sct-7.2_linux.sh
+                wget https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/download/7.3/install_sct-7.3_linux.sh
             fi
-            mv install_sct-7.2_*.sh .snakemake/scripts/
+            mv install_sct-7.3_*.sh .snakemake/scripts/
 
             #if GPU is available, install GPU version, otherwise install CPU version
             if command -v nvidia-smi; then
-                bash .snakemake/scripts/install_sct-7.2_*.sh -yicg
+                bash .snakemake/scripts/install_sct-7.3_*.sh -yicg
             else
-                bash .snakemake/scripts/install_sct-7.2_*.sh -yic
+                bash .snakemake/scripts/install_sct-7.3_*.sh -yic
             fi
 
             #move log to logs folder
@@ -776,6 +770,8 @@ rule DenoiseImage_qMT:
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        mrcalc 0.01 {output} -max {output} -force -nthreads {threads} 
         """
 
 
@@ -1007,7 +1003,7 @@ rule normalize_B1_to_target_flip_qMT: #not masking because we are interested in 
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input} -div {params.target_flip} {output} -odt "input"
+        fslmaths {input} -div {params.target_flip} {output}
         """
 
 
@@ -1038,9 +1034,7 @@ rule mtr:
 
         ImageMath 3 {output} MTR {input.mt_off} {input.mt_on}
         ImageMath 3 {output} Finite {output}
-
-        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+        mrconvert {output} {output} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
         """
 
 
@@ -1093,13 +1087,6 @@ rule fit_JSPqMT_CLI:
         --mask {input.mask} \
         --nworkers {threads} \
         --cpp_opt --use_GBM
-
-        scale=$(mrstats {output.mpfmap} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output.mpfmap} {output.mpfmap} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
-        scale=$(mrstats {output.t1map} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output.t1map} {output.t1map} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
-        scale=$(mrstats {output.r1map} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output.r1map} {output.r1map} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 #rules for registering to MP2RAGE with ANTS
