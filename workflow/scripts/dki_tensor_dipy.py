@@ -12,7 +12,7 @@ from pathlib import Path
 
 def dki_tensor(preproc_nii: str, mask_nii: str, outprefix: str):
     #load the preprocessed dwi nii
-    print("loading data...")
+    print("loading data...", flush=True)
     data, affine = load_nifti(preproc_nii)
     #load bval and bvec files
     bval_path = Path(preproc_nii).with_suffix("").with_suffix(".bval")
@@ -30,24 +30,24 @@ def dki_tensor(preproc_nii: str, mask_nii: str, outprefix: str):
     #load the mask
     mask, affine = load_nifti(mask_nii)
 
-    print("fitting the model...")
+    print("fitting the model...", flush=True)
     #define the model and fitting method
     dkimodel = dki.DiffusionKurtosisModel(gtab, fit_method="RWLS", num_iter=6)
     #fit the model
     dkifit = dkimodel.fit(data, mask=mask)
 
     #save maps calculated from the DKI tensor
-    print("saving the maps...")
+    print("saving the maps...", flush=True)
     array_maps = ['fa', 'color_fa', 'md', 'rd', 'ad', 'kfa'] #attributes return an array
     func_maps = ['mk', 'rk', 'ak', 'mkt', 'rtk'] #attributes return a function, which returns an array
     for m in array_maps:
-        print("   saving " + m + "...")
+        print("   saving " + m + "...", flush=True)
         out_img = nib.Nifti1Image(getattr(dkifit, m), affine)
         out_img.set_data_dtype(np.uint16) 
         nib.save(out_img, outprefix + m + ".nii.gz") #automatically scales image
         # save_nifti(outprefix + m + ".nii.gz", getattr(dkifit, m), affine) #does not automatically scale image
     for m in func_maps: #use () after getattr to call function to generate array
-        print("   saving " + m + "...")
+        print("   saving " + m + "...", flush=True)
         out_img = nib.Nifti1Image(getattr(dkifit, m)(), affine)
         out_img.set_data_dtype(np.uint16) 
         nib.save(out_img, outprefix + m + ".nii.gz") #automatically scales image

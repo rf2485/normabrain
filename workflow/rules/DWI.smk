@@ -180,7 +180,7 @@ rule nyu_designer: #rescaling preprocessed DWI images and noise maps may violate
             export PATH="$(dirname "$(command -v eddy_cuda)"):$PATH"
         fi
         if command -v nvidia-smi; then
-            export CUDA_VISIBLE_DEVICES=0
+            export CUDA_VISIBLE_DEVICES=0,1,2,3,4
         fi
 
         echo "BZeroThreshold: 15.0" > $HOME/.mrtrix.conf
