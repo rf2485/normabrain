@@ -801,6 +801,8 @@ rule N4BiasFieldCorrection_qMT:
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        mrconvert {output} {output} -scaling 0.0,0.1 -datatype uint16 -force -nthreads {threads}
         """
 
 
@@ -1136,6 +1138,8 @@ rule DenoiseImage_R1map:
         -i {input.input_image} \
         -x {input.mask_image} \
         -o {output}
+
+        mrcalc 0.01 {output} -max {output} -force -nthreads {threads} 
         """
 
 
@@ -1165,8 +1169,7 @@ rule N4BiasFieldCorrection_R1map:
         -x {input.mask_image} \
         -o {output}
 
-        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
+        mrconvert {output} {output} -scaling 0.0,0.1 -datatype uint16 -force -nthreads {threads}            
         """
 
 
