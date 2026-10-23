@@ -680,6 +680,7 @@ rule install_sct:
             mv install_sct_log.txt {log}
         fi
         touch .snakemake/scripts/install_sct.done #mark installation as done
+        source ~/.bashrc
         """
 
 
