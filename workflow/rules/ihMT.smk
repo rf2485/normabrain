@@ -175,9 +175,6 @@ rule moco_ihmt:
         else
             .snakemake/scripts/ihMT_MoCo.sh -i {input} -o {output}
         fi
-
-        #change datatype
-        mrconvert {output} -datatype uint16 -nthreads 4 -force {output}        
         """
 
 
