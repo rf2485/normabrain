@@ -23,41 +23,72 @@ layout_dict = {
 
 
 def get_inv1(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*inv-1_MP2RAGE.nii.gz'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_inv-1_MP2RAGE.nii.gz'))[0]
 
 def get_inv1_json(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*inv-1_MP2RAGE.json'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_inv-1_MP2RAGE.json'))[0]
 
 def get_inv2(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*inv-2_MP2RAGE.nii.gz'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_inv-2_MP2RAGE.nii.gz'))[0]
 
 def get_inv2_json(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*inv-2_MP2RAGE.json'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_inv-2_MP2RAGE.json'))[0]
 
 def get_unit1(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*UNIT1.nii.gz'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_UNIT1.nii.gz'))[0]
 
 def get_unit1_json(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_*UNIT1.json'))[0]
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.mp2rage_params}_UNIT1.json'))[0]
+
+def get_mp2rage_acquisitions(field_strength, subject, session):
+    """Return complete MP2RAGE acquisition labels, including BIDS entities."""
+    pattern = (
+        f"data/rawdata/bids/{field_strength}/sub-{subject}/ses-{session}/anat/"
+        f"sub-{subject}_ses-{session}_acq-*_inv-*_MP2RAGE.nii.gz"
+    )
+    return sorted({
+        Path(path).name.split("_acq-", 1)[1].split("_inv-", 1)[0]
+        for path in glob.glob(pattern)
+    })
 
 def antsdnbrain_first_acq_mp2rage(wildcards):
     "Return antsdnbrain.mgz from FreeSurfer for the first MP2RAGE acquisition."
-    layout=layout_dict[wildcards.field_strength]
-    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz', mp2rage_params=first_acq, allow_missing=True)
+    acqlist = get_mp2rage_acquisitions(
+                wildcards.field_strength, wildcards.subject, wildcards.session
+            )
+    first_acq=acqlist[0]
+    return expand(
+        'data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/antsdn.brain.mgz', 
+        field_strength=wildcards.field_strength,
+        subject=wildcards.subject,
+        session=wildcards.session,
+        mp2rage_params=first_acq)
 
 def aparc_aseg_first_acq_freesurfer(wildcards):
     "Return aparc+aseg.mgz from FreeSurfer for the first MP2RAGE acquisiton."
-    layout=layout_dict[wildcards.field_strength]
-    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz', mp2rage_params=first_acq, allow_missing=True)
+    acqlist = get_mp2rage_acquisitions(
+                wildcards.field_strength, wildcards.subject, wildcards.session
+            )
+    first_acq=acqlist[0]
+    return expand(
+        'data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/aparc+aseg.mgz', 
+        field_strength=wildcards.field_strength,
+        subject=wildcards.subject,
+        session=wildcards.session,
+        mp2rage_params=first_acq)
 
 def fs2mni152_first_acq(wildcards):
     "Return warp from FreeSurfer to MNI for the first MP2RAGE acquisition."
-    layout=layout_dict[wildcards.field_strength]
-    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand('data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz', 
-    mp2rage_params=first_acq, session=wildcards.session, subject=wildcards.subject, field_strength=wildcards.field_strength)
+    acqlist = get_mp2rage_acquisitions(
+                wildcards.field_strength, wildcards.subject, wildcards.session
+            )
+    first_acq=acqlist[0]
+    return expand(
+        'data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/transforms/synthmorph.1.0mm.1.0mm/warp.to.mni152.1.0mm.1.0mm.nii.gz', 
+        mp2rage_params=first_acq, 
+        session=wildcards.session, 
+        subject=wildcards.subject, 
+        field_strength=wildcards.field_strength)
 
 def mp2rage_roi_statslist(wildcards):
     "Return list of expected MP2RAGE stats files given raw BIDS files."
@@ -73,7 +104,9 @@ def mp2rage_roi_statslist(wildcards):
         sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
         sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
         for session in sessionlist:
-            acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
+            acqlist = get_mp2rage_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for acq in acqlist:
                 statslist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     return statslist
@@ -92,7 +125,9 @@ def aggregate_mp2rage_coreg(wildcards):
         sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
         sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mp2rage))
         for session in sessionlist:
-            acqlist = layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)
+            acqlist = get_mp2rage_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for acq in acqlist:
                 coreglist.append("data/derivatives/{field_strength}/MP2RAGE/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/coreg/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_{mp2rage_map}_coreg.nii.gz")
     return coreglist
@@ -784,10 +819,22 @@ rule mp2rage_roi_stats:
 
 rule mp2rage_roi_stats_agg_segs:
     input:
-        stats=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle", 
-        segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True),
-        nooutliers=expand("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle", 
-        segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr", allow_missing=True)
+        stats=expand(
+            "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle",
+            field_strength=wildcards.field_strength,
+            subject=wildcards.subject,
+            session=wildcards.session,
+            mp2rage_params=wildcards.mp2rage_params, 
+            segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr",
+            mp2rage_map=wildcards.mp2rage_map),
+        nooutliers=expand(
+            "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle", 
+            field_strength=wildcards.field_strength,
+            subject=wildcards.subject,
+            session=wildcards.session,
+            mp2rage_params=wildcards.mp2rage_params, 
+            segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr",
+            mp2rage_map=wildcards.mp2rage_map),
     output:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.pickle",
     resources:
@@ -845,6 +892,7 @@ rule aggregate_mp2rage_coreg:
         temp("data/derivatives/{field_strength}/MP2RAGE_{mp2rage_map}_coreg.done")
     shell:
         "touch {output}"
+
 
 rule aggregate_mp2rage:
     input:

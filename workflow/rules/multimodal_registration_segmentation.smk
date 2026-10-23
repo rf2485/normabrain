@@ -44,7 +44,8 @@ def qMT_to_freesurfer(wildcards):
             mpm_acqlist = get_mpm_acquisitions(
                 wildcards.field_strength, subject, session
             )
-            mp2rage_first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)[0]
+            mp2rage_first_acq=get_mp2rage_acquisitions(
+                wildcards.field_strength, subject, session)[0]
             for mpm in mpm_acqlist:
 
                 apply_reg_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + mpm + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_applyreg2FS" + mp2rage_first_acq + ".done")
@@ -66,8 +67,10 @@ def ihmt_to_freesurfer(wildcards):
         sessionlist_ihmt = layout.get_session(suffix="ihmt", subject=subject)
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_ihmt))
         for session in sessionlist:
-            ihmt_acqlist = layout.get_acquisition(suffix="ihmt", subject=subject, session=session)
-            mp2rage_first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)[0]
+            ihmt_acqlist = get_ihmt_acquisitions(
+                wildcards.field_strength, subject, session)
+            mp2rage_first_acq=get_mp2rage_acquisitions(
+                wildcards.field_strength, subject, session)[0]
             for ihmt in ihmt_acqlist:
                 apply_reg_list.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + ihmt + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + ihmt + "_applyreg2FS" + mp2rage_first_acq + ".done")
     return apply_reg_list
@@ -89,7 +92,8 @@ def dwi_to_freesurfer(wildcards):
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_dwi))
         for session in sessionlist:
             dwi_acqlist = layout.get_acquisition(suffix="dwi", subject=subject, session=session)
-            mp2rage_first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=subject, session=session)[0]
+            mp2rage_first_acq=get_mp2rage_acquisitions(
+                wildcards.field_strength, subject, session)[0]
             for dwi in dwi_acqlist:
                 # dwi = dwi.replace("dwi", "").replace("18iso", "").replace("2shb2ktra", "").replace("PA", "").replace("b0tra", "").replace("AP", "").replace("3shb3ktra", "").replace("pha", "")
                 apply_reg_list.append("data/derivatives/{field_strength}/dwi/sub-" + subject + "/ses-" + session + "/acq-DWI" + dwi + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-DWI" + dwi + "_applyreg2FS" + mp2rage_first_acq + ".done" )
@@ -97,21 +101,39 @@ def dwi_to_freesurfer(wildcards):
 
 def ihmt_reg2first_acq_freesurfer(wildcards):
     """Return filepath for registration of ihMT to FreeSurfer space of the first MP2RAGE acquisiton."""
-    layout=layout_dict[wildcards.field_strength]
-    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
+    first_acq=get_mp2rage_acquisitions(
+                wildcards.field_strength, subject, session)[0]
+    return expand(
+        "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2FS{mp2rage_params}.lta", 
+        field_strength=wildcards.field_strength,
+        subject=wildcards.subject,
+        session=wildcards.session,
+        ihmt_params=wildcards.ihmt_params,
+        mp2rage_params=first_acq)
 
 def qMT_reg2first_acq_freesurfer(wildcards):
     """Return filepath for registration of qMT to FreeSurfer space of the first MP2RAGE acquisiton"""
-    layout=layout_dict[wildcards.field_strength]
-    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
+    first_acq=get_mp2rage_acquisitions(
+                wildcards.field_strength, subject, session)[0]
+    return expand(
+        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}.lta", 
+        field_strength=wildcards.field_strength,
+        subject=wildcards.subject,
+        session=wildcards.session,
+        qMT_params=wildcards.qMT_params,
+        mp2rage_params=first_acq)
 
 def dwi_reg2first_acq_freesurfer(wildcards):
     """Return filepath for registration of DWI to FreeSurfer space of the first MP2RAGE acquisition."""
-    layout=layout_dict[wildcards.field_strength]
-    first_acq=layout.get_acquisition(suffix="MP2RAGE", subject=wildcards.subject, session=wildcards.session)[0]
-    return expand("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2FS{mp2rage_params}.lta", mp2rage_params=first_acq, allow_missing=True)
+    first_acq=get_mp2rage_acquisitions(
+                wildcards.field_strength, subject, session)[0]
+    return expand(
+        "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2FS{mp2rage_params}.lta", 
+        field_strength=wildcards.field_strength,
+        subject=wildcards.subject,
+        session=wildcards.session,
+        dwi_params=wildcards.dwi_params,
+        mp2rage_params=first_acq)
 
 def ihmt_statslist(wildcards):
     """Return list of expected ihMT stats files given raw BIDS files."""
@@ -129,7 +151,8 @@ def ihmt_statslist(wildcards):
         sessionlist_ihmt = layout.get_session(suffix="ihmt", subject=subject)
         sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_ihmt))
         for session in sessionlist:
-            acqlist = layout.get_acquisition(suffix="ihmt", subject=subject, session=session)
+            acqlist = get_ihmt_acquisitions(
+                wildcards.field_strength, subject, session)
             for acq in acqlist:
                 statslist.append("data/derivatives/" + wildcards.field_strength + "/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     return sorted(statslist)

@@ -17,27 +17,38 @@ layout_dict = {
 }
 
 def get_raw_ihmt(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_*ihmt.nii.gz'))[0] #get first run
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_ihmt.nii.gz'))[0]
 
 def get_raw_ihmt_json(wildcards):
-    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_*ihmt.json'))[0] #get first run
+    return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_ihmt.json'))[0]
 
 def get_raw_b1map_json(wildcards):
     return sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/fmap/sub-{wildcards.subject}_ses-{wildcards.session}_acq-famp*_TB1*.json'))[-1] #select last run
 
 def get_ihmt_contrast_type(wildcards):
-    json_path = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_*ihmt.json'))[0]
+    json_path = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_ihmt.json'))[0]
     with open(json_path, "r") as f:
         meta = json.load(f)
         ihmt_contrast_type = meta["ContrastType"]
     return ihmt_contrast_type
 
 def get_ihmt_protocol_name(wildcards):
-    json_path = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_*ihmt.json'))[0]
+    json_path = sorted(glob.glob(f'data/rawdata/bids/{wildcards.field_strength}/sub-{wildcards.subject}/ses-{wildcards.session}/anat/sub-{wildcards.subject}_ses-{wildcards.session}_acq-{wildcards.ihmt_params}_ihmt.json'))[0]
     with open(json_path, "r") as f:
         meta = json.load(f)
         ihmt_protocol_name = meta["ProtocolName"]
     return ihmt_protocol_name
+
+def get_ihmt_acquisitions(field_strength, subject, session):
+    """Return complete ihMT acquisition labels, including BIDS entities."""
+    pattern = (
+        f"data/rawdata/bids/{field_strength}/sub-{subject}/ses-{session}/anat/"
+        f"sub-{subject}_ses-{session}_acq-*_ihmt.nii.gz"
+    )
+    return sorted({
+        Path(path).name.split("_acq-", 1)[1].split("_ihmt", 1)[0]
+        for path in glob.glob(pattern)
+    })
 
 def aggregate_ihmt_maps(wildcards):
     "Return list of ihMT B1corr brainmask done files, given raw BIDS files."
@@ -53,7 +64,9 @@ def aggregate_ihmt_maps(wildcards):
         sessionlist_ihmt = layout.get_session(suffix="ihmt", subject=subject)
         sessionlist = list((set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_ihmt))
         for session in sessionlist:
-            ihmt_acqlist = layout.get_acquisition(suffix="ihmt", subject=subject, session=session)
+            ihmt_acqlist = get_ihmt_acquisitions(
+                wildcards.field_strength, subject, session
+            )
             for ihmt in ihmt_acqlist:
                 ihmt_map_list.append("data/derivatives/{field_strength}/ihmt/sub-" + subject + "/ses-" + session + "/acq-" + ihmt + "/sub-" + subject + "_ses-" + session + "_acq-" + ihmt + "_b1corr_brain.done")
     return ihmt_map_list
