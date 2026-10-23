@@ -102,7 +102,7 @@ def dwi_to_freesurfer(wildcards):
 def ihmt_reg2first_acq_freesurfer(wildcards):
     """Return filepath for registration of ihMT to FreeSurfer space of the first MP2RAGE acquisiton."""
     first_acq=get_mp2rage_acquisitions(
-                wildcards.field_strength, subject, session)[0]
+                wildcards.field_strength, wildcards.subject, wildcards.session)[0]
     return expand(
         "data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{ihmt_params}_reg2FS{mp2rage_params}.lta", 
         field_strength=wildcards.field_strength,
@@ -114,7 +114,7 @@ def ihmt_reg2first_acq_freesurfer(wildcards):
 def qMT_reg2first_acq_freesurfer(wildcards):
     """Return filepath for registration of qMT to FreeSurfer space of the first MP2RAGE acquisiton"""
     first_acq=get_mp2rage_acquisitions(
-                wildcards.field_strength, subject, session)[0]
+                wildcards.field_strength, wildcards.subject, wildcards.session)[0]
     return expand(
         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}.lta", 
         field_strength=wildcards.field_strength,
@@ -126,7 +126,7 @@ def qMT_reg2first_acq_freesurfer(wildcards):
 def dwi_reg2first_acq_freesurfer(wildcards):
     """Return filepath for registration of DWI to FreeSurfer space of the first MP2RAGE acquisition."""
     first_acq=get_mp2rage_acquisitions(
-                wildcards.field_strength, subject, session)[0]
+                wildcards.field_strength, wildcards.subject, wildcards.session)[0]
     return expand(
         "data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_reg2FS{mp2rage_params}.lta", 
         field_strength=wildcards.field_strength,

@@ -820,21 +820,13 @@ rule mp2rage_roi_stats:
 rule mp2rage_roi_stats_agg_segs:
     input:
         stats=expand(
-            "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle",
-            field_strength=wildcards.field_strength,
-            subject=wildcards.subject,
-            session=wildcards.session,
-            mp2rage_params=wildcards.mp2rage_params, 
-            segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr",
-            mp2rage_map=wildcards.mp2rage_map),
+            "data/derivatives/{{field_strength}}/MP2RAGE/sub-{{subject}}/ses-{{session}}/acq-{{mp2rage_params}}/sub-{{subject}}_ses-{{session}}_acq-{{mp2rage_params}}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle",
+            segmentation=config["segmentations"].split(),
+            mp2rage_map="R1map_b1corr"),
         nooutliers=expand(
-            "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle", 
-            field_strength=wildcards.field_strength,
-            subject=wildcards.subject,
-            session=wildcards.session,
-            mp2rage_params=wildcards.mp2rage_params, 
-            segmentation=config["segmentations"].split(), mp2rage_map="R1map_b1corr",
-            mp2rage_map=wildcards.mp2rage_map),
+            "data/derivatives/{{field_strength}}/MP2RAGE/sub-{{subject}}/ses-{{session}}/acq-{{mp2rage_params}}/sub-{{subject}}_ses-{{session}}_acq-{{mp2rage_params}}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle", 
+            segmentation=config["segmentations"].split(),
+            mp2rage_map="R1map_b1corr"),
     output:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.pickle",
     resources:
