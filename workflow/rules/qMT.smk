@@ -1108,7 +1108,7 @@ rule apply_brainmask_R1map:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.input_image} -mas {input.brain_mask} -odt "input" {output}
+        fslmaths {input.input_image} -mas {input.brain_mask} {output} -odt input
         """
 
 
