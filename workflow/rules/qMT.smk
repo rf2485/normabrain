@@ -853,7 +853,7 @@ rule apply_reg_qMT_to_t1w_ants:
         ),
         reg = "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{qMT_params}_{flip_angle}_mt-{mt}_part-{part}_reg2{qMT_params}_t1w_0GenericAffine.mat"
     output:
-        "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{qMT_params}_{flip_angle}_mt-{mt}_part-{part}_sos_reg2{qMT_params}_t1w.nii.gz"
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{qMT_params}_{flip_angle}_mt-{mt}_part-{part}_sos_reg2{qMT_params}_t1w.nii.gz")
     resources:
         mem_mb=500
     threads: 1
@@ -876,9 +876,6 @@ rule apply_reg_qMT_to_t1w_ants:
         -r {input.ref} \
         -t {input.reg} \
         -o {output}
-
-        scale=$(mrstats {output} -output max | awk '{{print 65535 / $1}}')
-        mrconvert {output} {output} -datatype uint16 -scaling 0.0,$scale -nthreads {threads} -force
         """
 
 #B1+ rules
