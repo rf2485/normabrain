@@ -737,7 +737,7 @@ rule brain_and_spine_mask_qMT:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.brain_mask} -add {input.spine_mask} -fillh26 -dilD -dilD -ero -ero -bin -odt "input" {output.brain_spine_mask}
+        fslmaths {input.brain_mask} -add {input.spine_mask} -fillh26 -dilD -dilD -ero -ero -bin {output.brain_spine_mask} -odt input
         cp {input.spine_mask} {output.spine_mask}
         cp {input.brain_mask} {output.brain_mask}
         """
