@@ -1,14 +1,14 @@
-rule filter_data:
+rule wm90percent_lobes_stats_hist:
     input:
-       "data/derivatives/ihmt_stats.pickle"
+       "data/derivatives/{modality}_stats.pickle"
     output:
-        "data/derivatives/ihmt_stats_filteredROIs.csv" 
+        "data/derivatives/{modality}_wm90percent_lobes_stats_hist.csv" 
     conda:
         "../envs/stats_plots.yaml"
     log:
-        "logs/3T/ihmt/ihmt_stats_filteredROIs.ipynb"
+        "logs/{modality}_wm90percent_lobes_stats_hist.ipynb"
     notebook:
-        "../notebooks/ihmt_stats_filteredROIs.py.ipynb"
+        "../notebooks/wm90percent_lobes_stats_hist.py.ipynb"
 
 
 rule ihmt_b1corr_test_retest:
@@ -21,7 +21,7 @@ rule ihmt_b1corr_test_retest:
     conda:
         "../envs/stats_plots.yaml"
     log:
-        "logs/3T/ihmt/ihmt_b1corr_test_retest.csv"
+        "logs/ihmt_b1corr_test_retest.csv"
     notebook:
         "../notebooks/ihmt_b1corr_test_retest.py.ipynb"
 
@@ -29,7 +29,7 @@ rule ihmt_b1corr_test_retest:
 rule view_ihmt_stats_datavzrd:
     input:
         config="config/datavzrd_ihmt.yaml",
-        desc_stats="data/derivatives/ihmt_stats_filteredROIs.csv",
+        desc_stats="data/derivatives/ihmt_wm90percent_lobes_stats_hist.csv",
         vref_stats="data/derivatives/ihmt_vref100vs80.csv",
         b1corr_stats="data/derivatives/ihmt_b1corr_vs_uncorr.csv",
         sym_stats="data/derivatives/ihmt_rightleft_symmetry.csv"
