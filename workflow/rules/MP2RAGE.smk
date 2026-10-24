@@ -142,7 +142,7 @@ rule add_xml_data_to_meta_mp2rage:
         protocol_path = config["protocol_path"]
     output:
         temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_addXMLdata.done")
-    resources: #limit memory by input size
+    resources: 
         mem_mb=200
     threads: 1
     log:
@@ -777,7 +777,7 @@ rule apply_warp_mni_atlases_to_subject_mp2rage:
         mem_mb=700
     threads: 1
     log:
-        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}/apply_warp_mni_atlases_to_subject_mp2rage.log"
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_apply_warp_mni_atlases_to_subject_mp2rage.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console

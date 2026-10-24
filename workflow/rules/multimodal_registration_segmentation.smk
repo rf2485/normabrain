@@ -361,7 +361,7 @@ rule apply_warp_mni_atlases_to_ihmt:
         mem_mb=700
     threads: 1
     log:
-        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}/apply_warp_mni_atlases_to_ihmt.log"
+        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_apply_warp_mni_atlases_to_ihmt.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -707,7 +707,7 @@ rule qMT_roi_stats_agg_segs:
         mem_mb=1000
     threads: 1
     log:
-        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/sub-{subject}_ses-{session}_acq-{qMT_params}_stats.log"
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_stats.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
         stats_list = sorted(Path(input.stats[0]).parent.glob("*_stats.pickle"))
@@ -911,7 +911,7 @@ rule apply_warp_mni_atlases_to_dwi:
         mem_mb=700
     threads: 1
     log:
-        "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}/apply_warp_mni_atlases_to_dwi.log"
+        "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_apply_warp_mni_atlases_to_dwi.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console

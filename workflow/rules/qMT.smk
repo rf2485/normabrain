@@ -572,7 +572,7 @@ rule sos:
     input:
         denoised_contrast_path
     output:
-       temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{qMT_params}_{flip_angle}_mt-{mt}_part-{part}_sos.nii.gz")
+       "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{qMT_params}_{flip_angle}_mt-{mt}_part-{part}_sos.nii.gz"
     resources:
         mem_mb=500
     threads: 1
