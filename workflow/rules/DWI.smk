@@ -310,7 +310,7 @@ rule apply_brainmask_meanb0:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FSLOUTPUTTYPE='NIFTI_GZ'
-        fslmaths {input.img} -mas {input.mask} -odt "input" {output}
+        fslmaths {input.img} -mas {input.mask} {output}
         """
 
 
