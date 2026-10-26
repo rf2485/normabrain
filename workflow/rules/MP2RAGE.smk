@@ -783,7 +783,7 @@ rule apply_warp_mni_atlases_to_subject_mp2rage:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FS_LICENSE=".snakemake/scripts/.license"
 
-        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46
+        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46 250 251 252 253 254 255
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
         mri_mask {output.wm90percent_lobes} {output.wm_mask} {output.wm90percent_lobes}
