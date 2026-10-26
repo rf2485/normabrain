@@ -1,0 +1,75 @@
+__use_yte__: true
+
+name: Whole White Matter Within Subject Descriptive Statistics
+
+datasets:
+  desc_stats:
+    path: ?input.desc_stats
+
+default-view: "wholewm"
+
+views:
+  wholewm:
+    dataset: desc_stats
+    desc: "Overview of within-subject whole white matter data with descriptive statistics, for assessment of data quality and normality before running stats."
+    render-table:
+      columns:
+        outliers_removed: 
+          display-mode: hidden
+        region: 
+          display-mode: hidden
+        mean:
+          plot:
+            heatmap:
+              scale: linear
+              range: ["white", "blue"]
+        se:
+          display-mode: hidden
+        median:
+          display-mode: hidden
+        q1:
+          display-mode: hidden
+        q3:
+          display-mode: hidden
+        iqr:
+          display-mode: hidden
+        qcd:
+          display-mode: hidden
+        skew:
+          plot:
+            heatmap:
+              scale: linear
+              range: ["red", "white", "blue"]
+              domain-mid: 0
+        kurt:
+          plot:
+            heatmap:
+              scale: linear
+              range: ["red", "white", "blue"]
+              domain-mid: 0
+        hist:
+          display-mode: detail
+          custom-plot:
+            data: |
+              function(value, row) {
+                return value
+                }
+            spec: |
+              {
+                "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+                "mark": "bar",
+                "encoding": {
+                  "x": {
+                    "field": "bin_start",
+                    "bin": "binned",
+                    "type": "quantitative",
+                    "title": "Value"
+                  },
+                  "x2": {"field": "bin_end"},
+                  "y": {
+                    "field": "count",
+                    "type": "quantitative",
+                    "title": "Frequency"
+                  }
+                }
+              }

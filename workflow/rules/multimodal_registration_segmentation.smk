@@ -412,7 +412,6 @@ rule ihmt_roi_stats:
         done
 
         touch {output}
-
         """
 
 
@@ -444,7 +443,6 @@ rule ihmt_mask_stats:
         done
 
         touch {output}
-
         """
 
 
@@ -723,7 +721,6 @@ rule qMT_roi_stats:
         done
 
         touch {output}
-
         """
 
 
@@ -775,7 +772,7 @@ rule qMT_roi_stats_agg_segs:
             qMT_params=wildcards.qMT_params,
             segmentation=config["segmentations"].split(),
         ),
-        stats_mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp/sub-{subject}_ses-{session}_acq-{qMT_params}_seg-wm90percent_mask_stats.done"
+        stats_mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp/sub-{subject}_ses-{session}_acq-{qMT_params}_mask-wm90percent_stats.done"
     params:
         stats_temp="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp/",
     output:
@@ -1039,7 +1036,6 @@ rule dwi_roi_stats:
         done
 
         touch {output}
-
         """
 
 

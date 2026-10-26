@@ -349,7 +349,7 @@ rule json_for_mp2proc:
         -threads {threads}
         """
 
-
+#TO DO: remove Tim's hard-coded scaling and implemented soft scaling using nifti headers instead
 rule run_mp2proc:
     input:
         mp2proc_json="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mp2proc.json",

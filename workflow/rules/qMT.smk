@@ -1038,7 +1038,7 @@ rule mtr:
         mrconvert {output} {output} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
         """
 
-
+# TO DO: save to uint16 with Nibabel to automate scaling
 rule fit_JSPqMT_CLI:
     input:
         mt_off = lambda wildcards: qmt_role_path(
