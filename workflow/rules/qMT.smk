@@ -586,6 +586,7 @@ rule sos:
         python workflow/scripts/sos_images.py {input} {output}
         """
 
+
 rule qMT_nan_to_0:
     input:
         "data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/preproc/sub-{subject}_ses-{session}_acq-{qMT_params}_{flip_angle}_mt-{mt}_part-{part}_sos.nii.gz",

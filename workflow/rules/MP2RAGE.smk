@@ -769,8 +769,9 @@ rule apply_warp_mni_atlases_to_subject_mp2rage:
         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
     output:
         wm_mask="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_wm_mask.nii.gz",
-        wm90percent_lobes="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm90percent_mask="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_wm90percent_mask.nii.gz",
         wm_lobes="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mni_icbm152_wm_lobes.nii.gz",
+        wm90percent_lobes="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
@@ -783,13 +784,18 @@ rule apply_warp_mni_atlases_to_subject_mp2rage:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FS_LICENSE=".snakemake/scripts/.license"
 
-        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46 250 251 252 253 254 255
+        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --all-wm
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
-        mri_mask {output.wm90percent_lobes} {output.wm_mask} {output.wm90percent_lobes}
+        masked_wm90percent_lobes="{output.wm90percent_lobes}.masked.nii.gz"
+        mri_mask {output.wm90percent_lobes} {output.wm_mask} "$masked_wm90percent_lobes"
+        mv "$masked_wm90percent_lobes" {output.wm90percent_lobes}
+        mri_binarize --i {output.wm90percent_lobes} --o {output.wm90percent_mask} --min 1
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
-        mri_mask {output.wm_lobes} {output.wm_mask} {output.wm_lobes}
+        masked_wm_lobes="{output.wm_lobes}.masked.nii.gz"
+        mri_mask {output.wm_lobes} {output.wm_mask} "$masked_wm_lobes"
+        mv "$masked_wm_lobes" {output.wm_lobes}
         """
     
 
@@ -817,16 +823,45 @@ rule mp2rage_roi_stats:
         """
 
 
-rule mp2rage_roi_stats_agg_segs:
+rule mp2rage_mask_stats:
+    input:
+        mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_brain.nii.gz",
+        mask="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_wm90percent_mask.nii.gz",
+    params:
+        outdir="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/"
+    output:
+        stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mask-wm90percent_ctr-{mp2rage_map}_stats.pickle"),
+        nooutliers_stats=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mask-wm90percent_ctr-{mp2rage_map}_nooutliers_stats.pickle"),
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mask-wm90percent_ctr-{mp2rage_map}_stats.log",
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        python3 workflow/scripts/mask_stats.py "{input.mp2rage_map}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "MP2RAGE" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}" "{wildcards.mp2rage_map}"
+        python3 workflow/scripts/mask_stats.py -r "{input.mp2rage_map}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "MP2RAGE" "{wildcards.subject}" "{wildcards.session}" "{wildcards.mp2rage_params}" "{wildcards.mp2rage_map}"
+        """
+
+
+rule mp2rage_roi_stats_agg_segs_masks:
     input:
         stats=expand(
             "data/derivatives/{{field_strength}}/MP2RAGE/sub-{{subject}}/ses-{{session}}/acq-{{mp2rage_params}}/sub-{{subject}}_ses-{{session}}_acq-{{mp2rage_params}}_seg-{segmentation}_ctr-{mp2rage_map}_stats.pickle",
             segmentation=config["segmentations"].split(),
             mp2rage_map="R1map_b1corr"),
+        stats_mask=expand(
+            "data/derivatives/{{field_strength}}/MP2RAGE/sub-{{subject}}/ses-{{session}}/acq-{{mp2rage_params}}/sub-{{subject}}_ses-{{session}}_acq-{{mp2rage_params}}_mask-wm90percent_ctr-{mp2rage_map}_stats.pickle",
+            mp2rage_map="R1map_b1corr"),
         nooutliers=expand(
             "data/derivatives/{{field_strength}}/MP2RAGE/sub-{{subject}}/ses-{{session}}/acq-{{mp2rage_params}}/sub-{{subject}}_ses-{{session}}_acq-{{mp2rage_params}}_seg-{segmentation}_ctr-{mp2rage_map}_nooutliers_stats.pickle", 
             segmentation=config["segmentations"].split(),
             mp2rage_map="R1map_b1corr"),
+        nooutliers_mask=expand(
+            "data/derivatives/{{field_strength}}/MP2RAGE/sub-{{subject}}/ses-{{session}}/acq-{{mp2rage_params}}/sub-{{subject}}_ses-{{session}}_acq-{{mp2rage_params}}_mask-wm90percent_ctr-{mp2rage_map}_nooutliers_stats.pickle",
+            mp2rage_map="R1map_b1corr")
     output:
         "data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_stats.pickle",
     resources:
@@ -837,8 +872,10 @@ rule mp2rage_roi_stats_agg_segs:
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
         df_stats = pd.concat((pd.read_pickle(s) for s in input.stats), ignore_index=True)
+        df_stats_mask = pd.concat((pd.read_pickle(s) for s in input.stats_mask), ignore_index=True)
         df_nooutliers = pd.concat((pd.read_pickle(n) for n in input.nooutliers), ignore_index=True)
-        df_stats = pd.concat([df_stats, df_nooutliers])
+        df_nooutliers_mask = pd.concat((pd.read_pickle(n) for n in input.nooutliers_mask), ignore_index=True)
+        df_stats = pd.concat([df_stats, df_stats_mask, df_nooutliers, df_nooutliers_mask])
         df_stats.to_pickle(str(output))
 
 

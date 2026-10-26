@@ -353,8 +353,9 @@ rule apply_warp_mni_atlases_to_ihmt:
         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
     output:
         wm_mask="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_wm_mask.nii.gz",
-        wm90percent_lobes="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm90percent_mask="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_wm90percent_mask.nii.gz",
         wm_lobes="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_mni_icbm152_wm_lobes.nii.gz",
+        wm90percent_lobes="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
@@ -367,12 +368,13 @@ rule apply_warp_mni_atlases_to_ihmt:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FS_LICENSE=".snakemake/scripts/.license"
 
-        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46 250 251 252 253 254 255
+        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --all-wm
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
         masked_wm90percent_lobes="{output.wm90percent_lobes}.masked.nii.gz"
         mri_mask {output.wm90percent_lobes} {output.wm_mask} "$masked_wm90percent_lobes"
         mv "$masked_wm90percent_lobes" {output.wm90percent_lobes}
+        mri_binarize --i {output.wm90percent_lobes} --o {output.wm90percent_mask} --min 1
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
         masked_wm_lobes="{output.wm_lobes}.masked.nii.gz"
@@ -390,7 +392,7 @@ rule ihmt_roi_stats:
         ihmtprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}",
         outdir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp",
     output:
-        temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.done"),
+        temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_seg-{segmentation}_stats.done"),
     resources:
         mem_mb=1000
     threads: 1
@@ -414,10 +416,45 @@ rule ihmt_roi_stats:
         """
 
 
+rule ihmt_mask_stats:
+    input:
+        ihmt_done="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_b1corr_brain.done",
+        mask="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/masks_segs/sub-{subject}_ses-{session}_acq-{ihmt_params}_wm90percent_mask.nii.gz",
+    params:
+        ihmtprefix="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}",
+        outdir="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp",
+    output:
+        temp("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_mask-wm90percent_stats.done"),
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/sub-{subject}_ses-{session}_acq-{ihmt_params}_seg-wm90percent_mask_stats.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        MTmaps=("cosmod_ihMTR" "freqalt_ihMTR" "BPR" "DO" "cosmod_ihMTR_b1corr" "freqalt_ihMTR_b1corr" "BPR_b1corr" "DO_b1corr")
+        for map in "${{MTmaps[@]}}"; do
+            ihmt="{params.ihmtprefix}_${{map}}_brain.nii.gz"
+            if [ -f $ihmt ]; then
+                python3 workflow/scripts/mask_stats.py "${{ihmt}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "ihMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"
+                python3 workflow/scripts/mask_stats.py -r "${{ihmt}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "ihMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.ihmt_params}" "${{map}}"
+            fi
+        done
+
+        touch {output}
+
+        """
+
+
 rule ihmt_roi_stats_agg_segs:
     input:
-        stats=expand("data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_{segmentation}_stats.done",
-        segmentation=config["segmentations"].split(), allow_missing=True),
+        stats=expand(
+            "data/derivatives/{{field_strength}}/ihmt/sub-{{subject}}/ses-{{session}}/acq-{{ihmt_params}}/stats_temp/sub-{{subject}}_ses-{{session}}_acq-{{ihmt_params}}_seg-{segmentation}_stats.done",
+            segmentation=config["segmentations"].split()
+            ),
+        stats_mask="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp/sub-{subject}_ses-{session}_acq-{ihmt_params}_mask-wm90percent_stats.done"
     params:
         stats_temp="data/derivatives/{field_strength}/ihmt/sub-{subject}/ses-{session}/acq-{ihmt_params}/stats_temp",
     output:
@@ -432,7 +469,8 @@ rule ihmt_roi_stats_agg_segs:
         stats_list = sorted(Path(input.stats[0]).parent.glob("*_stats.pickle"))
         df_stats = pd.concat((pd.read_pickle(s) for s in stats_list), ignore_index=True)
         df_stats.to_pickle(str(output))
-        shutil.rmtree(params.stats_temp)
+        if os.path.exists(params.stats_temp):
+            shutil.rmtree(params.stats_temp)
 
 
 rule ihmt_roi_stats_agg_subjs:
@@ -621,8 +659,9 @@ rule apply_warp_mni_atlases_to_qMT:
         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
     output:
         wm_mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_wm_mask.nii.gz",
-        wm90percent_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm90percent_mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_wm90percent_mask.nii.gz",
         wm_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_mni_icbm152_wm_lobes.nii.gz",
+        wm90percent_lobes="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
@@ -635,12 +674,13 @@ rule apply_warp_mni_atlases_to_qMT:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FS_LICENSE=".snakemake/scripts/.license"
 
-        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46 250 251 252 253 254 255
+        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --all-wm
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
         masked_wm90percent_lobes="{output.wm90percent_lobes}.masked.nii.gz"
         mri_mask {output.wm90percent_lobes} {output.wm_mask} "$masked_wm90percent_lobes"
         mv "$masked_wm90percent_lobes" {output.wm90percent_lobes}
+        mri_binarize --i {output.wm90percent_lobes} --o {output.wm90percent_mask} --min 1
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
         masked_wm_lobes="{output.wm_lobes}.masked.nii.gz"
@@ -687,6 +727,42 @@ rule qMT_roi_stats:
         """
 
 
+rule qMT_mask_stats:
+    input:
+        mpfmap="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_MPFmap.nii.gz",
+        t1map="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_T1map.nii.gz",
+        r1map="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_R1map.nii.gz",
+        mtr="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_MTRmap.nii.gz",
+        mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_wm90percent_mask.nii.gz",
+    params:
+        qMTprefix="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}",
+        outdir="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp",
+    output:
+        temp("data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp/sub-{subject}_ses-{session}_acq-{qMT_params}_mask-wm90percent_stats.done"),
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_mask-wm90percent_stats.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        qMTmaps=("MPFmap" "MTRmap" "R1map" "T1map")
+        for map in "${{qMTmaps[@]}}"; do
+            qMT="{params.qMTprefix}_${{map}}.nii.gz"
+            if [ -f $qMT ]; then
+                echo "${{map}} stats unfiltered"
+                python3 workflow/scripts/mask_stats.py "${{qMT}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
+                echo "${{map}}" stats without outliers
+                python3 workflow/scripts/mask_stats.py -r "${{qMT}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
+            fi
+        done
+
+        touch {output}
+        """
+
+
 rule qMT_roi_stats_agg_segs:
     input:
         stats=lambda wildcards: expand(
@@ -699,6 +775,7 @@ rule qMT_roi_stats_agg_segs:
             qMT_params=wildcards.qMT_params,
             segmentation=config["segmentations"].split(),
         ),
+        stats_mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp/sub-{subject}_ses-{session}_acq-{qMT_params}_seg-wm90percent_mask_stats.done"
     params:
         stats_temp="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/stats_temp/",
     output:
@@ -903,8 +980,9 @@ rule apply_warp_mni_atlases_to_dwi:
         wm_lobes="data/atlases/mni_icbm152_wm_lobes.nii.gz"
     output:
         wm_mask="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/masks_segs/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_wm_mask.nii.gz",
-        wm90percent_lobes="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/masks_segs/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
+        wm90percent_mask="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/masks_segs/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_wm90percent_mask.nii.gz",
         wm_lobes="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/masks_segs/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_mni_icbm152_wm_lobes.nii.gz",
+        wm90percent_lobes="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/masks_segs/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_mni_icbm152_nlin_asym_09c_wm90percent_lobes.nii.gz",
     container:
         "docker://freesurfer/freesurfer:8.1.0"
     resources:
@@ -917,12 +995,13 @@ rule apply_warp_mni_atlases_to_dwi:
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         export FS_LICENSE=".snakemake/scripts/.license"
 
-        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --match 2 7 41 46 250 251 252 253 254 255
+        mri_binarize --i {input.aparc_aseg} --o {output.wm_mask} --all-wm
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm90percent_lobes} {output.wm90percent_lobes}
         masked_wm90percent_lobes="{output.wm90percent_lobes}.masked.nii.gz"
         mri_mask {output.wm90percent_lobes} {output.wm_mask} "$masked_wm90percent_lobes"
         mv "$masked_wm90percent_lobes" {output.wm90percent_lobes}
+        mri_binarize --i {output.wm90percent_lobes} --o {output.wm90percent_mask} --min 1
 
         mri_convert --resample_type nearest --apply_inverse_transform {input.subj2mni152} {input.wm_lobes} {output.wm_lobes}
         masked_wm_lobes="{output.wm_lobes}.masked.nii.gz"
@@ -940,7 +1019,7 @@ rule dwi_roi_stats:
         dwiprefix="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/dki/sub-{subject}_ses-{session}_acq-DWI{dwi_params}",
         outdir="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp",
     output:
-        temp("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_{segmentation}_stats.done"),
+        temp("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_seg-{segmentation}_stats.done"),
     resources:
         mem_mb=1000
     threads: 1
@@ -964,10 +1043,44 @@ rule dwi_roi_stats:
         """
 
 
+rule dwi_mask_stats:
+    input:
+        dki_done="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/dki/",
+        mask="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/masks_segs/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_wm90percent_mask.nii.gz",
+    params:
+        dwiprefix="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/dki/sub-{subject}_ses-{session}_acq-DWI{dwi_params}",
+        outdir="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp",
+    output:
+        temp("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_mask-wm90percent_stats.done"),
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_mask-wm90percent_stats.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        dkimaps=("ad" "ak" "color_fa" "fa" "kfa" "md" "mk" "mkt" "rd" "rk" "rtk")
+        for map in "${{dkimaps[@]}}"; do
+            dki="{params.dwiprefix}_${{map}}.nii.gz"
+            if [ -f $dki ]; then
+                python3 workflow/scripts/mask_stats.py "${{dki}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "DWI" "{wildcards.subject}" "{wildcards.session}" "DWI{wildcards.dwi_params}" "${{map}}"
+                python3 workflow/scripts/mask_stats.py -r "${{dki}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "DWI" "{wildcards.subject}" "{wildcards.session}" "DWI{wildcards.dwi_params}" "${{map}}"
+            fi
+        done
+
+        touch {output}
+
+        """
+
+
 rule dwi_roi_stats_agg_segs:
     input:
-        stats=expand("data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_{segmentation}_stats.done",
-        segmentation=config["segmentations"].split(), allow_missing=True),
+        stats=expand(
+            "data/derivatives/{{field_strength}}/dwi/sub-{{subject}}/ses-{{session}}/acq-DWI{{dwi_params}}/stats_temp/sub-{{subject}}_ses-{{session}}_acq-DWI{{dwi_params}}_seg-{segmentation}_stats.done",
+            segmentation=config["segmentations"].split()),
+        stats_mask="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp/sub-{subject}_ses-{session}_acq-DWI{dwi_params}_mask-wm90percent_stats.done"
     params:
         stats_temp="data/derivatives/{field_strength}/dwi/sub-{subject}/ses-{session}/acq-DWI{dwi_params}/stats_temp",
     output:
@@ -982,7 +1095,8 @@ rule dwi_roi_stats_agg_segs:
         stats_list = sorted(Path(input.stats[0]).parent.glob("*_stats.pickle"))
         df_stats = pd.concat((pd.read_pickle(s) for s in stats_list), ignore_index=True)
         df_stats.to_pickle(str(output))
-        shutil.rmtree(params.stats_temp)
+        if os.path.exists(params.stats_temp):
+            shutil.rmtree(params.stats_temp)
 
 
 rule dwi_roi_stats_agg_subjs:

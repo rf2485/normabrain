@@ -78,6 +78,7 @@ def ROI_stats(data_filepath, seg_filepath, ROI_lookuptable_filepath, output_dire
             continue
         data = a_map[mask] # Add masked data to a dictionnary also associated with its ROI name.
         data = data[data != 0]
+        data = data[np.isfinite(data)] #clean up NaNs and infinite values
 
         if remove_outliers == True: 
             data = filter_outliers(data)
