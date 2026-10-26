@@ -349,26 +349,18 @@ rule json_for_mp2proc:
         -threads {threads}
         """
 
-#TO DO: remove Tim's hard-coded scaling and implemented soft scaling using nifti headers instead
 rule run_mp2proc:
     input:
         mp2proc_json="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_mp2proc.json",
         b1map_nifti = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.nii.gz",
         b1map_json = "data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_ants.json"
     output:
-        b1="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_smooth_norm.nii.gz",
-        t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr.nii.gz",
-        r1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_R1map_b1corr.nii.gz",
-        uniden_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr.nii.gz",
-        uniden_uncorr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
-        uni_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNI_b1corr.nii.gz"
-    params:
-        b1="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/b1_processed_relativeUnit_perThousand.nii.gz",
-        t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qT1_msUnit.nii.gz",
-        r1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qR1_pksUnit.nii.gz",
-        uniden_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/t1wUNI_B1Corrected_DEN_dicomUnit.nii.gz",
-        uniden_uncorr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/t1wUNI_DEN_dicomUnit.nii.gz",
-        uni_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/t1wUNI_B1Corrected_dicomUnit.nii.gz"
+        b1=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/b1_processed_relativeUnit_perThousand.nii.gz"),
+        t1map=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qT1_msUnit.nii.gz"),
+        r1map=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qR1_pksUnit.nii.gz"),
+        uniden_corr=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/t1wUNI_B1Corrected_DEN_dicomUnit.nii.gz"),
+        uniden_uncorr=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/t1wUNI_DEN_dicomUnit.nii.gz"),
+        uni_corr=temp("data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/t1wUNI_B1Corrected_dicomUnit.nii.gz")
     threads:
         8
     container:
@@ -381,15 +373,42 @@ rule run_mp2proc:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
         /opt/MP2Proc/bin/main {input.mp2proc_json}
-
-        mv {params.b1} {output.b1}
-        mv {params.t1map} {output.t1map}
-        mv {params.r1map} {output.r1map}
-        mv {params.uniden_corr} {output.uniden_corr}
-        mv {params.uniden_uncorr} {output.uniden_uncorr}
-        mv {params.uni_corr} {output.uni_corr}
         """
 
+rule undo_hard_scaling:
+    #MP2PROC hard scales images, undo this and put scaling factor in header so units are in SI when read by NIBABEL and ANTs
+    input:
+        b1="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/b1_processed_relativeUnit_perThousand.nii.gz",
+        t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qT1_msUnit.nii.gz",
+        r1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/qR1_pksUnit.nii.gz",
+        uniden_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/t1wUNI_B1Corrected_DEN_dicomUnit.nii.gz",
+        uniden_uncorr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/t1wUNI_DEN_dicomUnit.nii.gz",
+        uni_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/t1wUNI_B1Corrected_dicomUnit.nii.gz"
+    output:
+        b1="data/derivatives/{field_strength}/B1map/sub-{subject}/ses-{session}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-famp_reg2{mp2rage_params}_smooth_norm.nii.gz",
+        t1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1map_b1corr.nii.gz",
+        r1map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_R1map_b1corr.nii.gz",
+        uniden_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN_b1corr.nii.gz",
+        uniden_uncorr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNIDEN.nii.gz",
+        uni_corr="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_T1w_UNI_b1corr.nii.gz"
+    threads:
+        1
+    conda:
+        "../envs/qMT.yaml"
+    resources: 
+        mem_mb=500
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_unscale.log"
+    shell:
+        """
+        mrcalc {input.b1} 0.001 -multiply - | mrconvert - {output.b1} -datatype uint16 -scaling 0.0,0.001
+        mrcalc {input.t1map} 0.001 -multiply - | mrconvert - {output.t1map} -datatype uint16 -scaling 0.0,0.001
+        mrcalc {input.r1map} 0.001 -multiply - | mrconvert - {output.r1map} -datatype uint16 -scaling 0.0,0.001
+        mv {input.uniden_corr} {output.uniden_corr}
+        mv {input.uniden_uncorr} {output.uniden_uncorr}
+        mv {input.uni_corr} {output.uni_corr}
+        """
+    
 
 rule apply_brainmask_mp2rage:
     input:

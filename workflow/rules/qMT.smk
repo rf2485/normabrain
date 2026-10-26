@@ -1038,7 +1038,7 @@ rule mtr:
         mrconvert {output} {output} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
         """
 
-# TO DO: save to uint16 with Nibabel to automate scaling
+
 rule fit_JSPqMT_CLI:
     input:
         mt_off = lambda wildcards: qmt_role_path(
@@ -1088,6 +1088,10 @@ rule fit_JSPqMT_CLI:
         --mask {input.mask} \
         --nworkers {threads} \
         --cpp_opt --use_GBM
+
+        mrconvert {output.mpfmap} {output.mpfmap} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
+        mrconvert {output.r1map} {output.r1map} -scaling 0.0,0.0001 -datatype uint16 -force -nthreads {threads}
+        mrconvert {output.t1map} {output.t1map} -scaling 0.0,0.001 -datatype uint16 -force -nthreads {threads}        
         """
 
 #rules for registering to MP2RAGE with ANTS
