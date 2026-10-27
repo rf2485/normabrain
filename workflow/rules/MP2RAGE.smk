@@ -818,6 +818,28 @@ rule apply_warp_mni_atlases_to_subject_mp2rage:
         """
     
 
+rule mask_mp2rage_to_freesurfer:
+    input:
+        subj2fs="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_reg2fs.lta",
+        target=antsdnbrain_first_acq_mp2rage,
+        mask_subj="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/masks_segs/sub-{subject}_ses-{session}_acq-{mp2rage_params}_wm90percent_mask.nii.gz",
+    output:
+        mask_fs="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_wm90percent_mask_reg2fs.nii.gz"
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    resources:
+        mem_mb=700
+    threads: 1
+    log:
+        "logs/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/coreg/sub-{subject}_ses-{session}_acq-{mp2rage_params}_wm90percent_mask_reg2fs.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+        export FS_LICENSE=$HOME/.snakemake/scripts/.license
+        mri_vol2vol --mov {input.mask_subj} --targ {input.target} --o {output.mask_fs} --lta {input.subj2fs} --no-save-reg
+        """
+
+
 rule mp2rage_roi_stats:
     input:
         mp2rage_map="data/derivatives/{field_strength}/MP2RAGE/sub-{subject}/ses-{session}/acq-{mp2rage_params}/sub-{subject}_ses-{session}_acq-{mp2rage_params}_{mp2rage_map}_brain.nii.gz",
