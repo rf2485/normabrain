@@ -403,7 +403,7 @@ rule undo_hard_scaling:
         """
         mrcalc {input.b1} 0.001 -multiply - | mrconvert - {output.b1} -datatype uint16 -scaling 0.0,0.001
         mrcalc {input.t1map} 0.001 -multiply - | mrconvert - {output.t1map} -datatype uint16 -scaling 0.0,0.001
-        mrcalc {input.r1map} 0.001 -multiply - | mrconvert - {output.r1map} -datatype uint16 -scaling 0.0,0.001
+        mrcalc 1 {output.t1map} -divide - | mrconvert - {output.r1map} -datatype uint16 -scaling 0.0,0.0001
         mv {input.uniden_corr} {output.uniden_corr}
         mv {input.uniden_uncorr} {output.uniden_uncorr}
         mv {input.uni_corr} {output.uni_corr}
