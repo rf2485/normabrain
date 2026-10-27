@@ -51,6 +51,33 @@ def qMT_to_freesurfer(wildcards):
                 apply_reg_list.append("data/derivatives/{field_strength}/qMT/sub-" + subject + "/ses-" + session + "/acq-" + mpm + "/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_applyreg2FS" + mp2rage_first_acq + ".done")
     return sorted(set(apply_reg_list))
 
+def QSM_to_freesurfer(wildcards):
+    """Return list of expected QSM registered to FreeSurfer done files, given raw BIDS images."""
+    layout=layout_dict[wildcards.field_strength]
+    apply_reg_list = []
+    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
+    # subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
+    # subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
+    subjectlist_mpm = layout.get_subject(suffix="MPM")
+    # subjectlist = list(set(subjectlist_mp2rage) & (set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mpm))
+    subjectlist = list(set(subjectlist_mp2rage) & set(subjectlist_mpm))
+    for subject in subjectlist:
+        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
+        # sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
+        # sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
+        sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
+        # sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
+        sessionlist = list(set(sessionlist_mp2rage) & set(sessionlist_mpm))
+        for session in sessionlist:
+            mpm_acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
+            mp2rage_first_acq=get_mp2rage_acquisitions(
+                wildcards.field_strength, subject, session)[0]
+            for mpm in mpm_acqlist:
+                apply_reg_list.append("data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-" + subject + "/ses-" + session + "/anat/reg2MP2RAGE/sub-" + subject + "_ses-" + session + "_acq-" + mpm + "_applyreg2FS" + mp2rage_first_acq + ".done")
+    return sorted(set(apply_reg_list))
+
 def ihmt_to_freesurfer(wildcards):
     """Return list of expected ihMT registered to FreeSurfer done files, given raw BIDS images."""
     layout=layout_dict[wildcards.field_strength]
@@ -178,6 +205,31 @@ def qMT_statslist(wildcards):
             )
             for acq in acqlist:
                 statslist.append("data/derivatives/" + wildcards.field_strength + "/qMT/sub-" + subject + "/ses-" + session + "/acq-" + acq + "/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
+    return sorted(set(statslist))
+
+def QSM_statslist(wildcards):
+    """Return list of expected QSM stats files given raw BIDS files."""
+    layout=layout_dict[wildcards.field_strength]
+    statslist = []
+    subjectlist_mp2rage = layout.get_subject(suffix="MP2RAGE")
+    # subjectlist_tb1tfl = layout.get_subject(suffix="TB1TFL")
+    # subjectlist_tb1rfm = layout.get_subject(suffix="TB1RFM")
+    subjectlist_mpm = layout.get_subject(suffix="MPM")
+    # subjectlist = list(set(subjectlist_mp2rage) & (set(subjectlist_tb1tfl) | set(subjectlist_tb1rfm)) & set(subjectlist_mpm))
+    subjectlist = list(set(subjectlist_mp2rage) & set(subjectlist_mpm))
+    for subject in subjectlist:
+        sessionlist_mp2rage = layout.get_session(suffix="MP2RAGE", subject=subject)
+        # sessionlist_tb1tfl = layout.get_session(suffix="TB1TFL", subject=subject)
+        # sessionlist_tb1rfm = layout.get_session(suffix="TB1RFM", subject=subject)
+        sessionlist_mpm = layout.get_session(suffix="MPM", subject=subject)
+        # sessionlist = list(set(sessionlist_mp2rage) & (set(sessionlist_tb1tfl) | set(sessionlist_tb1rfm)) & set(sessionlist_mpm))
+        sessionlist = list(set(sessionlist_mp2rage) & set(sessionlist_mpm))
+        for session in sessionlist:
+            acqlist = get_mpm_acquisitions(
+                wildcards.field_strength, subject, session
+            )
+            for acq in acqlist:
+                statslist.append("data/derivatives/" + wildcards.field_strength + "/QSM/derivatives/qsmxt/sub-" + subject + "/ses-" + session + "/anat/sub-" + subject + "_ses-" + session + "_acq-" + acq + "_stats.pickle")
     return sorted(set(statslist))
 
 def dwi_statslist(wildcards):
@@ -579,6 +631,42 @@ rule apply_reg_qMT_to_freesurfer_bbregister:
         """
 
 
+rule apply_reg_QSM_to_freesurfer_bbregister:
+    input:
+        reg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_reg2FS{mp2rage_params}.lta",
+        target="data/derivatives/{field_strength}/freesurfer/sub-{subject}_ses-{session}_acq-{mp2rage_params}/mri/orig.mgz",
+        QSM_maps_done="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_MEGRE_swi.nii"
+    params:
+        anatdir="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat",
+        subject="sub-{subject}_ses-{session}_acq-{qMT_params}"
+    output:
+        temp("data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_applyreg2FS{mp2rage_params}.done")
+    resources:
+        mem_mb=1500
+    threads: 1
+    container:
+        "docker://freesurfer/freesurfer:8.1.0"
+    log:
+        "logs/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/reg2MP2RAGE/sub-{subject}_ses-{session}_acq-{qMT_params}_applyreg2FS{mp2rage_params}.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        export FS_LICENSE=$HOME/.snakemake/scripts/.license
+
+        QSMmaps=("MEGRE_Chimap" "MEGRE_R2starmap" "MEGRE_swi" "MEGRE_T2starmap")
+        mkdir -p {params.anatdir}/reg2MP2RAGE
+        for map in "${{QSMmaps[@]}}"; do
+            moving="{params.anatdir}/{params.subject}_"$map".nii"
+            out="{params.anatdir}/reg2MP2RAGE/{params.subject}_"$map"_reg2FS{wildcards.mp2rage_params}.nii.gz"
+            if [ -f $moving ]; then
+                mri_vol2vol --mov $moving --targ {input.target} --o $out --reg {input.reg} --no-save-reg
+            fi
+        done
+        touch {output}
+        """
+
+
 rule gather_qMT_to_freesurfer_bbregister:
     input:
         qMT_to_freesurfer
@@ -586,6 +674,21 @@ rule gather_qMT_to_freesurfer_bbregister:
         temp("data/derivatives/{field_strength}/qMT/qMT_to_freesurfer.done")
     log:
         "logs/{field_strength}/qMT/qMT_to_freesurfer.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        touch {output}
+        """
+
+
+rule gather_QSM_to_freesurfer_bbregister:
+    input:
+        QSM_to_freesurfer
+    output:
+        temp("data/derivatives/{field_strength}/QSM/derivatives/qsmxt/QSM_to_freesurfer.done")
+    log:
+        "logs/{field_strength}/QSM/derivatives/qsmxt/QSM_to_freesurfer.log"
     shell:
         """
         exec > >(tee {log}) 2>&1 #save output to log AND print to console
@@ -724,6 +827,43 @@ rule qMT_roi_stats:
         """
 
 
+rule QSM_roi_stats:
+    input:
+        chimap="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_MEGRE_Chimap.nii",
+        r2starmap="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_MEGRE_R2starmap.nii",
+        swi="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_MEGRE_swi.nii",
+        t2starmap="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_MEGRE_Chimap.nii",
+        seg="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_{segmentation}.nii.gz",
+        lut="data/atlases/{segmentation}_lut.txt",
+    params:
+        QSMprefix="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}",
+        outdir="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/stats_temp",
+    output:
+        temp("data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/stats_temp/sub-{subject}_ses-{session}_acq-{qMT_params}_seg-{segmentation}_stats.done"),
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_seg-{segmentation}_stats.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        QSMmaps=("MEGRE_Chimap" "MEGRE_R2starmap" "MEGRE_swi" "MEGRE_T2starmap")
+        for map in "${{QSMmaps[@]}}"; do
+            QSM="{params.QSMprefix}_${{map}}.nii"
+            if [ -f $QSM ]; then
+                echo "${{map}} stats unfiltered"
+                python3 workflow/scripts/roi_stats.py "${{QSM}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "QSM" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
+                echo "${{map}}" stats without outliers
+                python3 workflow/scripts/roi_stats.py -r "${{QSM}}" "{input.seg}" "{input.lut}" "{params.outdir}" "{wildcards.field_strength}" "QSM" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
+            fi
+        done
+
+        touch {output}
+        """
+
+
 rule qMT_mask_stats:
     input:
         mpfmap="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/sub-{subject}_ses-{session}_acq-{qMT_params}_MPFmap.nii.gz",
@@ -753,6 +893,42 @@ rule qMT_mask_stats:
                 python3 workflow/scripts/mask_stats.py "${{qMT}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
                 echo "${{map}}" stats without outliers
                 python3 workflow/scripts/mask_stats.py -r "${{qMT}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "qMT" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
+            fi
+        done
+
+        touch {output}
+        """
+
+
+rule QSM_mask_stats:
+    input:
+        chimap="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_MEGRE_Chimap.nii",
+        r2starmap="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_MEGRE_R2starmap.nii",
+        swi="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_MEGRE_swi.nii",
+        t2starmap="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_MEGRE_Chimap.nii",
+        mask="data/derivatives/{field_strength}/qMT/sub-{subject}/ses-{session}/acq-{qMT_params}/masks_segs/sub-{subject}_ses-{session}_acq-{qMT_params}_wm90percent_mask.nii.gz",
+    params:
+        QSMprefix="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}",
+        outdir="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/stats_temp",
+    output:
+        temp("data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/stats_temp/sub-{subject}_ses-{session}_acq-{qMT_params}_mask-wm90percent_stats.done"),
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_mask-wm90percent_stats.log"
+    shell:
+        """
+        exec > >(tee {log}) 2>&1 #save output to log AND print to console
+
+        QSMmaps=("MEGRE_Chimap" "MEGRE_R2starmap" "MEGRE_swi" "MEGRE_T2starmap")
+        for map in "${{QSMmaps[@]}}"; do
+            QSM="{params.QSMprefix}_${{map}}.nii"
+            if [ -f $QSM ]; then
+                echo "${{map}} stats unfiltered"
+                python3 workflow/scripts/mask_stats.py "${{QSM}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "QSM" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
+                echo "${{map}}" stats without outliers
+                python3 workflow/scripts/mask_stats.py -r "${{QSM}}" "{input.mask}" "wm90percent" "{params.outdir}" "{wildcards.field_strength}" "QSM" "{wildcards.subject}" "{wildcards.session}" "{wildcards.qMT_params}" "${{map}}"
             fi
         done
 
@@ -791,6 +967,37 @@ rule qMT_roi_stats_agg_segs:
             shutil.rmtree(params.stats_temp)
 
 
+rule QSM_roi_stats_agg_segs:
+    input:
+        stats=lambda wildcards: expand(
+            "data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/"
+            "anat/stats_temp/sub-{subject}_ses-{session}_"
+            "acq-{qMT_params}_seg-{segmentation}_stats.done",
+            field_strength=wildcards.field_strength,
+            subject=wildcards.subject,
+            session=wildcards.session,
+            qMT_params=wildcards.qMT_params,
+            segmentation=config["segmentations"].split(),
+        ),
+        stats_mask="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/stats_temp/sub-{subject}_ses-{session}_acq-{qMT_params}_mask-wm90percent_stats.done"
+    params:
+        stats_temp="data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/stats_temp/",
+    output:
+        "data/derivatives/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_stats.pickle",
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/QSM/derivatives/qsmxt/sub-{subject}/ses-{session}/anat/sub-{subject}_ses-{session}_acq-{qMT_params}_stats.log"
+    run: #python code, not shell
+        logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
+        stats_list = sorted(Path(input.stats[0]).parent.glob("*_stats.pickle"))
+        df_stats = pd.concat((pd.read_pickle(s) for s in stats_list), ignore_index=True)
+        df_stats.to_pickle(str(output))
+        if os.path.exists(params.stats_temp):
+            shutil.rmtree(params.stats_temp)
+
+
 rule qMT_roi_stats_agg_subjs:
     input:
         qMT_statslist
@@ -801,6 +1008,25 @@ rule qMT_roi_stats_agg_subjs:
     threads: 1
     log:
         "logs/{field_strength}/qMT/qMT_stats_{field_strength}.log"
+    run: #python code, not shell
+        logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
+        if input:
+            df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        else:
+            df_stats = pd.DataFrame()
+        df_stats.to_pickle(str(output))
+
+
+rule QSM_roi_stats_agg_subjs:
+    input:
+        QSM_statslist
+    output:
+        "data/derivatives/{field_strength}/QSM/derivatives/qsmxt/QSM_stats_{field_strength}.pickle"
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/{field_strength}/QSM/derivatives/qsmxt/QSM_stats_{field_strength}.log"
     run: #python code, not shell
         logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
         if input:
@@ -829,10 +1055,35 @@ rule aggregate_qMT_stats:
         df_stats.to_pickle(str(output))
 
 
+rule aggregate_QSM_stats:
+    input:
+        expand("data/derivatives/{field_strength}/QSM/derivatives/qsmxt/QSM_stats_{field_strength}.pickle", field_strength=field_strength_list),
+    output:
+        "data/derivatives/QSM_stats.pickle"
+    resources:
+        mem_mb=1000
+    threads: 1
+    log:
+        "logs/qMT_stats.log"
+    run:
+        logging.basicConfig(level=logging.INFO, filename=log[0], filemode="w")
+        if input:
+            df_stats = pd.concat((pd.read_pickle(i) for i in input), ignore_index=True)
+        else:
+            df_stats = pd.DataFrame()
+        df_stats.to_pickle(str(output))
+
+
 rule aggregate_multimodal_qMT_mp2rage:
     input:
         "data/derivatives/qMT_stats.pickle",
         expand("data/derivatives/{field_strength}/qMT/qMT_to_freesurfer.done", field_strength=field_strength_list)
+
+
+rule aggregate_multimodal_QSM_mp2rage:
+    input:
+        "data/derivatives/QSM_stats.pickle",
+        expand("data/derivatives/{field_strength}/QSM/derivatives/qsmxt/QSM_to_freesurfer.done", field_strength=field_strength_list)
 
 
 rule register_dwi_to_freesurfer_bbregister:
