@@ -25,3 +25,5 @@ crash*
 *.nii*
 *.mgz
 reports/
+*.pdf
+*.png

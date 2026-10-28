@@ -3,7 +3,8 @@ rule multimodal_withinsubj_wholewm_desc_stats:
         dwi="data/derivatives/dwi_stats.pickle",
         ihmt="data/derivatives/ihmt_stats.pickle",
         mp2rage="data/derivatives/MP2RAGE_stats.pickle",
-        qMT="data/derivatives/qMT_stats.pickle"
+        qMT="data/derivatives/qMT_stats.pickle",
+        QSM="data/derivatives/QSM_stats.pickle"
     output:
         "data/derivatives/multimodal_withinsubj_wholewm_desc_stats.csv" 
     conda:
@@ -55,7 +56,7 @@ rule ihmt_b1corr_test_retest:
     conda:
         "../envs/stats_plots.yaml"
     log:
-        "logs/ihmt_b1corr_test_retest.csv"
+        "logs/ihmt_b1corr_test_retest.py.ipynb"
     notebook:
         "../notebooks/ihmt_b1corr_test_retest.py.ipynb"
 
@@ -79,3 +80,17 @@ rule view_ihmt_stats_datavzrd:
             "logs/datavzrd.log"
     wrapper:
             "v9.16.0/utils/datavzrd"
+
+
+rule brainsmash_withinsubject:
+    input:
+        "data/derivatives/3T/MP2RAGE_R1map_b1corr_coreg.done"
+    output:
+        "data/derivatives/brainsmash_pearson.csv"
+    conda:
+        "../envs/stats_plots.yaml"
+    log:
+        "logs/brainsmash_pearson.py.ipynb"
+    notebook:
+        "../notebooks/brainsmash.py.ipynb"
+    
